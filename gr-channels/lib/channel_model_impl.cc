@@ -21,7 +21,7 @@
  */
 
 #include "channel_model_impl.h"
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 #include <iostream>
 
 namespace gr {
@@ -48,9 +48,9 @@ namespace gr {
 					   double epsilon,
 					   const std::vector<gr_complex> &taps,
 					   double noise_seed)
-      : gr_hier_block2("channel_model",
-		       gr_make_io_signature(1, 1, sizeof(gr_complex)),
-		       gr_make_io_signature(1, 1, sizeof(gr_complex)))
+      : hier_block2("channel_model",
+		       io_signature::make(1, 1, sizeof(gr_complex)),
+		       io_signature::make(1, 1, sizeof(gr_complex)))
     {
       d_taps = taps;
       while(d_taps.size() < 2) {
@@ -142,24 +142,24 @@ namespace gr {
 	  alias(), "noise",
 	  &channel_model::noise_voltage,
 	  pmt::mp(-10.0f), pmt::mp(10.0f), pmt::mp(0.0f),
-	  "", "Noise Voltage",
-	  RPC_PRIVLVL_MIN, DISPTIMESERIESF)));
+	  "", "Noise Voltage", RPC_PRIVLVL_MIN,
+          DISPTIME | DISPOPTSTRIP)));
 
       add_rpc_variable(
         rpcbasic_sptr(new rpcbasic_register_get<channel_model, double>(
            alias(), "freq",
 	   &channel_model::frequency_offset,
 	   pmt::mp(-1.0f), pmt::mp(1.0f), pmt::mp(0.0f),
-	   "Hz", "Frequency Offset",
-	   RPC_PRIVLVL_MIN, DISPTIMESERIESF)));
+	   "Hz", "Frequency Offset", RPC_PRIVLVL_MIN,
+           DISPTIME | DISPOPTSTRIP)));
 
       add_rpc_variable(
         rpcbasic_sptr(new rpcbasic_register_get<channel_model, double>(
 	  alias(), "timing",
 	  &channel_model::timing_offset,
 	  pmt::mp(0.0), pmt::mp(2.0), pmt::mp(0.0),
-	  "", "Timing Offset",
-	  RPC_PRIVLVL_MIN, DISPTIMESERIESF)));
+	  "", "Timing Offset", RPC_PRIVLVL_MIN,
+          DISPTIME | DISPOPTSTRIP)));
 	  
       add_rpc_variable(
         rpcbasic_sptr(new rpcbasic_register_get<channel_model, std::vector<gr_complex> >(
@@ -168,8 +168,8 @@ namespace gr {
 	  pmt::make_c32vector(0,-10),
 	  pmt::make_c32vector(0,10),
 	  pmt::make_c32vector(0,0),
-	  "", "Multipath taps",
-	  RPC_PRIVLVL_MIN, DISPTIMESERIESC)));
+	  "", "Multipath taps", RPC_PRIVLVL_MIN,
+          DISPTIME | DISPOPTCPLX | DISPOPTSTRIP)));
 
       add_rpc_variable(
         rpcbasic_sptr(new rpcbasic_register_set<channel_model, double>(

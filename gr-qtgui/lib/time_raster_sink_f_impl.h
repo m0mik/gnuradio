@@ -23,12 +23,12 @@
 #ifndef INCLUDED_QTGUI_TIME_RASTER_SINK_F_IMPL_H
 #define INCLUDED_QTGUI_TIME_RASTER_SINK_F_IMPL_H
 
-#include <qtgui/time_raster_sink_f.h>
-#include <filter/firdes.h>
-#include <fft/fft.h>
-#include <gruel/high_res_timer.h>
-#include <gruel/thread.h>
-#include <timerasterdisplayform.h>
+#include <gnuradio/qtgui/time_raster_sink_f.h>
+#include <gnuradio/filter/firdes.h>
+#include <gnuradio/fft/fft.h>
+#include <gnuradio/high_res_timer.h>
+#include <gnuradio/thread/thread.h>
+#include <gnuradio/qtgui/timerasterdisplayform.h>
 
 namespace gr {
   namespace qtgui {
@@ -55,8 +55,8 @@ namespace gr {
       std::vector<float> d_offset;
       double d_samp_rate;
 
-      gruel::high_res_timer_type d_update_time;
-      gruel::high_res_timer_type d_last_time;
+      gr::high_res_timer_type d_update_time;
+      gr::high_res_timer_type d_last_time;
 
     public:
       time_raster_sink_f_impl(double samp_rate,
@@ -76,21 +76,41 @@ namespace gr {
 
       void set_update_time(double t);
       void set_title(const std::string &title);
-      void set_line_label(const std::string &label);
-      void set_line_color(const std::string &color);
-      void set_line_width(int width);
-      void set_line_style(Qt::PenStyle style);
-      void set_line_marker(QwtSymbol::Style marker);
+      void set_line_label(int which, const std::string &label);
+      void set_line_color(int which, const std::string &color);
+      void set_line_width(int which, int width);
+      void set_line_style(int which, Qt::PenStyle style);
+      void set_line_marker(int which, QwtSymbol::Style marker);
+      void set_line_alpha(int which, double alpha);
+      void set_color_map(int which, const int color);
+
+      std::string title();
+      std::string line_label(int which);
+      std::string line_color(int which);
+      int line_width(int which);
+      int line_style(int which);
+      int line_marker(int which);
+      double line_alpha(int which);
+      int color_map(int which);
 
       void set_size(int width, int height);
 
+      void set_samp_rate(const double samp_rate);
       void set_num_rows(double rows);
       void set_num_cols(double cols);
+
+      double num_rows();
+      double num_cols();
 
       void set_multiplier(const std::vector<float> &mult);
       void set_offset(const std::vector<float> &offset);
 
       void set_intensity_range(float min, float max);
+
+      void enable_menu(bool en);
+      void enable_grid(bool en);
+      void enable_autoscale(bool en);
+      void reset();
 
       int work(int noutput_items,
 	       gr_vector_const_void_star &input_items,

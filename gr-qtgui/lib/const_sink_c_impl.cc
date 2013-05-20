@@ -25,10 +25,10 @@
 #endif
 
 #include "const_sink_c_impl.h"
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 #include <string.h>
 #include <volk/volk.h>
-#include <fft/fft.h>
+#include <gnuradio/fft/fft.h>
 #include <qwt_symbol.h>
 
 namespace gr {
@@ -48,9 +48,9 @@ namespace gr {
 					 const std::string &name,
 					 int nconnections,
 					 QWidget *parent)
-      : gr_sync_block("const_sink_c",
-		      gr_make_io_signature(nconnections, nconnections, sizeof(gr_complex)),
-		      gr_make_io_signature(0, 0, 0)),
+      : sync_block("const_sink_c",
+		      io_signature::make(nconnections, nconnections, sizeof(gr_complex)),
+		      io_signature::make(0, 0, 0)),
 	d_size(size), d_name(name),
 	d_nconnections(nconnections), d_parent(parent)
     {
@@ -75,6 +75,9 @@ namespace gr {
 
     const_sink_c_impl::~const_sink_c_impl()
     {
+      if(!d_main_gui->isClosed())
+        d_main_gui->close();
+
       // d_main_gui is a qwidget destroyed with its parent
       for(int i = 0; i < d_nconnections; i++) {
 	fft::free(d_residbufs_real[i]);
@@ -104,7 +107,6 @@ namespace gr {
       d_main_gui->setNPoints(d_size);
       // initialize update time to 10 times a second
       set_update_time(0.1);
-      d_last_time = 0;
     }
 
     void
@@ -143,9 +145,10 @@ namespace gr {
     const_sink_c_impl::set_update_time(double t)
     {
       //convert update time to ticks
-      gruel::high_res_timer_type tps = gruel::high_res_timer_tps();
+      gr::high_res_timer_type tps = gr::high_res_timer_tps();
       d_update_time = t * tps;
       d_main_gui->setUpdateTime(t);
+      d_last_time = 0;
     }
 
     void
@@ -241,7 +244,7 @@ namespace gr {
     void
     const_sink_c_impl::set_nsamps(const int newsize)
     {
-      gruel::scoped_lock lock(d_mutex);
+      gr::thread::scoped_lock lock(d_mutex);
 
       if(newsize != d_size) {
 	// Resize residbuf and replace data
@@ -284,6 +287,12 @@ namespace gr {
     }
 
     void
+    const_sink_c_impl::enable_autoscale(bool en)
+    {
+      d_main_gui->autoScale(en);
+    }
+
+    void
     const_sink_c_impl::reset()
     {
       d_index = 0;
@@ -316,8 +325,8 @@ namespace gr {
 	  }
 
 	  // Update the plot if its time
-	  if(gruel::high_res_timer_now() - d_last_time > d_update_time) {
-	    d_last_time = gruel::high_res_timer_now();
+	  if(gr::high_res_timer_now() - d_last_time > d_update_time) {
+	    d_last_time = gr::high_res_timer_now();
 	    d_qApplication->postEvent(d_main_gui,
 				      new ConstUpdateEvent(d_residbufs_real,
 							   d_residbufs_imag,

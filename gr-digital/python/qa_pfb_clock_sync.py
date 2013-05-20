@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2011 Free Software Foundation, Inc.
+# Copyright 2011,2013 Free Software Foundation, Inc.
 # 
 # This file is part of GNU Radio
 # 
@@ -23,6 +23,7 @@
 from gnuradio import gr, gr_unittest
 import filter_swig as filter
 import digital_swig as digital
+import blocks_swig as blocks
 import random, cmath
 
 class test_pfb_clock_sync(gr_unittest.TestCase):
@@ -45,8 +46,8 @@ class test_pfb_clock_sync(gr_unittest.TestCase):
         osps = 1
         
         ntaps = 11 * int(sps*nfilts)
-        taps = gr.firdes.root_raised_cosine(nfilts, nfilts*sps,
-                                            1.0, excess_bw, ntaps)
+        taps = filter.firdes.root_raised_cosine(nfilts, nfilts*sps,
+                                                1.0, excess_bw, ntaps)
 
         self.test = digital.pfb_clock_sync_ccf(sps, loop_bw, taps,
                                                nfilts, init_phase,
@@ -54,10 +55,10 @@ class test_pfb_clock_sync(gr_unittest.TestCase):
                                                osps)
         
         data = 10000*[complex(1,0), complex(-1,0)]
-        self.src = gr.vector_source_c(data, False)
+        self.src = blocks.vector_source_c(data, False)
 
         # pulse shaping interpolation filter
-        rrc_taps = gr.firdes.root_raised_cosine(
+        rrc_taps = filter.firdes.root_raised_cosine(
             nfilts,          # gain
             nfilts,          # sampling rate based on 32 filters in resampler
             1.0,             # symbol rate
@@ -65,7 +66,7 @@ class test_pfb_clock_sync(gr_unittest.TestCase):
             ntaps)
         self.rrc_filter = filter.pfb_arb_resampler_ccf(sps, rrc_taps)
 
-        self.snk = gr.vector_sink_c()
+        self.snk = blocks.vector_sink_c()
 
         self.tb.connect(self.src, self.rrc_filter, self.test, self.snk)
         self.tb.run()
@@ -98,8 +99,8 @@ class test_pfb_clock_sync(gr_unittest.TestCase):
         osps = 1
         
         ntaps = 11 * int(sps*nfilts)
-        taps = gr.firdes.root_raised_cosine(nfilts, nfilts*sps,
-                                            1.0, excess_bw, ntaps)
+        taps = filter.firdes.root_raised_cosine(nfilts, nfilts*sps,
+                                                1.0, excess_bw, ntaps)
 
         self.test = digital.pfb_clock_sync_fff(sps, loop_bw, taps,
                                                nfilts, init_phase,
@@ -107,10 +108,10 @@ class test_pfb_clock_sync(gr_unittest.TestCase):
                                                osps)
         
         data = 10000*[1, -1]
-        self.src = gr.vector_source_f(data, False)
+        self.src = blocks.vector_source_f(data, False)
 
         # pulse shaping interpolation filter
-        rrc_taps = gr.firdes.root_raised_cosine(
+        rrc_taps = filter.firdes.root_raised_cosine(
             nfilts,          # gain
             nfilts,          # sampling rate based on 32 filters in resampler
             1.0,             # symbol rate
@@ -118,7 +119,7 @@ class test_pfb_clock_sync(gr_unittest.TestCase):
             ntaps)
         self.rrc_filter = filter.pfb_arb_resampler_fff(sps, rrc_taps)
 
-        self.snk = gr.vector_sink_f()
+        self.snk = blocks.vector_sink_f()
 
         self.tb.connect(self.src, self.rrc_filter, self.test, self.snk)
         self.tb.run()

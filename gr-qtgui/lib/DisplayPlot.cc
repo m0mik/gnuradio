@@ -20,7 +20,7 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#include <DisplayPlot.h>
+#include <gnuradio/qtgui/DisplayPlot.h>
 
 #include <qwt_scale_draw.h>
 #include <qwt_legend.h>
@@ -55,7 +55,7 @@ DisplayPlot::DisplayPlot(int nplots, QWidget* parent)
 
   _panner = new QwtPlotPanner(canvas());
   _panner->setAxisEnabled(QwtPlot::yRight, false);
-  _panner->setMouseButton(Qt::MidButton);
+  _panner->setMouseButton(Qt::MidButton, Qt::ControlModifier);
 
   // emit the position of clicks on widget
   _picker = new QwtDblClickPlotPicker(canvas());

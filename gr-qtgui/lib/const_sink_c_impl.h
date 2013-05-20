@@ -23,10 +23,10 @@
 #ifndef INCLUDED_QTGUI_CONST_SINK_C_IMPL_H
 #define INCLUDED_QTGUI_CONST_SINK_C_IMPL_H
 
-#include <qtgui/const_sink_c.h>
-#include <gruel/high_res_timer.h>
-#include <gruel/thread.h>
-#include <constellationdisplayform.h>
+#include <gnuradio/qtgui/const_sink_c.h>
+#include <gnuradio/high_res_timer.h>
+#include <gnuradio/thread/thread.h>
+#include <gnuradio/qtgui/constellationdisplayform.h>
 
 namespace gr {
   namespace qtgui {
@@ -36,7 +36,7 @@ namespace gr {
     private:
       void initialize();
 
-      gruel::mutex d_mutex;
+      gr::thread::mutex d_mutex;
 
       int d_size;
       std::string d_name;
@@ -49,8 +49,8 @@ namespace gr {
       QWidget *d_parent;
       ConstellationDisplayForm *d_main_gui;
 
-      gruel::high_res_timer_type d_update_time;
-      gruel::high_res_timer_type d_last_time;
+      gr::high_res_timer_type d_update_time;
+      gr::high_res_timer_type d_last_time;
 
       void npoints_resize();
 
@@ -92,6 +92,7 @@ namespace gr {
 
       int nsamps() const;
       void enable_menu(bool en);
+      void enable_autoscale(bool en);
       void reset();
 
       int work(int noutput_items,

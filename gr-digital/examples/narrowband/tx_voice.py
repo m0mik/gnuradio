@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2005-2007,2009,2011 Free Software Foundation, Inc.
+# Copyright 2005-2007,2009,2011,2013 Free Software Foundation, Inc.
 # 
 # This file is part of GNU Radio
 # 
@@ -55,7 +55,7 @@ class audio_rx(gr.hier_block2):
         f2s = blocks.float_to_short()
         voice_coder = vocoder.gsm_fr_encode_sp()
         self.packets_from_encoder = gr.msg_queue()
-        packet_sink = gr.message_sink(33, self.packets_from_encoder, False)
+        packet_sink = blocks.message_sink(33, self.packets_from_encoder, False)
         self.connect(src, src_scale, f2s, voice_coder, packet_sink)
 
     def get_encoded_voice_packet(self):
@@ -80,10 +80,10 @@ class my_top_block(gr.top_block):
             rrate = usrp_rate / audio_rate
             
         elif(options.to_file is not None):
-            self.sink = gr.file_sink(gr.sizeof_gr_complex, options.to_file)
+            self.sink = blocks.file_sink(gr.sizeof_gr_complex, options.to_file)
             rrate = 1
         else:
-            self.sink = gr.null_sink(gr.sizeof_gr_complex)
+            self.sink = blocks.null_sink(gr.sizeof_gr_complex)
             rrate = 1
 
         self.resampler = filter.pfb.arb_resampler_ccf(rrate)

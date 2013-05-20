@@ -30,10 +30,9 @@ find_package(FFTW3f)
 include(GrComponent)
 
 GR_REGISTER_COMPONENT("gr-fft" ENABLE_GR_FFT
-    ENABLE_GRUEL
     ENABLE_VOLK
     Boost_FOUND
-    ENABLE_GR_CORE
+    ENABLE_GNURADIO_RUNTIME
     ENABLE_GR_BLOCKS
     FFTW3F_FOUND
 )
@@ -58,34 +57,34 @@ CPACK_COMPONENT("fft_runtime"
     GROUP        "FFT"
     DISPLAY_NAME "Runtime"
     DESCRIPTION  "Runtime"
-    DEPENDS      "core_runtime"
+    DEPENDS      "runtime_runtime"
 )
 
 CPACK_COMPONENT("fft_devel"
     GROUP        "FFT"
     DISPLAY_NAME "Development"
     DESCRIPTION  "C++ headers, package config, import libraries"
-    DEPENDS      "core_devel"
+    DEPENDS      "runtime_devel"
 )
 
 CPACK_COMPONENT("fft_python"
     GROUP        "FFT"
     DISPLAY_NAME "Python"
     DESCRIPTION  "Python modules for runtime; GRC xml files"
-    DEPENDS      "core_python;fft_runtime"
+    DEPENDS      "runtime_python;fft_runtime"
 )
 
 CPACK_COMPONENT("fft_swig"
     GROUP        "FFT"
     DISPLAY_NAME "SWIG"
     DESCRIPTION  "SWIG development .i files"
-    DEPENDS      "core_swig;fft_python;fft_devel"
+    DEPENDS      "runtime_swig;fft_python;fft_devel"
 )
 
 ########################################################################
 # Add subdirectories
 ########################################################################
-add_subdirectory(include/fft)
+add_subdirectory(include/gnuradio/fft)
 add_subdirectory(lib)
 if(ENABLE_PYTHON)
     add_subdirectory(swig)

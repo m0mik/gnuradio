@@ -20,7 +20,7 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#include <displayform.h>
+#include <gnuradio/qtgui/displayform.h>
 #include <iostream>
 #include <QPixmap>
 #include <QFileDialog>
@@ -28,6 +28,8 @@
 DisplayForm::DisplayForm(int nplots, QWidget* parent)
   : QWidget(parent), _nplots(nplots), _systemSpecifiedFlag(false)
 {
+  _isclosed = false;
+
   // Set the initial plot size
   resize(QSize(800, 600));
 
@@ -41,9 +43,11 @@ DisplayForm::DisplayForm(int nplots, QWidget* parent)
   connect(_stop_act, SIGNAL(triggered()), this, SLOT(setStop()));
   _stop_state = false;
 
-  _grid_act = new QAction("Grid On", this);
+  _grid_act = new QAction("Grid", this);
+  _grid_act->setCheckable(true);
   _grid_act->setStatusTip(tr("Toggle Grid on/off"));
-  connect(_grid_act, SIGNAL(triggered()), this, SLOT(setGrid()));
+  connect(_grid_act, SIGNAL(triggered(bool)),
+          this, SLOT(setGrid(bool)));
   _grid_state = false;
 
   // Create a pop-up menu for manipulating the figure
@@ -98,9 +102,17 @@ DisplayForm::DisplayForm(int nplots, QWidget* parent)
     _menu->addMenu(_lines_menu[i]);
   }
 
-  _autoscale_act = new QAction("Auto Scale On", this);
+  _samp_rate_act = new PopupMenu("Sample Rate", this);
+  _samp_rate_act->setStatusTip(tr("Set Sample Rate"));
+  connect(_samp_rate_act, SIGNAL(whichTrigger(QString)),
+	  this, SLOT(setSampleRate(QString)));
+  _menu->addAction(_samp_rate_act);
+
+  _autoscale_act = new QAction("Auto Scale", this);
   _autoscale_act->setStatusTip(tr("Autoscale Plot"));
-  connect(_autoscale_act, SIGNAL(triggered()), this, SLOT(autoScale()));
+  _autoscale_act->setCheckable(true);
+  connect(_autoscale_act, SIGNAL(triggered(bool)),
+	  this, SLOT(autoScale(bool)));
   _autoscale_state = false;
   _menu->addAction(_autoscale_act);
 
@@ -118,6 +130,8 @@ DisplayForm::DisplayForm(int nplots, QWidget* parent)
 
 DisplayForm::~DisplayForm()
 {
+  _isclosed = true;
+
   // Qt deletes children when parent is deleted
 
   // Don't worry about deleting Display Plots - they are deleted when parents are deleted
@@ -136,33 +150,18 @@ DisplayForm::resizeEvent( QResizeEvent *e )
 void
 DisplayForm::mousePressEvent( QMouseEvent * e)
 {
-  if((e->button() == Qt::RightButton) && (_menu_on)) {
-    QwtPlotLayout *plt = _displayPlot->plotLayout();
-    QRectF cvs = plt->canvasRect();
-    
-    QRect plotrect;
-    plotrect.setLeft(cvs.x()-plt->spacing()-plt->canvasMargin(0));
-    plotrect.setRight(cvs.x()+cvs.width()+plt->spacing()+plt->canvasMargin(0));
-    plotrect.setBottom(cvs.y()-plt->spacing()-plt->canvasMargin(0));
-    plotrect.setTop(cvs.y()+cvs.width()+plt->spacing()+plt->canvasMargin(0));
+  bool ctrloff = Qt::ControlModifier != QApplication::keyboardModifiers();
+  if((e->button() == Qt::MidButton) && ctrloff && (_menu_on)) {
+    if(_stop_state == false)
+      _stop_act->setText(tr("Stop"));
+    else
+      _stop_act->setText(tr("Start"));
 
-    if(!plotrect.contains(e->pos())) {
-      if(_stop_state == false)
-	_stop_act->setText(tr("Stop"));
-      else
-	_stop_act->setText(tr("Start"));
-
-      if(_grid_state == false)
-	_grid_act->setText(tr("Grid On"));
-      else
-	_grid_act->setText(tr("Grid Off"));
-
-      // Update the line titles if changed externally
-      for(int i = 0; i < _nplots; i++) {
-	_lines_menu[i]->setTitle(_displayPlot->getLineLabel(i));
-      }
-      _menu->exec(e->globalPos());
+    // Update the line titles if changed externally
+    for(int i = 0; i < _nplots; i++) {
+      _lines_menu[i]->setTitle(_displayPlot->getLineLabel(i));
     }
+    _menu->exec(e->globalPos());
   }
 }
 
@@ -183,6 +182,12 @@ DisplayForm::Reset()
 {
 }
 
+bool
+DisplayForm::isClosed() const
+{
+  return _isclosed;
+}
+
 void
 DisplayForm::enableMenu(bool en)
 {
@@ -190,8 +195,9 @@ DisplayForm::enableMenu(bool en)
 }
 
 void
-DisplayForm::closeEvent( QCloseEvent *e )
+DisplayForm::closeEvent(QCloseEvent *e)
 {
+  _isclosed = true;
   qApp->processEvents();
   QWidget::closeEvent(e);
 }
@@ -330,15 +336,6 @@ DisplayForm::setGrid(bool on)
     _grid_state = false;
   }
   _displayPlot->replot();
-}
-
-void
-DisplayForm::setGrid()
-{
-  if(_grid_state == false)
-    setGrid(true);
-  else
-    setGrid(false);
 }
 
 void

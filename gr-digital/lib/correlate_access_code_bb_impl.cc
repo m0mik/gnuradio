@@ -25,8 +25,8 @@
 #endif
 
 #include "correlate_access_code_bb_impl.h"
-#include <gr_io_signature.h>
-#include <gr_count_bits.h>
+#include <gnuradio/io_signature.h>
+#include <gnuradio/blocks/count_bits.h>
 #include <stdexcept>
 #include <cstdio>
 
@@ -44,9 +44,9 @@ namespace gr {
 
     correlate_access_code_bb_impl::correlate_access_code_bb_impl(
         const std::string &access_code, int threshold)
-      : gr_sync_block("correlate_access_code_bb",
-		      gr_make_io_signature(1, 1, sizeof(char)),
-		      gr_make_io_signature(1, 1, sizeof(char))),
+      : sync_block("correlate_access_code_bb",
+		      io_signature::make(1, 1, sizeof(char)),
+		      io_signature::make(1, 1, sizeof(char))),
 	d_data_reg(0), d_flag_reg(0), d_flag_bit(0), d_mask(0),
 	d_threshold(threshold)
     {
@@ -104,7 +104,7 @@ namespace gr {
 	int new_flag = 0;
 
 	wrong_bits  = (d_data_reg ^ d_access_code) & d_mask;
-	nwrong = gr_count_bits64(wrong_bits);
+	nwrong = gr::blocks::count_bits64(wrong_bits);
 
 	// test for access code with up to threshold errors
 	new_flag = (nwrong <= d_threshold);

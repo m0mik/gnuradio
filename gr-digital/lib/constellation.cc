@@ -24,10 +24,10 @@
 #include "config.h"
 #endif
 
-#include <gr_io_signature.h>
-#include <digital/constellation.h>
-#include <gr_math.h>
-#include <gr_complex.h>
+#include <gnuradio/io_signature.h>
+#include <gnuradio/digital/constellation.h>
+#include <gnuradio/math.h>
+#include <gnuradio/gr_complex.h>
 #include <math.h>
 #include <iostream>
 #include <stdlib.h>
@@ -374,6 +374,45 @@ namespace gr {
       return closest_point;
     }
 
+
+    /********************************************************************/
+
+
+    constellation_expl_rect::sptr 
+    constellation_expl_rect::make(std::vector<gr_complex> constellation,
+                                  std::vector<int> pre_diff_code,
+                                  unsigned int rotational_symmetry,
+                                  unsigned int real_sectors,
+                                  unsigned int imag_sectors,
+                                  float width_real_sectors,
+                                  float width_imag_sectors,
+                                  std::vector<unsigned int> sector_values)
+    {
+      return constellation_expl_rect::sptr
+        (new constellation_expl_rect(constellation, pre_diff_code,
+                                     rotational_symmetry,
+                                     real_sectors, imag_sectors,
+                                     width_real_sectors, width_imag_sectors,
+                                     sector_values));
+    }
+
+    constellation_expl_rect::constellation_expl_rect(std::vector<gr_complex> constellation,
+                                                     std::vector<int> pre_diff_code,
+                                                     unsigned int rotational_symmetry,
+                                                     unsigned int real_sectors,
+                                                     unsigned int imag_sectors,
+                                                     float width_real_sectors,
+                                                     float width_imag_sectors,
+                                                     std::vector<unsigned int> sector_values)
+      : constellation_rect(constellation, pre_diff_code, rotational_symmetry,
+                           real_sectors, imag_sectors, width_real_sectors, width_imag_sectors),
+        d_sector_values(sector_values)
+    {
+    }
+
+    constellation_expl_rect::~constellation_expl_rect()
+    {
+    }
 
     /********************************************************************/
 

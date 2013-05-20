@@ -72,26 +72,26 @@ class ofdm_sync_pnac(gr.hier_block2):
         self.crosscorr_filter = filter.fir_filter_ccc(1, kstime)
         
         # Create a delay line
-        self.delay = gr.delay(gr.sizeof_gr_complex, fft_length/2)
+        self.delay = blocks.delay(gr.sizeof_gr_complex, fft_length/2)
 
         # Correlation from ML Sync
         self.conjg = blocks.conjugate_cc();
         self.corr = blocks.multiply_cc();
 
         # Create a moving sum filter for the input
-        self.mag = gr.complex_to_mag_squared()
+        self.mag = blocks.complex_to_mag_squared()
         movingsum_taps = (fft_length//1)*[1.0,]
         self.power = filter.fir_filter_fff(1,movingsum_taps)
      
         # Get magnitude (peaks) and angle (phase/freq error)
-        self.c2mag = gr.complex_to_mag_squared()
-        self.angle = gr.complex_to_arg()
+        self.c2mag = blocks.complex_to_mag_squared()
+        self.angle = blocks.complex_to_arg()
         self.compare = blocks.sub_ff()
         
-        self.sample_and_hold = gr.sample_and_hold_ff()
+        self.sample_and_hold = blocks.sample_and_hold_ff()
 
         #ML measurements input to sampler block and detect
-        self.threshold = gr.threshold_ff(0,0,0)      # threshold detection might need to be tweaked
+        self.threshold = blocks.threshold_ff(0,0,0)      # threshold detection might need to be tweaked
         self.peaks = blocksx.float_to_char()
 
         self.connect(self, self.input)
@@ -125,11 +125,11 @@ class ofdm_sync_pnac(gr.hier_block2):
         self.connect(self.peaks, (self,1))
 
         if logging:
-            self.connect(self.compare, gr.file_sink(gr.sizeof_float, "ofdm_sync_pnac-compare_f.dat"))
-            self.connect(self.c2mag, gr.file_sink(gr.sizeof_float, "ofdm_sync_pnac-theta_f.dat"))
-            self.connect(self.power, gr.file_sink(gr.sizeof_float, "ofdm_sync_pnac-inputpower_f.dat"))
-            self.connect(self.angle, gr.file_sink(gr.sizeof_float, "ofdm_sync_pnac-epsilon_f.dat"))
-            self.connect(self.threshold, gr.file_sink(gr.sizeof_float, "ofdm_sync_pnac-threshold_f.dat"))
-            self.connect(self.peaks, gr.file_sink(gr.sizeof_char, "ofdm_sync_pnac-peaks_b.dat"))
-            self.connect(self.sample_and_hold, gr.file_sink(gr.sizeof_float, "ofdm_sync_pnac-sample_and_hold_f.dat"))
-            self.connect(self.input, gr.file_sink(gr.sizeof_gr_complex, "ofdm_sync_pnac-input_c.dat"))
+            self.connect(self.compare, blocks.file_sink(gr.sizeof_float, "ofdm_sync_pnac-compare_f.dat"))
+            self.connect(self.c2mag, blocks.file_sink(gr.sizeof_float, "ofdm_sync_pnac-theta_f.dat"))
+            self.connect(self.power, blocks.file_sink(gr.sizeof_float, "ofdm_sync_pnac-inputpower_f.dat"))
+            self.connect(self.angle, blocks.file_sink(gr.sizeof_float, "ofdm_sync_pnac-epsilon_f.dat"))
+            self.connect(self.threshold, blocks.file_sink(gr.sizeof_float, "ofdm_sync_pnac-threshold_f.dat"))
+            self.connect(self.peaks, blocks.file_sink(gr.sizeof_char, "ofdm_sync_pnac-peaks_b.dat"))
+            self.connect(self.sample_and_hold, blocks.file_sink(gr.sizeof_float, "ofdm_sync_pnac-sample_and_hold_f.dat"))
+            self.connect(self.input, blocks.file_sink(gr.sizeof_gr_complex, "ofdm_sync_pnac-input_c.dat"))

@@ -106,11 +106,11 @@ class trellis_tb(gr.top_block):
         K = packet_size/bitspersymbol
 
         # TX
-        src = gr.lfsr_32k_source_s()
+        src = blocks.lfsr_32k_source_s()
         # packet size in shorts
-        src_head = gr.head (gr.sizeof_short, packet_size/16)
+        src_head = blocks.head(gr.sizeof_short, packet_size/16)
         # unpack shorts to symbols compatible with the FSM input cardinality
-        s2fsmi = gr.packed_to_unpacked_ss(bitspersymbol, gr.GR_MSB_FIRST)
+        s2fsmi = blocks.packed_to_unpacked_ss(bitspersymbol, gr.GR_MSB_FIRST)
         # initial FSM state = 0
         enc = trellis.encoder_ss(f, 0)
         mod = digital.chunks_to_symbols_sc(constellation.points(), 1)
@@ -125,9 +125,9 @@ class trellis_tb(gr.top_block):
         # Put -1 if the Initial/Final states are not set.
         va = trellis.viterbi_s(f, K, 0, -1)
         # pack FSM input symbols to shorts
-        fsmi2s = gr.unpacked_to_packed_ss(bitspersymbol, gr.GR_MSB_FIRST)
+        fsmi2s = blocks.unpacked_to_packed_ss(bitspersymbol, gr.GR_MSB_FIRST)
         # check the output
-        self.dst = gr.check_lfsr_32k_s()
+        self.dst = blocks.check_lfsr_32k_s()
 
         self.connect (src, src_head, s2fsmi, enc, mod)
         self.connect (mod, (add, 0))

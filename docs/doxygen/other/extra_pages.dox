@@ -70,15 +70,14 @@ audio-osx and audio-windows to be either satisfied or built.
 \subsection dep_uhd uhd: The Ettus USRP Hardware Driver Interface
 \li uhd         (>= 3.0.0)   http://code.ettus.com/redmine/ettus/projects/uhd/wiki
 
-\subsection dep_shd shd: The Symplex Hardware Driver Interface
-\li shd         (>= 3.0.0)
-
 \subsection dep_gr_video_sdl gr-video-sdl: PAL and NTSC display
 \li SDL	        (>= 1.2.0)   http://www.libsdl.org/download-1.2.php
 
 \subsection dep_gr_comedi gr-comedi: Comedi hardware interface
 \li comedilib   (>= 0.8)     http://www.comedi.org/
 
+\subsection dep_gr_log gr-log: Logging Tools (Optional)
+\li log4cpp     (>= 1.0)  http://log4cpp.sourceforge.net/
 
 
 \section build_gr_cmake Building GNU Radio
@@ -120,11 +119,11 @@ built or installed.
 
 The -DENABLE_DEFAULT=False can be used to disable all
 components. Individual components can then be selectively turned back
-on. For example, just buidling the Volk and Gruel libraries can be
+on. For example, just buidling the Volk library can be
 done with this:
 
 \code
-cmake -DENABLE_DEFAULT=Off -DENABLE_VOLK=True -DENABLE_GRUEL=True <srcdir>
+cmake -DENABLE_DEFAULT=Off -DENABLE_VOLK=True <srcdir>
 \endcode
 
 

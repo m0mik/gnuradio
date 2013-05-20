@@ -47,6 +47,8 @@ if(ENABLE_TESTING)
 list(APPEND GR_TEST_PYTHON_DIRS
     ${CMAKE_BINARY_DIR}/gr-analog/python
     ${CMAKE_BINARY_DIR}/gr-analog/swig
+    ${CMAKE_BINARY_DIR}/gr-blocks/python
+    ${CMAKE_BINARY_DIR}/gr-blocks/swig
     ${CMAKE_BINARY_DIR}/gr-filter/python
     ${CMAKE_BINARY_DIR}/gr-filter/swig
 )
@@ -59,3 +61,4 @@ foreach(py_qa_test_file ${py_qa_test_files})
     GR_ADD_TEST(${py_qa_test_name} ${PYTHON_EXECUTABLE} ${PYTHON_DASH_B} ${py_qa_test_file})
 endforeach(py_qa_test_file)
 endif(ENABLE_TESTING)
+

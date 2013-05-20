@@ -27,7 +27,7 @@
 #endif
 
 #include "@IMPL_NAME@.h"
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 #include <stdexcept>
 
 namespace gr {
@@ -41,9 +41,9 @@ namespace gr {
     }
 
     @IMPL_NAME@::@IMPL_NAME@(noise_type_t type, float ampl, long seed)
-    : gr_sync_block("@BASE_NAME@",
-		    gr_make_io_signature(0, 0, 0),
-		    gr_make_io_signature(1, 1, sizeof(@TYPE@))),
+    : sync_block("@BASE_NAME@",
+		    io_signature::make(0, 0, 0),
+		    io_signature::make(1, 1, sizeof(@TYPE@))),
       d_type(type),
       d_ampl(ampl),
       d_rng(seed)
@@ -54,11 +54,27 @@ namespace gr {
     {
     }
 
+    void
+    @IMPL_NAME@::set_type(noise_type_t type)
+    {
+      gr::thread::scoped_lock l(d_setlock);
+      d_type = type;
+    }
+
+    void
+    @IMPL_NAME@::set_amplitude(float ampl)
+    {
+      gr::thread::scoped_lock l(d_setlock);
+      d_ampl = ampl;
+    }
+
     int
     @IMPL_NAME@::work(int noutput_items,
 		      gr_vector_const_void_star &input_items,
 		      gr_vector_void_star &output_items)
     {
+      gr::thread::scoped_lock l(d_setlock);
+
       @TYPE@ *out = (@TYPE@*)output_items[0];
 
       switch(d_type) {

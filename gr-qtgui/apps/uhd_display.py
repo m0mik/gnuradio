@@ -194,7 +194,7 @@ class my_top_block(gr.top_block):
         self._fftsize = options.fft_size
 
         self.snk = qtgui.sink_c(options.fft_size,
-                                gr.firdes.WIN_BLACKMAN_hARRIS,
+                                filter.firdes.WIN_BLACKMAN_hARRIS,
                                 self._freq, self._bandwidth,
                                 "UHD Display",
                                 True, True, True, False)
@@ -235,7 +235,7 @@ class my_top_block(gr.top_block):
         self.lock()
 
         # Add file sink to save data
-        self.file_sink = gr.file_sink(gr.sizeof_gr_complex, name)
+        self.file_sink = blocks.file_sink(gr.sizeof_gr_complex, name)
         self.connect(self.amp, self.file_sink)
 
         self.unlock()

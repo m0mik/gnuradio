@@ -58,12 +58,12 @@ class ofdm_sync_ml(gr.hier_block2):
         self.connect(self, self.input)
 
         # Create a delay line
-        self.delay = gr.delay(gr.sizeof_gr_complex, fft_length)
+        self.delay = blocks.delay(gr.sizeof_gr_complex, fft_length)
         self.connect(self.input, self.delay)
 
         # magnitude squared blocks
-        self.magsqrd1 = gr.complex_to_mag_squared()
-        self.magsqrd2 = gr.complex_to_mag_squared()
+        self.magsqrd1 = blocks.complex_to_mag_squared()
+        self.magsqrd2 = blocks.complex_to_mag_squared()
         self.adder = blocks.add_ff()
 
         moving_sum_taps = [rho/2 for i in range(cp_length)]
@@ -84,8 +84,8 @@ class ofdm_sync_ml(gr.hier_block2):
         self.movingsum2 = filter.fir_filter_ccf(1,movingsum2_taps)
         
         # Correlator data handler
-        self.c2mag = gr.complex_to_mag()
-        self.angle = gr.complex_to_arg()
+        self.c2mag = blocks.complex_to_mag()
+        self.angle = blocks.complex_to_arg()
         self.connect(self.input,(self.mixer,1))
         self.connect(self.delay,self.conjg,(self.mixer,0))
         self.connect(self.mixer,self.movingsum2,self.c2mag)
@@ -98,8 +98,8 @@ class ofdm_sync_ml(gr.hier_block2):
 
         #ML measurements input to sampler block and detect
         self.f2c = blocks.float_to_complex()
-        self.pk_detect = gr.peak_detector_fb(0.2, 0.25, 30, 0.0005)
-        self.sample_and_hold = gr.sample_and_hold_ff()
+        self.pk_detect = blocks.peak_detector_fb(0.2, 0.25, 30, 0.0005)
+        self.sample_and_hold = blocks.sample_and_hold_ff()
 
         # use the sync loop values to set the sampler and the NCO
         #     self.diff = theta
@@ -126,7 +126,7 @@ class ofdm_sync_ml(gr.hier_block2):
         kstime = [k.conjugate() for k in kstime]
         kstime.reverse()
         self.kscorr = filter.fir_filter_ccc(1, kstime)
-        self.corrmag = gr.complex_to_mag_squared()
+        self.corrmag = blocks.complex_to_mag_squared()
         self.div = blocks.divide_ff()
 
         # The output signature of the correlation has a few spikes because the rest of the
@@ -135,7 +135,7 @@ class ofdm_sync_ml(gr.hier_block2):
         # The output theta of the correlator above is multiplied with this correlation to
         # identify the proper peak and remove other products in this cross-correlation
         self.threshold_factor = 0.1
-        self.slice = gr.threshold_ff(self.threshold_factor, self.threshold_factor, 0)
+        self.slice = blocks.threshold_ff(self.threshold_factor, self.threshold_factor, 0)
         self.f2b = blocks.float_to_char()
         self.b2f = blocks.char_to_float()
         self.mul = blocks.multiply_ff()
@@ -158,18 +158,18 @@ class ofdm_sync_ml(gr.hier_block2):
 
 
         if logging:
-            self.connect(self.moving_sum_filter, gr.file_sink(gr.sizeof_float, "ofdm_sync_ml-energy_f.dat"))
-            self.connect(self.diff, gr.file_sink(gr.sizeof_float, "ofdm_sync_ml-theta_f.dat"))
-            self.connect(self.angle, gr.file_sink(gr.sizeof_float, "ofdm_sync_ml-epsilon_f.dat"))
-            self.connect(self.corrmag, gr.file_sink(gr.sizeof_float, "ofdm_sync_ml-corrmag_f.dat"))
-            self.connect(self.kscorr, gr.file_sink(gr.sizeof_gr_complex, "ofdm_sync_ml-kscorr_c.dat"))
-            self.connect(self.div, gr.file_sink(gr.sizeof_float, "ofdm_sync_ml-div_f.dat"))
-            self.connect(self.mul, gr.file_sink(gr.sizeof_float, "ofdm_sync_ml-mul_f.dat"))
-            self.connect(self.slice, gr.file_sink(gr.sizeof_float, "ofdm_sync_ml-slice_f.dat"))
-            self.connect(self.pk_detect, gr.file_sink(gr.sizeof_char, "ofdm_sync_ml-peaks_b.dat"))
+            self.connect(self.moving_sum_filter, blocks.file_sink(gr.sizeof_float, "ofdm_sync_ml-energy_f.dat"))
+            self.connect(self.diff, blocks.file_sink(gr.sizeof_float, "ofdm_sync_ml-theta_f.dat"))
+            self.connect(self.angle, blocks.file_sink(gr.sizeof_float, "ofdm_sync_ml-epsilon_f.dat"))
+            self.connect(self.corrmag, blocks.file_sink(gr.sizeof_float, "ofdm_sync_ml-corrmag_f.dat"))
+            self.connect(self.kscorr, blocks.file_sink(gr.sizeof_gr_complex, "ofdm_sync_ml-kscorr_c.dat"))
+            self.connect(self.div, blocks.file_sink(gr.sizeof_float, "ofdm_sync_ml-div_f.dat"))
+            self.connect(self.mul, blocks.file_sink(gr.sizeof_float, "ofdm_sync_ml-mul_f.dat"))
+            self.connect(self.slice, blocks.file_sink(gr.sizeof_float, "ofdm_sync_ml-slice_f.dat"))
+            self.connect(self.pk_detect, blocks.file_sink(gr.sizeof_char, "ofdm_sync_ml-peaks_b.dat"))
             if use_dpll:
-                self.connect(self.dpll, gr.file_sink(gr.sizeof_char, "ofdm_sync_ml-dpll_b.dat"))
+                self.connect(self.dpll, blocks.file_sink(gr.sizeof_char, "ofdm_sync_ml-dpll_b.dat"))
 
-            self.connect(self.sample_and_hold, gr.file_sink(gr.sizeof_float, "ofdm_sync_ml-sample_and_hold_f.dat"))
-            self.connect(self.input, gr.file_sink(gr.sizeof_gr_complex, "ofdm_sync_ml-input_c.dat"))
+            self.connect(self.sample_and_hold, blocks.file_sink(gr.sizeof_float, "ofdm_sync_ml-sample_and_hold_f.dat"))
+            self.connect(self.input, blocks.file_sink(gr.sizeof_gr_complex, "ofdm_sync_ml-input_c.dat"))
 

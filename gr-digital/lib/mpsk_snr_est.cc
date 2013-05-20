@@ -24,7 +24,7 @@
 #include <config.h>
 #endif
 
-#include <digital/mpsk_snr_est.h>
+#include <gnuradio/digital/mpsk_snr_est.h>
 #include <stdexcept>
 #include <cstdio>
 
@@ -230,8 +230,8 @@ namespace gr {
 			     const gr_complex *input)
     {
       for(int i = 0; i < noutput_items; i++) {
-	double x = abs(input[i]);
-	double x1 = abs(input[i-1]);
+	double x = abs(input[i+1]);
+	double x1 = abs(input[i]);
 	double y1 = (x*x)*(x1*x1);
 	d_y1 = d_alpha*y1 + d_beta*d_y1;
     

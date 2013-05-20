@@ -22,7 +22,7 @@
 
 #include <cmath>
 #include <QMessageBox>
-#include <freqdisplayform.h>
+#include <gnuradio/qtgui/freqdisplayform.h>
 #include <iostream>
 
 FreqDisplayForm::FreqDisplayForm(int nplots, QWidget* parent)
@@ -111,6 +111,12 @@ FreqDisplayForm::getFFTWindowType() const
 }
 
 void
+FreqDisplayForm::setSampleRate(const QString &samprate)
+{
+  setFrequencyRange(_center_freq, samprate.toDouble());
+}
+
+void
 FreqDisplayForm::setFFTSize(const int newsize)
 {
   _fftsize = newsize;
@@ -141,6 +147,9 @@ FreqDisplayForm::setFrequencyRange(const double centerfreq,
   double units = pow(10, (units10-fmod(units10, 3.0)));
   int iunit = static_cast<int>(units3);
 
+  _center_freq = centerfreq;
+  _samp_rate = bandwidth;
+
   getPlot()->setFrequencyRange(centerfreq, bandwidth,
 			       units, strunits[iunit]);
 }
@@ -152,15 +161,13 @@ FreqDisplayForm::setYaxis(double min, double max)
 }
 
 void
-FreqDisplayForm::autoScale()
+FreqDisplayForm::autoScale(bool en)
 {
-  if(_autoscale_state == true) {
-    _autoscale_act->setText(tr("Auto Scale On"));
-    _autoscale_state = false;
+  if(en) {
+    _autoscale_state = true;
   }
   else {
-    _autoscale_act->setText(tr("Auto Scale Off"));
-    _autoscale_state = true;
+    _autoscale_state = false;
   }
 
   getPlot()->setAutoScale(_autoscale_state);

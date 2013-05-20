@@ -24,17 +24,28 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_BINARY_DIR}
     ${GR_WAVELET_INCLUDE_DIRS}
-    ${GNURADIO_CORE_INCLUDE_DIRS}
-    ${GRUEL_INCLUDE_DIRS}
+    ${GR_BLOCKS_INCLUDE_DIRS}
+    ${GNURADIO_RUNTIME_INCLUDE_DIRS}
+    ${LOG4CXX_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
     ${GSL_INCLUDE_DIRS}
 )
 
 # is this correct?
 link_directories(${GR_WAVELET_LIBRARY_DIRS})
+link_directories(${LOG4CXX_LIBRARY_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
 link_directories(${GSL_LIBRARY_DIRS})
 add_definitions(${GSL_DEFINITIONS})
+
+if(ENABLE_GR_CTRLPORT)
+  ADD_DEFINITIONS(-DGR_CTRLPORT)
+  include_directories(${ICE_INCLUDE_DIR})
+endif(ENABLE_GR_CTRLPORT)
+
+include_directories(${LOG4CPP_INCLUDE_DIRS})
+link_directories(${LOG4CPP_LIBRARY_DIRS})
+
 
 ########################################################################
 # Setup library
@@ -45,11 +56,27 @@ list(APPEND gr_wavelet_sources
     wvps_ff_impl.cc
 )
 
+#Add Windows DLL resource file if using MSVC
+if(MSVC)
+    include(${CMAKE_SOURCE_DIR}/cmake/Modules/GrVersion.cmake)
+
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/gnuradio-wavelet.rc.in
+        ${CMAKE_CURRENT_BINARY_DIR}/gnuradio-wavelet.rc
+    @ONLY)
+
+    list(APPEND gr_wavelet_sources
+        ${CMAKE_CURRENT_BINARY_DIR}/gnuradio-wavelet.rc
+    )
+endif(MSVC)
+
 list(APPEND wavelet_libs
-    gnuradio-core
+    gnuradio-runtime
+    gnuradio-blocks
     ${Boost_LIBRARIES}
     ${WAVELET_LIBRARIES}
     ${GSL_LIBRARIES}
+    ${LOG4CPP_LIBRARIES}
 )
 
 add_library(gnuradio-wavelet SHARED ${gr_wavelet_sources})
@@ -57,4 +84,4 @@ target_link_libraries(gnuradio-wavelet ${wavelet_libs})
 GR_LIBRARY_FOO(gnuradio-wavelet RUNTIME_COMPONENT "wavelet_runtime" DEVEL_COMPONENT "wavelet_devel")
 add_dependencies(gnuradio-wavelet
   wavelet_generated_includes wavelet_generated_swigs
-  gnuradio-core)
+  gnuradio-runtime)

@@ -52,7 +52,7 @@ class ofdm_sync_pn(gr.hier_block2):
         # PN Sync
 
         # Create a delay line
-        self.delay = gr.delay(gr.sizeof_gr_complex, fft_length/2)
+        self.delay = blocks.delay(gr.sizeof_gr_complex, fft_length/2)
 
         # Correlation from ML Sync
         self.conjg = blocks.conjugate_cc();
@@ -67,7 +67,7 @@ class ofdm_sync_pn(gr.hier_block2):
             self.moving_sum_filter = filter.fft_filter_ccc(1,moving_sum_taps)
 
         # Create a moving sum filter for the input
-        self.inputmag2 = gr.complex_to_mag_squared()
+        self.inputmag2 = blocks.complex_to_mag_squared()
         movingsum2_taps = [1.0 for i in range(fft_length//2)]
 
         if 1:
@@ -79,15 +79,15 @@ class ofdm_sync_pn(gr.hier_block2):
         self.normalize = blocks.divide_ff()
      
         # Get magnitude (peaks) and angle (phase/freq error)
-        self.c2mag = gr.complex_to_mag_squared()
-        self.angle = gr.complex_to_arg()
+        self.c2mag = blocks.complex_to_mag_squared()
+        self.angle = blocks.complex_to_arg()
 
-        self.sample_and_hold = gr.sample_and_hold_ff()
+        self.sample_and_hold = blocks.sample_and_hold_ff()
 
         #ML measurements input to sampler block and detect
         self.sub1 = blocks.add_const_ff(-1)
-        self.pk_detect = gr.peak_detector_fb(0.20, 0.20, 30, 0.001)
-        #self.pk_detect = gr.peak_detector2_fb(9)
+        self.pk_detect = blocks.peak_detector_fb(0.20, 0.20, 30, 0.001)
+        #self.pk_detect = blocks.peak_detector2_fb(9)
 
         self.connect(self, self.input)
         
@@ -124,10 +124,10 @@ class ofdm_sync_pn(gr.hier_block2):
         self.connect(self.pk_detect, (self,1))
 
         if logging:
-            self.connect(self.matched_filter, gr.file_sink(gr.sizeof_float, "ofdm_sync_pn-mf_f.dat"))
-            self.connect(self.normalize, gr.file_sink(gr.sizeof_float, "ofdm_sync_pn-theta_f.dat"))
-            self.connect(self.angle, gr.file_sink(gr.sizeof_float, "ofdm_sync_pn-epsilon_f.dat"))
-            self.connect(self.pk_detect, gr.file_sink(gr.sizeof_char, "ofdm_sync_pn-peaks_b.dat"))
-            self.connect(self.sample_and_hold, gr.file_sink(gr.sizeof_float, "ofdm_sync_pn-sample_and_hold_f.dat"))
-            self.connect(self.input, gr.file_sink(gr.sizeof_gr_complex, "ofdm_sync_pn-input_c.dat"))
+            self.connect(self.matched_filter, blocks.file_sink(gr.sizeof_float, "ofdm_sync_pn-mf_f.dat"))
+            self.connect(self.normalize, blocks.file_sink(gr.sizeof_float, "ofdm_sync_pn-theta_f.dat"))
+            self.connect(self.angle, blocks.file_sink(gr.sizeof_float, "ofdm_sync_pn-epsilon_f.dat"))
+            self.connect(self.pk_detect, blocks.file_sink(gr.sizeof_char, "ofdm_sync_pn-peaks_b.dat"))
+            self.connect(self.sample_and_hold, blocks.file_sink(gr.sizeof_float, "ofdm_sync_pn-sample_and_hold_f.dat"))
+            self.connect(self.input, blocks.file_sink(gr.sizeof_gr_complex, "ofdm_sync_pn-input_c.dat"))
 

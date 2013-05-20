@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2012 Free Software Foundation, Inc.
+# Copyright 2012,2013 Free Software Foundation, Inc.
 #
 # This file is part of GNU Radio
 #
@@ -26,7 +26,7 @@ from gnuradio import filter, analog, blocks
 from gnuradio import uhd
 from gnuradio.fft import window
 from gnuradio.eng_option import eng_option
-from gnuradio.gr import firdes
+from gnuradio.filter import firdes
 from optparse import OptionParser
 
 class uhd_burst_detector(gr.top_block):
@@ -51,17 +51,17 @@ class uhd_burst_detector(gr.top_block):
 
         taps = firdes.low_pass_2(1, 1, 0.4, 0.1, 60)
         self.chanfilt = filter.fir_filter_ccc(10, taps)
-        self.tagger = gr.burst_tagger(gr.sizeof_gr_complex)
+        self.tagger = blocks.burst_tagger(gr.sizeof_gr_complex)
 
         # Dummy signaler to collect a burst on known periods
         data = 1000*[0,] + 1000*[1,]
-        self.signal = gr.vector_source_s(data, True)
+        self.signal = blocks.vector_source_s(data, True)
 
         # Energy detector to get signal burst
         ## use squelch to detect energy
         self.det  = analog.simple_squelch_cc(self.threshold, 0.01)
         ## convert to mag squared (float)
-        self.c2m = gr.complex_to_mag_squared()
+        self.c2m = blocks.complex_to_mag_squared()
         ## average to debounce
         self.avg = filter.single_pole_iir_filter_ff(0.01)
         ## rescale signal for conversion to short
@@ -70,7 +70,7 @@ class uhd_burst_detector(gr.top_block):
         self.f2s = blocks.float_to_short()
 
         # Use file sink burst tagger to capture bursts
-        self.fsnk = gr.tagged_file_sink(gr.sizeof_gr_complex, self.samp_rate)
+        self.fsnk = blocks.tagged_file_sink(gr.sizeof_gr_complex, self.samp_rate)
 
 
         ##################################################

@@ -25,7 +25,7 @@
 #endif
 
 #include "pfb_arb_resampler_fff_impl.h"
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 #include <cstdio>
 
 namespace gr {
@@ -44,9 +44,9 @@ namespace gr {
     pfb_arb_resampler_fff_impl::pfb_arb_resampler_fff_impl(float rate,
 							   const std::vector<float> &taps,
 							   unsigned int filter_size)
-      : gr_block("pfb_arb_resampler_fff",
-		 gr_make_io_signature(1, 1, sizeof(float)),
-		 gr_make_io_signature(1, 1, sizeof(float))),
+      : block("pfb_arb_resampler_fff",
+		 io_signature::make(1, 1, sizeof(float)),
+		 io_signature::make(1, 1, sizeof(float))),
 	d_updated(false)
     {
       d_acc = 0; // start accumulator at 0
@@ -147,7 +147,7 @@ namespace gr {
     void
     pfb_arb_resampler_fff_impl::set_taps(const std::vector<float> &taps)
     {
-      gruel::scoped_lock guard(d_mutex);
+      gr::thread::scoped_lock guard(d_mutex);
     }
  
     std::vector<std::vector<float> >
@@ -172,7 +172,7 @@ namespace gr {
     void
     pfb_arb_resampler_fff_impl::set_rate(float rate)
     {
-      gruel::scoped_lock guard(d_mutex);
+      gr::thread::scoped_lock guard(d_mutex);
 
       d_dec_rate = (unsigned int)floor(d_int_rate/rate);
       d_flt_rate = (d_int_rate/rate) - d_dec_rate;
@@ -182,7 +182,7 @@ namespace gr {
     void
     pfb_arb_resampler_fff_impl::set_phase(float ph)
     {
-      gruel::scoped_lock guard(d_mutex);
+      gr::thread::scoped_lock guard(d_mutex);
       if((ph < 0) || (ph >= 2.0*M_PI)) {
 	throw std::runtime_error("pfb_arb_resampler_ccf: set_phase value out of bounds [0, 2pi).\n");
       }
@@ -204,7 +204,7 @@ namespace gr {
 					     gr_vector_const_void_star &input_items,
 					     gr_vector_void_star &output_items)
     {
-      gruel::scoped_lock guard(d_mutex);
+      gr::thread::scoped_lock guard(d_mutex);
 
       float *in = (float*)input_items[0];
       float *out = (float*)output_items[0];

@@ -1,4 +1,4 @@
-# Copyright 2012 Free Software Foundation, Inc.
+# Copyright 2012-2013 Free Software Foundation, Inc.
 #
 # This file is part of GNU Radio
 #
@@ -27,8 +27,7 @@ include_directories(
     ${GR_BLOCKS_INCLUDE_DIRS}
     ${GR_FILTER_INCLUDE_DIRS}
     ${GR_ANALOG_INCLUDE_DIRS}
-    ${GNURADIO_CORE_INCLUDE_DIRS}
-    ${GRUEL_INCLUDE_DIRS}
+    ${GNURADIO_RUNTIME_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
 )
 
@@ -44,11 +43,26 @@ endif(ENABLE_GR_CTRLPORT)
 ########################################################################
 list(APPEND channels_sources
   channel_model_impl.cc
+  fading_model_impl.cc
 )
+
+#Add Windows DLL resource file if using MSVC
+if(MSVC)
+    include(${CMAKE_SOURCE_DIR}/cmake/Modules/GrVersion.cmake)
+
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/gnuradio-channels.rc.in
+        ${CMAKE_CURRENT_BINARY_DIR}/gnuradio-channels.rc
+    @ONLY)
+
+    list(APPEND channels_sources
+        ${CMAKE_CURRENT_BINARY_DIR}/gnuradio-channels.rc
+    )
+endif(MSVC)
 
 list(APPEND channels_libs
     volk
-    gnuradio-core
+    gnuradio-runtime
     gnuradio-filter
     gnuradio-analog
     gnuradio-blocks
@@ -60,4 +74,4 @@ target_link_libraries(gnuradio-channels ${channels_libs})
 GR_LIBRARY_FOO(gnuradio-channels RUNTIME_COMPONENT "channels_runtime" DEVEL_COMPONENT "channels_devel")
 add_dependencies(gnuradio-channels
   channels_generated_includes channels_generated_swigs
-  gnuradio-core gnuradio-filter gnuradio-analog gnuradio-blocks)
+  gnuradio-runtime gnuradio-filter gnuradio-analog gnuradio-blocks)

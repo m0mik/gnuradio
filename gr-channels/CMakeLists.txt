@@ -28,10 +28,9 @@ include(GrBoost)
 include(GrComponent)
 
 GR_REGISTER_COMPONENT("gr-channels" ENABLE_GR_CHANNELS
-    ENABLE_GRUEL
     ENABLE_VOLK
     Boost_FOUND
-    ENABLE_GR_CORE
+    ENABLE_GNURADIO_RUNTIME
     ENABLE_GR_BLOCKS
     ENABLE_GR_FFT
     ENABLE_GR_FILTER
@@ -58,34 +57,34 @@ CPACK_COMPONENT("channels_runtime"
     GROUP        "Channel Models"
     DISPLAY_NAME "Runtime"
     DESCRIPTION  "Runtime"
-    DEPENDS      "core_runtime"
+    DEPENDS      "runtime_runtime"
 )
 
 CPACK_COMPONENT("channels_devel"
     GROUP        "Channel Models"
     DISPLAY_NAME "Development"
     DESCRIPTION  "C++ headers, package config, import libraries"
-    DEPENDS      "core_devel"
+    DEPENDS      "runtime_devel"
 )
 
 CPACK_COMPONENT("channels_python"
     GROUP        "Channel Models"
     DISPLAY_NAME "Python"
     DESCRIPTION  "Python modules for runtime; GRC xml files"
-    DEPENDS      "core_python;channels_runtime"
+    DEPENDS      "runtime_python;channels_runtime"
 )
 
 CPACK_COMPONENT("channels_swig"
     GROUP        "Channel Models"
     DISPLAY_NAME "SWIG"
     DESCRIPTION  "SWIG development .i files"
-    DEPENDS      "core_swig;channels_python;channels_devel"
+    DEPENDS      "runtime_swig;channels_python;channels_devel"
 )
 
 ########################################################################
 # Add subdirectories
 ########################################################################
-add_subdirectory(include/channels)
+add_subdirectory(include/gnuradio/channels)
 add_subdirectory(lib)
 if(ENABLE_PYTHON)
     add_subdirectory(swig)

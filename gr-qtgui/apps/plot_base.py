@@ -25,6 +25,8 @@ from gnuradio.eng_option import eng_option
 from optparse import OptionParser
 import os, sys
 
+os.environ['GR_CONF_CONTROLPORT_ON'] = 'False'
+
 try:
     from gnuradio import qtgui
     from PyQt4 import QtGui, QtCore
@@ -44,11 +46,13 @@ try:
     from gnuradio.qtgui.plot_psd_form import *
     from gnuradio.qtgui.plot_spectrogram_form import *
     from gnuradio.qtgui.plot_time_form import *
+    from gnuradio.qtgui.plot_time_raster_form import *
 except ImportError:
     from plot_constellation_form import *
     from plot_psd_form import *
     from plot_spectrogram_form import *
     from plot_time_form import *
+    from plot_time_raster_form import *
 
 def read_samples(filename, start, in_size, min_size, dtype, dtype_size):
     # Read in_size number of samples from file
@@ -85,8 +89,14 @@ def read_samples_s(filename, start, in_size, min_size=0):
                         scipy.int16, gr.sizeof_short)
 
 def read_samples_b(filename, start, in_size, min_size=0):
-    return read_samples(filename, start, in_size, min_size,
-                        scipy.uint8, gr.sizeof_char)
+    d,mn,mx = read_samples(filename, start, in_size, min_size,
+                           scipy.int8, gr.sizeof_char)
+
+    # Bit of a hack since we want to read the data as signed ints, but
+    # the blocks.vector_source_b will only accept unsigned. We read in as
+    # signed, do our min/max and things on that, then convert here.
+    d = scipy.array(d, dtype=scipy.uint8).tolist()
+    return d,mn,mx
 
 def read_samples_c(filename, start, in_size, min_size=0):
     # Complex samples are handled differently
@@ -114,7 +124,7 @@ class source_ints_to_float(gr.hier_block2):
 	gr.hier_block2.__init__(self, "ints_to_floats",
 				gr.io_signature(0, 0, 0),
 				gr.io_signature(1, 1, gr.sizeof_float))
-        self.src = gr.vector_source_i(data)
+        self.src = blocks.vector_source_i(data)
         self.cvt = blocks.int_to_float()
         self.connect(self.src, self.cvt, self)
 
@@ -126,7 +136,7 @@ class source_shorts_to_float(gr.hier_block2):
 	gr.hier_block2.__init__(self, "shorts_to_floats",
 				gr.io_signature(0, 0, 0),
 				gr.io_signature(1, 1, gr.sizeof_float))
-        self.src = gr.vector_source_s(data)
+        self.src = blocks.vector_source_s(data)
         self.cvt = blocks.short_to_float()
         self.connect(self.src, self.cvt, self)
 
@@ -138,7 +148,7 @@ class source_chars_to_float(gr.hier_block2):
 	gr.hier_block2.__init__(self, "chars_to_floats",
 				gr.io_signature(0, 0, 0),
 				gr.io_signature(1, 1, gr.sizeof_float))
-        self.src = gr.vector_source_b(data)
+        self.src = blocks.vector_source_b(data)
         self.cvt = blocks.char_to_float()
         self.connect(self.src, self.cvt, self)
 

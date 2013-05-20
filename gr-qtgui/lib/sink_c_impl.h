@@ -23,11 +23,11 @@
 #ifndef INCLUDED_QTGUI_SINK_C_IMPL_H
 #define INCLUDED_QTGUI_SINK_C_IMPL_H
 
-#include <qtgui/sink_c.h>
-#include <filter/firdes.h>
-#include <fft/fft.h>
-#include <gruel/high_res_timer.h>
-#include <SpectrumGUIClass.h>
+#include <gnuradio/qtgui/sink_c.h>
+#include <gnuradio/filter/firdes.h>
+#include <gnuradio/fft/fft.h>
+#include <gnuradio/high_res_timer.h>
+#include <gnuradio/qtgui/SpectrumGUIClass.h>
 
 namespace gr {
   namespace qtgui {
@@ -45,7 +45,7 @@ namespace gr {
       double d_center_freq;
       double d_bandwidth;
       std::string d_name;
-      gruel::high_res_timer_type  d_last_update;
+      gr::high_res_timer_type  d_last_update;
       bool d_update_active;
 
       bool d_shift;
@@ -57,7 +57,7 @@ namespace gr {
 
       bool d_plotfreq, d_plotwaterfall, d_plottime, d_plotconst;
 
-      gruel::high_res_timer_type d_update_time;
+      gr::high_res_timer_type d_update_time;
 
       QWidget *d_parent;
       SpectrumGUIClass *d_main_gui;

@@ -24,9 +24,9 @@
 #ifndef INCLUDED_PFB_ARB_RESAMPLER_FFF_IMPL_H
 #define	INCLUDED_PFB_ARB_RESAMPLER_FFF_IMPL_H
 
-#include <filter/pfb_arb_resampler_fff.h>
-#include <filter/fir_filter.h>
-#include <gruel/thread.h>
+#include <gnuradio/filter/pfb_arb_resampler_fff.h>
+#include <gnuradio/filter/fir_filter.h>
+#include <gnuradio/thread/thread.h>
 
 namespace gr {
   namespace filter {
@@ -46,7 +46,7 @@ namespace gr {
       int          d_start_index;
       unsigned int d_taps_per_filter;
       bool         d_updated;
-      gruel::mutex d_mutex; // mutex to protect set/work access
+      gr::thread::mutex d_mutex; // mutex to protect set/work access
 
       void create_diff_taps(const std::vector<float> &newtaps,
 			    std::vector<float> &difftaps);

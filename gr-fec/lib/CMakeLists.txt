@@ -1,4 +1,4 @@
-# Copyright 2012 Free Software Foundation, Inc.
+# Copyright 2012-2013 Free Software Foundation, Inc.
 #
 # This file is part of GNU Radio
 #
@@ -29,10 +29,14 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_BINARY_DIR}
     ${GR_FEC_INCLUDE_DIRS}
-    ${GNURADIO_CORE_INCLUDE_DIRS}
-    ${GRUEL_INCLUDE_DIRS}
+    ${GNURADIO_RUNTIME_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
 )
+
+if(ENABLE_GR_CTRLPORT)
+  ADD_DEFINITIONS(-DGR_CTRLPORT)
+  include_directories(${ICE_INCLUDE_DIR})
+endif(ENABLE_GR_CTRLPORT)
 
 link_directories(${Boost_LIBRARY_DIRS})
 
@@ -44,8 +48,22 @@ list(APPEND gnuradio_fec_sources
     encode_ccsds_27_bb_impl.cc
 )
 
+#Add Windows DLL resource file if using MSVC
+if(MSVC)
+    include(${CMAKE_SOURCE_DIR}/cmake/Modules/GrVersion.cmake)
+
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/gnuradio-fec.rc.in
+        ${CMAKE_CURRENT_BINARY_DIR}/gnuradio-fec.rc
+    @ONLY)
+
+    list(APPEND gnuradio_fec_sources
+        ${CMAKE_CURRENT_BINARY_DIR}/gnuradio-fec.rc
+    )
+endif(MSVC)
+
 list(APPEND gnuradio_fec_libs
-    gnuradio-core
+    gnuradio-runtime
     ${Boost_LIBRARIES}
 )
 

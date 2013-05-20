@@ -25,7 +25,7 @@
 #endif
 
 #include "freq_sink_c_impl.h"
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 #include <string.h>
 #include <volk/volk.h>
 #include <qwt_symbol.h>
@@ -52,9 +52,9 @@ namespace gr {
 				       const std::string &name,
 				       int nconnections,
 				       QWidget *parent)
-      : gr_sync_block("freq_sink_c",
-		      gr_make_io_signature(1, -1, sizeof(gr_complex)),
-		      gr_make_io_signature(0, 0, 0)),
+      : sync_block("freq_sink_c",
+		      io_signature::make(1, -1, sizeof(gr_complex)),
+		      io_signature::make(0, 0, 0)),
 	d_fftsize(fftsize), d_fftavg(1.0),
 	d_wintype((filter::firdes::win_type)(wintype)),
 	d_center_freq(fc), d_bandwidth(bw), d_name(name),
@@ -86,6 +86,9 @@ namespace gr {
 
     freq_sink_c_impl::~freq_sink_c_impl()
     {
+      if(!d_main_gui->isClosed())
+        d_main_gui->close();
+
       for(int i = 0; i < d_nconnections; i++) {
 	fft::free(d_residbufs[i]);
 	fft::free(d_magbufs[i]);
@@ -128,7 +131,6 @@ namespace gr {
 
       // initialize update time to 10 times a second
       set_update_time(0.1);
-      d_last_time = 0;
     }
 
     void
@@ -206,9 +208,10 @@ namespace gr {
     freq_sink_c_impl::set_update_time(double t)
     {
       //convert update time to ticks
-      gruel::high_res_timer_type tps = gruel::high_res_timer_tps();
+      gr::high_res_timer_type tps = gr::high_res_timer_tps();
       d_update_time = t * tps;
       d_main_gui->setUpdateTime(t);
+      d_last_time = 0;
     }
 
     void
@@ -314,6 +317,12 @@ namespace gr {
     }
 
     void
+    freq_sink_c_impl::enable_autoscale(bool en)
+    {
+      d_main_gui->autoScale(en);
+    }
+
+    void
     freq_sink_c_impl::reset()
     {
       d_index = 0;
@@ -367,7 +376,7 @@ namespace gr {
     void
     freq_sink_c_impl::fftresize()
     {
-      gruel::scoped_lock lock(d_mutex);
+      gr::thread::scoped_lock lock(d_mutex);
 
       int newfftsize = d_main_gui->getFFTSize();
       d_fftavg = d_main_gui->getFFTAverage();
@@ -434,8 +443,8 @@ namespace gr {
 	    //volk_32f_convert_64f_a(d_magbufs[n], d_fbuf, d_fftsize);
 	  }
       
-	  if(gruel::high_res_timer_now() - d_last_time > d_update_time) {
-	    d_last_time = gruel::high_res_timer_now();
+	  if(gr::high_res_timer_now() - d_last_time > d_update_time) {
+	    d_last_time = gr::high_res_timer_now();
 	    d_qApplication->postEvent(d_main_gui,
 				      new FreqUpdateEvent(d_magbufs, d_fftsize));
 	  }

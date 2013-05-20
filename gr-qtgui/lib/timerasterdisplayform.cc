@@ -23,7 +23,7 @@
 #include <cmath>
 #include <QColorDialog>
 #include <QMessageBox>
-#include <timerasterdisplayform.h>
+#include <gnuradio/qtgui/timerasterdisplayform.h>
 #include <iostream>
 
 TimeRasterDisplayForm::TimeRasterDisplayForm(int nplots,
@@ -72,10 +72,9 @@ TimeRasterDisplayForm::TimeRasterDisplayForm(int nplots,
     _lines_menu[i]->addMenu(_marker_alpha_menu[i]);
   }
 
-  QAction *autoscale_act = new QAction("Auto Scale", this);
-  autoscale_act->setStatusTip(tr("Autoscale intensity range"));
-  connect(autoscale_act, SIGNAL(triggered()), this, SLOT(autoScale()));
-  _menu->addAction(autoscale_act);
+  // One scales once when clicked, so no on/off toggling
+  _autoscale_act->setText(tr("Auto Scale"));
+  _autoscale_act->setCheckable(false);
 
   PopupMenu *colsmenu = new PopupMenu("Num. Columns", this);
   _menu->addAction(colsmenu);
@@ -119,6 +118,31 @@ TimeRasterDisplayForm::numCols()
   return getPlot()->numCols();
 }
 
+int
+TimeRasterDisplayForm::getColorMap(int which)
+{
+  return getPlot()->getIntensityColorMapType(which);
+}
+
+int
+TimeRasterDisplayForm::getAlpha(int which)
+{
+  return getPlot()->getAlpha(which);
+}
+
+double
+TimeRasterDisplayForm::getMinIntensity(int which)
+{
+  return getPlot()->getMinIntensity(which);
+}
+
+double
+TimeRasterDisplayForm::getMaxIntensity(int which)
+{
+  return getPlot()->getMaxIntensity(which);
+}
+
+
 void
 TimeRasterDisplayForm::newData(const QEvent *updateEvent)
 {
@@ -152,24 +176,42 @@ void
 TimeRasterDisplayForm::setNumRows(double rows)
 {
   getPlot()->setNumRows(rows);
+  getPlot()->replot();
 }
 
 void
 TimeRasterDisplayForm::setNumRows(QString rows)
 {
   getPlot()->setNumRows(rows.toDouble());
+  getPlot()->replot();
 }
 
 void
 TimeRasterDisplayForm::setNumCols(double cols)
 {
   getPlot()->setNumCols(cols);
+  getPlot()->replot();
 }
 
 void
 TimeRasterDisplayForm::setNumCols(QString cols)
 {
   getPlot()->setNumCols(cols.toDouble());
+  getPlot()->replot();
+}
+
+void
+TimeRasterDisplayForm::setSampleRate(const double rate)
+{
+  getPlot()->setSampleRate(rate);
+  getPlot()->replot();
+}
+
+void
+TimeRasterDisplayForm::setSampleRate(const QString &rate)
+{
+  getPlot()->setSampleRate(rate.toDouble());
+  getPlot()->replot();
 }
 
 void
@@ -180,12 +222,14 @@ TimeRasterDisplayForm::setColorMap(int which,
 {
   getPlot()->setIntensityColorMapType(which, newType,
 				      lowColor, highColor);
+  getPlot()->replot();
 }
 
 void
 TimeRasterDisplayForm::setAlpha(int which, int alpha)
 {
   getPlot()->setAlpha(which, alpha);
+  getPlot()->replot();
 }
 
 void
@@ -193,13 +237,15 @@ TimeRasterDisplayForm::setIntensityRange(const double minIntensity,
 					const double maxIntensity)
 {
   getPlot()->setIntensityRange(minIntensity, maxIntensity);
+  getPlot()->replot();
 }
 
 void
-TimeRasterDisplayForm::autoScale()
+TimeRasterDisplayForm::autoScale(bool en)
 {
   double min_int = _min_val;
   double max_int = _max_val;
 
   getPlot()->setIntensityRange(min_int, max_int);
+  getPlot()->replot();
 }

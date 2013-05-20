@@ -57,25 +57,34 @@ namespace gr {
 
     class ${blockname}_impl : public ${blockname}
     {
-    private:
+     private:
       // Nothing to declare in this block.
 
-    public:
+#if $blocktype == 'tagged_stream'
+     protected:
+      int calculate_output_stream_length(const gr_vector_int &ninput_items);
+
+#end if
+     public:
       ${blockname}_impl(${strip_default_values($arglist)});
       ~${blockname}_impl();
 
+      // Where all the action really happens
 #if $blocktype == 'general'
       void forecast (int noutput_items, gr_vector_int &ninput_items_required);
 
-      // Where all the action really happens
       int general_work(int noutput_items,
+		       gr_vector_int &ninput_items,
+		       gr_vector_const_void_star &input_items,
+		       gr_vector_void_star &output_items);
+#else if $blocktype == 'tagged_stream'
+      int work(int noutput_items,
 		       gr_vector_int &ninput_items,
 		       gr_vector_const_void_star &input_items,
 		       gr_vector_void_star &output_items);
 #else if $blocktype == 'hier'
 #silent pass
 #else
-      // Where all the action really happens
       int work(int noutput_items,
 	       gr_vector_const_void_star &input_items,
 	       gr_vector_void_star &output_items);
@@ -96,7 +105,7 @@ ${str_to_fancyc_comment($license)}
 \#include "config.h"
 \#endif
 
-\#include <gr_io_signature.h>
+\#include <gnuradio/io_signature.h>
 #if $blocktype == 'noblock'
 \#include <${modname}/${blockname}.h>
 #else
@@ -125,6 +134,8 @@ namespace gr {
 #set $decimation = ', <+decimation+>'
 #else if $blocktype == 'interpolator'
 #set $decimation = ', <+interpolation+>'
+#else if $blocktype == 'tagged_stream'
+#set $decimation = ', <+len_tag_key+>'
 #else
 #set $decimation = ''
 #end if
@@ -136,15 +147,15 @@ namespace gr {
 #if $blocktype == 'sink'
 #set $outputsig = '0, 0, 0'
 #else
-#set $outputsig = '<+MIN_IN+>, <+MAX_IN+>, sizeof (<+float+>)'
+#set $outputsig = '<+MIN_OUT+>, <+MAX_OUT+>, sizeof (<+float+>)'
 #end if
     /*
      * The private constructor
      */
     ${blockname}_impl::${blockname}_impl(${strip_default_values($arglist)})
-      : ${grblocktype}("${blockname}",
-		      gr_make_io_signature($inputsig),
-		      gr_make_io_signature($outputsig)$decimation)
+      : gr::${grblocktype}("${blockname}",
+              gr::io_signature::make($inputsig),
+              gr::io_signature::make($outputsig)$decimation)
 #if $blocktype == 'hier'
     {
         connect(self(), 0, d_firstblock, 0);
@@ -186,6 +197,28 @@ namespace gr {
         // Tell runtime system how many output items we produced.
         return noutput_items;
     }
+#else if $blocktype == 'tagged_stream'
+    int
+    ${blockname}_impl::calculate_output_stream_length(const gr_vector_int &ninput_items)
+    {
+      int noutput_items = /* <+set this+> */;
+      return noutput_items ;
+    }
+
+    int
+    ${blockname}_impl::work (int noutput_items,
+                       gr_vector_int &ninput_items,
+                       gr_vector_const_void_star &input_items,
+                       gr_vector_void_star &output_items)
+    {
+        const float *in = (const float *) input_items[0];
+        float *out = (float *) output_items[0];
+
+        // Do <+signal processing+>
+
+        // Tell runtime system how many output items we produced.
+        return noutput_items;
+    }
 #else if $blocktype == 'hier'
 #silent pass
 #else
@@ -218,7 +251,9 @@ ${str_to_fancyc_comment($license)}
 \#define INCLUDED_${modname.upper()}_${blockname.upper()}_H
 
 \#include <${modname}/api.h>
-\#include <${grblocktype}.h>
+#if $blocktype != 'noblock'
+\#include <gnuradio/${grblocktype}.h>
+#end if
 
 namespace gr {
   namespace ${modname} {
@@ -230,9 +265,10 @@ namespace gr {
      */
     class ${modname.upper()}_API $blockname
     {
-        ${blockname}(${arglist});
-        ~${blockname}();
-        private:
+    public:
+      ${blockname}(${arglist});
+      ~${blockname}();
+    private:
     };
 #else
     /*!
@@ -240,20 +276,20 @@ namespace gr {
      * \ingroup ${modname}
      *
      */
-    class ${modname.upper()}_API ${blockname} : virtual public $grblocktype
+    class ${modname.upper()}_API ${blockname} : virtual public gr::$grblocktype
     {
-    public:
-       typedef boost::shared_ptr<${blockname}> sptr;
+     public:
+      typedef boost::shared_ptr<${blockname}> sptr;
 
-       /*!
-        * \\brief Return a shared_ptr to a new instance of ${modname}::${blockname}.
-        *
-        * To avoid accidental use of raw pointers, ${modname}::${blockname}'s
-        * constructor is in a private implementation
-        * class. ${modname}::${blockname}::make is the public interface for
-        * creating new instances.
-        */
-       static sptr make($arglist);
+      /*!
+       * \\brief Return a shared_ptr to a new instance of ${modname}::${blockname}.
+       *
+       * To avoid accidental use of raw pointers, ${modname}::${blockname}'s
+       * constructor is in a private implementation
+       * class. ${modname}::${blockname}::make is the public interface for
+       * creating new instances.
+       */
+      static sptr make($arglist);
     };
 #end if
 
@@ -264,7 +300,7 @@ namespace gr {
 
 '''
 
-# Python block (from grextras!)
+# Python block
 Templates['block_python'] = '''\#!/usr/bin/env python
 ${str_to_python_comment($license)}
 #
@@ -275,7 +311,7 @@ ${str_to_python_comment($license)}
 #if $blocktype in ('sync', 'sink', 'source')
 #set $parenttype = 'gr.sync_block'
 #else
-#set $parenttype = {'hier': 'gr.hier_block2', 'interpolator': 'gr.interp_block', 'decimator': 'gr.decim_block', 'general': 'gr.block'}[$blocktype]
+#set $parenttype = {'hier': 'gr.hier_block2', 'interpolator': 'gr.interp_block', 'decimator': 'gr.decim_block', 'general': 'gr.basic_block'}[$blocktype]
 #end if
 #if $blocktype != 'hier'
 import numpy
@@ -338,7 +374,7 @@ class ${blockname}(${parenttype}):
 
     def general_work(self, input_items, output_items):
         output_items[0][:] = input_items[0]
-        consume(0, len(input_items[0])
+        consume(0, len(input_items[0]))
         \#self.consume_each(len(input_items[0]))
         return len(output_items[0])
 #stop
@@ -473,7 +509,7 @@ Templates['grc_xml'] = '''<?xml version="1.0"?>
        * optional (set to 1 for optional inputs) -->
   <sink>
     <name>in</name>
-    <type><!-- e.g. int, real, complex, byte, short, xxx_vector, ...--></type>
+    <type><!-- e.g. int, float, complex, byte, short, xxx_vector, ...--></type>
   </sink>
 
   <!-- Make one 'source' node per output. Sub-nodes:
@@ -483,7 +519,7 @@ Templates['grc_xml'] = '''<?xml version="1.0"?>
        * optional (set to 1 for optional inputs) -->
   <source>
     <name>out</name>
-    <type><!-- e.g. int, real, complex, byte, short, xxx_vector, ...--></type>
+    <type><!-- e.g. int, float, complex, byte, short, xxx_vector, ...--></type>
   </source>
 </block>
 '''
@@ -495,15 +531,17 @@ gr_modtool help -- Show a list of commands.
 gr_modtool help <command> -- Shows the help for a given command. '''
 
 # SWIG string
-Templates['swig_block_magic'] = """#if $version == '37'
-#set $mod_block_sep = '/'
-#set $block_magic_version = '2'
-#else
-#set $mod_block_sep = '_'
-#set $block_magic_version = ''
+Templates['swig_block_magic'] = """#if $version == '36'
+#if $blocktype != 'noblock'
+GR_SWIG_BLOCK_MAGIC($modname, $blockname);
 #end if
-%include "${modname}${mod_block_sep}${blockname}.h"
-GR_SWIG_BLOCK_MAGIC${block_magic_version}($modname, $blockname);
+%include "${modname}_${blockname}.h"
+#else
+%include "${modname}/${blockname}.h"
+#if $blocktype != 'noblock'
+GR_SWIG_BLOCK_MAGIC2($modname, $blockname);
+#end if
+#end if
 """
 
 ## Old stuff
@@ -556,7 +594,7 @@ ${modname}_make_${blockname} (${strip_default_values($arglist)})
  * The private constructor
  */
 ${modname}_${blockname}::${modname}_${blockname} (${strip_default_values($arglist)})
-  : ${grblocktype} ("${blockname}",
+  : gr_${grblocktype} ("${blockname}",
 		   gr_make_io_signature($inputsig),
 		   gr_make_io_signature($outputsig)$decimation)
 {
@@ -641,7 +679,7 @@ class ${modname.upper()}_API $blockname
 };
 
 #else
-\#include <${grblocktype}.h>
+\#include <gr_${grblocktype}.h>
 
 class ${modname}_${blockname};
 
@@ -654,7 +692,7 @@ ${modname.upper()}_API ${modname}_${blockname}_sptr ${modname}_make_${blockname}
  * \ingroup ${modname}
  *
  */
-class ${modname.upper()}_API ${modname}_${blockname} : public $grblocktype
+class ${modname.upper()}_API ${modname}_${blockname} : public gr_$grblocktype
 {
  private:
 	friend ${modname.upper()}_API ${modname}_${blockname}_sptr ${modname}_make_${blockname} (${strip_default_values($arglist)});

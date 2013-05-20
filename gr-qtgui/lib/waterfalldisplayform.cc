@@ -23,7 +23,7 @@
 #include <cmath>
 #include <QColorDialog>
 #include <QMessageBox>
-#include <waterfalldisplayform.h>
+#include <gnuradio/qtgui/waterfalldisplayform.h>
 #include <iostream>
 
 WaterfallDisplayForm::WaterfallDisplayForm(int nplots, QWidget* parent)
@@ -36,6 +36,9 @@ WaterfallDisplayForm::WaterfallDisplayForm(int nplots, QWidget* parent)
   _displayPlot = new WaterfallDisplayPlot(nplots, this);
   _layout->addWidget(_displayPlot, 0, 0);
   setLayout(_layout);
+
+  _center_freq = 0;
+  _samp_rate = 0;
 
   _numRealDataPoints = 1024;
   _fftsize = 1024;
@@ -69,7 +72,9 @@ WaterfallDisplayForm::WaterfallDisplayForm(int nplots, QWidget* parent)
     _lines_menu[i]->addMenu(_marker_alpha_menu[i]);
   }
 
+  // One scales once when clicked, so no on/off toggling
   _autoscale_act->setText(tr("Auto Scale"));
+  _autoscale_act->setCheckable(false);
 
   FFTSizeMenu *sizemenu = new FFTSizeMenu(this);
   FFTAverageMenu *avgmenu = new FFTAverageMenu(this);
@@ -110,7 +115,7 @@ WaterfallDisplayForm::newData(const QEvent *updateEvent)
   WaterfallUpdateEvent *event = (WaterfallUpdateEvent*)updateEvent;
   const std::vector<double*> dataPoints = event->getPoints();
   const uint64_t numDataPoints = event->getNumDataPoints();
-  const gruel::high_res_timer_type dataTimestamp = event->getDataTimestamp();
+  const gr::high_res_timer_type dataTimestamp = event->getDataTimestamp();
 
   _min_val =  1000;
   _max_val = -1000;
@@ -178,6 +183,12 @@ WaterfallDisplayForm::getMaxIntensity(int which)
 }
 
 void
+WaterfallDisplayForm::setSampleRate(const QString &samprate)
+{
+  setFrequencyRange(_center_freq, samprate.toDouble());
+}
+
+void
 WaterfallDisplayForm::setFFTSize(const int newsize)
 {
   _fftsize = newsize;
@@ -205,6 +216,7 @@ WaterfallDisplayForm::setFrequencyRange(const double centerfreq,
   double units = pow(10, (units10-fmod(units10, 3.0)));
   int iunit = static_cast<int>(units3);
 
+  _center_freq = centerfreq;
   _samp_rate = bandwidth;
   _time_per_slice = (1.0/bandwidth)*_fftsize;
 
@@ -240,7 +252,7 @@ WaterfallDisplayForm::setIntensityRange(const double minIntensity,
 }
 
 void
-WaterfallDisplayForm::autoScale()
+WaterfallDisplayForm::autoScale(bool en)
 {
   double min_int = _min_val - 5;
   double max_int = _max_val + 10;

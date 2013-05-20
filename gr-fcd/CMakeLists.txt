@@ -34,7 +34,7 @@ include(GrComponent)
 if (LINUX)
     GR_REGISTER_COMPONENT("gr-fcd" ENABLE_GR_FCD
         Boost_FOUND
-        ENABLE_GR_CORE
+        ENABLE_GNURADIO_RUNTIME
         ENABLE_GR_BLOCKS
         ENABLE_GR_AUDIO
         LIBUSB_FOUND
@@ -42,14 +42,14 @@ if (LINUX)
 else()
     GR_REGISTER_COMPONENT("gr-fcd" ENABLE_GR_FCD
         Boost_FOUND
-        ENABLE_GR_CORE
+        ENABLE_GNURADIO_RUNTIME
         ENABLE_GR_AUDIO
     )
 endif()
 
 GR_SET_GLOBAL(GR_FCD_INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/fcd
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 SET(GR_PKG_FCD_EXAMPLES_DIR ${GR_PKG_DATA_DIR}/examples/fcd)
@@ -69,21 +69,21 @@ CPACK_COMPONENT("fcd_runtime"
     GROUP        "FCD"
     DISPLAY_NAME "Runtime"
     DESCRIPTION  "Runtime"
-    DEPENDS      "core_runtime;audio_runtime"
+    DEPENDS      "runtime_runtime;audio_runtime"
 )
 
 CPACK_COMPONENT("fcd_devel"
     GROUP        "FCD"
     DISPLAY_NAME "Development"
     DESCRIPTION  "C++ headers, package config, import libraries"
-    DEPENDS      "core_devel;audio_devel"
+    DEPENDS      "runtime_devel;audio_devel"
 )
 
 CPACK_COMPONENT("fcd_python"
     GROUP        "FCD"
     DISPLAY_NAME "Python"
     DESCRIPTION  "Python modules for runtime; GRC xml files"
-    DEPENDS      "core_python;fcd_runtime"
+    DEPENDS      "runtime_python;fcd_runtime"
 )
 
 CPACK_COMPONENT("fcd_examples"
@@ -97,13 +97,13 @@ CPACK_COMPONENT("fcd_swig"
     GROUP        "FCD"
     DISPLAY_NAME "SWIG"
     DESCRIPTION  "SWIG development .i files"
-    DEPENDS      "core_swig;fcd_python;fcd_devel"
+    DEPENDS      "runtime_swig;fcd_python;fcd_devel"
 )
 
 ########################################################################
 # Add subdirectories
 ########################################################################
-add_subdirectory(include/fcd)
+add_subdirectory(include/gnuradio/fcd)
 add_subdirectory(lib)
 if(ENABLE_PYTHON)
     add_subdirectory(swig)

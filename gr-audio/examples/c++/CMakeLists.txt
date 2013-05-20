@@ -20,13 +20,13 @@
 include_directories(
 	${GR_AUDIO_INCLUDE_DIRS}
 	${GR_ANALOG_INCLUDE_DIRS}
-	${GNURADIO_CORE_INCLUDE_DIRS}
-        ${GRUEL_INCLUDE_DIRS}
+	${GNURADIO_RUNTIME_INCLUDE_DIRS}
         ${Boost_INCLUDE_DIRS}
 )
 
 add_executable(dial_tone dial_tone.cc)
-target_link_libraries(dial_tone gnuradio-audio gnuradio-analog)
+target_link_libraries(dial_tone 
+  gnuradio-runtime gnuradio-audio gnuradio-analog)
 
 INSTALL(TARGETS
     dial_tone

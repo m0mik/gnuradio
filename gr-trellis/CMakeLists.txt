@@ -28,7 +28,7 @@ include(GrBoost)
 include(GrComponent)
 GR_REGISTER_COMPONENT("gr-trellis" ENABLE_GR_TRELLIS
     Boost_FOUND
-    ENABLE_GR_CORE
+    ENABLE_GNURADIO_RUNTIME
     ENABLE_GR_ANALOG
     ENABLE_GR_BLOCKS
     ENABLE_GR_DIGITAL
@@ -66,21 +66,21 @@ CPACK_COMPONENT("trellis_runtime"
     GROUP        "Trellis"
     DISPLAY_NAME "Runtime"
     DESCRIPTION  "Dynamic link libraries"
-    DEPENDS      "core_runtime"
+    DEPENDS      "runtime_runtime"
 )
 
 CPACK_COMPONENT("trellis_devel"
     GROUP        "Trellis"
     DISPLAY_NAME "Development"
     DESCRIPTION  "C++ headers, package config, import libraries"
-    DEPENDS      "core_devel"
+    DEPENDS      "runtime_devel"
 )
 
 CPACK_COMPONENT("trellis_python"
     GROUP        "Trellis"
     DISPLAY_NAME "Python"
     DESCRIPTION  "Python modules for runtime"
-    DEPENDS      "core_python;trellis_runtime"
+    DEPENDS      "runtime_python;trellis_runtime"
 )
 
 CPACK_COMPONENT("trellis_examples"
@@ -94,13 +94,13 @@ CPACK_COMPONENT("trellis_swig"
     GROUP        "Trellis"
     DISPLAY_NAME "SWIG"
     DESCRIPTION  "SWIG development .i files"
-    DEPENDS      "core_swig;trellis_python;trellis_devel"
+    DEPENDS      "runtime_swig;trellis_python;trellis_devel"
 )
 
 ########################################################################
 # Add subdirectories
 ########################################################################
-add_subdirectory(include/trellis)
+add_subdirectory(include/gnuradio/trellis)
 add_subdirectory(lib)
 add_subdirectory(doc)
 if(ENABLE_PYTHON)

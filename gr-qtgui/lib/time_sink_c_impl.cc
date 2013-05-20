@@ -25,10 +25,10 @@
 #endif
 
 #include "time_sink_c_impl.h"
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 #include <string.h>
 #include <volk/volk.h>
-#include <fft/fft.h>
+#include <gnuradio/fft/fft.h>
 #include <qwt_symbol.h>
 
 namespace gr {
@@ -48,9 +48,9 @@ namespace gr {
 				       const std::string &name,
 				       int nconnections,
 				       QWidget *parent)
-      : gr_sync_block("time_sink_c",
-		      gr_make_io_signature(nconnections, nconnections, sizeof(gr_complex)),
-		      gr_make_io_signature(0, 0, 0)),
+      : sync_block("time_sink_c",
+		      io_signature::make(nconnections, nconnections, sizeof(gr_complex)),
+		      io_signature::make(0, 0, 0)),
 	d_size(size), d_samp_rate(samp_rate), d_name(name),
 	d_nconnections(2*nconnections), d_parent(parent)
     {
@@ -73,6 +73,9 @@ namespace gr {
 
     time_sink_c_impl::~time_sink_c_impl()
     {
+      if(!d_main_gui->isClosed())
+        d_main_gui->close();
+
       // d_main_gui is a qwidget destroyed with its parent
       for(int i = 0; i < d_nconnections; i++) {
 	fft::free(d_residbufs[i]);
@@ -103,7 +106,6 @@ namespace gr {
 
       // initialize update time to 10 times a second
       set_update_time(0.1);
-      d_last_time = 0;
     }
 
     void
@@ -136,9 +138,10 @@ namespace gr {
     time_sink_c_impl::set_update_time(double t)
     {
       //convert update time to ticks
-      gruel::high_res_timer_type tps = gruel::high_res_timer_tps();
+      gr::high_res_timer_type tps = gr::high_res_timer_tps();
       d_update_time = t * tps;
       d_main_gui->setUpdateTime(t);
+      d_last_time = 0;
     }
 
     void
@@ -234,7 +237,7 @@ namespace gr {
     void
     time_sink_c_impl::set_nsamps(const int newsize)
     {
-      gruel::scoped_lock lock(d_mutex);
+      gr::thread::scoped_lock lock(d_mutex);
 
       if(newsize != d_size) {
 	// Resize residbuf and replace data
@@ -257,7 +260,7 @@ namespace gr {
     void
     time_sink_c_impl::set_samp_rate(const double samp_rate)
     {
-      gruel::scoped_lock lock(d_mutex);
+      gr::thread::scoped_lock lock(d_mutex);
       d_samp_rate = samp_rate;
       d_main_gui->setSampleRate(d_samp_rate);
     }
@@ -288,9 +291,27 @@ namespace gr {
     }
 
     void
-    time_sink_c_impl::toggle_stem_plot()
+    time_sink_c_impl::enable_autoscale(bool en)
     {
-      d_main_gui->setStem();
+      d_main_gui->autoScale(en);
+    }
+
+    void
+    time_sink_c_impl::enable_stem_plot(bool en)
+    {
+      d_main_gui->setStem(en);
+    }
+
+    void
+    time_sink_c_impl::enable_semilogx(bool en)
+    {
+      d_main_gui->setSemilogx(en);
+    }
+
+    void
+    time_sink_c_impl::enable_semilogy(bool en)
+    {
+      d_main_gui->setSemilogy(en);
     }
 
     void
@@ -326,8 +347,8 @@ namespace gr {
 	  }
 
 	  // Update the plot if its time
-	  if(gruel::high_res_timer_now() - d_last_time > d_update_time) {
-	    d_last_time = gruel::high_res_timer_now();
+	  if(gr::high_res_timer_now() - d_last_time > d_update_time) {
+	    d_last_time = gr::high_res_timer_now();
 	    d_qApplication->postEvent(d_main_gui,
 				      new TimeUpdateEvent(d_residbufs, d_size));
 	  }

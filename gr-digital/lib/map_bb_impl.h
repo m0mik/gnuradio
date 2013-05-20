@@ -23,8 +23,8 @@
 #ifndef INCLUDED_GR_MAP_BB_IMPL_H
 #define INCLUDED_GR_MAP_BB_IMPL_H
 
-#include <digital/map_bb.h>
-#include <gruel/thread.h>
+#include <gnuradio/digital/map_bb.h>
+#include <gnuradio/thread/thread.h>
 
 namespace gr {
   namespace digital {
@@ -33,7 +33,7 @@ namespace gr {
     {
     private:
       unsigned char d_map[0x100];
-      gruel::mutex d_mutex;
+      gr::thread::mutex d_mutex;
 
     public:
       map_bb_impl(const std::vector<int> &map);

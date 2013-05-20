@@ -22,18 +22,18 @@
 
 #define COMEDI_API
 
-%include "gnuradio.i"
+%include "runtime_swig.i"
 
 //load generated python docstrings
 %include "comedi_swig_doc.i"
 
 %{
-#include "comedi/sink_s.h"
-#include "comedi/source_s.h"
+#include "gnuradio/comedi/sink_s.h"
+#include "gnuradio/comedi/source_s.h"
 %}
 
-%include "comedi/sink_s.h"
-%include "comedi/source_s.h"
+%include "gnuradio/comedi/sink_s.h"
+%include "gnuradio/comedi/source_s.h"
 
 GR_SWIG_BLOCK_MAGIC2(comedi, sink_s);
 GR_SWIG_BLOCK_MAGIC2(comedi, source_s);

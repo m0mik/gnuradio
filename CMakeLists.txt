@@ -56,6 +56,10 @@ IF(NOT DEFINED BOOST_ROOT)
     SET(BOOST_ROOT ${CMAKE_INSTALL_PREFIX})
 ENDIF()
 
+if(ENABLE_GR_CTRLPORT)
+  set(GR_CTRLPORT True)
+endif(ENABLE_GR_CTRLPORT)
+
 ########################################################################
 # Import executables from a native build (for cross compiling)
 # http://www.vtk.org/Wiki/CMake_Cross_Compiling#Using_executables_in_the_build_created_during_the_build
@@ -96,6 +100,7 @@ if(MSVC)
     )
     add_definitions(-DHAVE_CONFIG_H)
     add_definitions(/MP) #build with multiple processors
+    add_definitions(/bigobj) #allow for larger object files
 endif(MSVC)
 
 ########################################################################
@@ -128,8 +133,10 @@ set(GR_PREFSDIR         ${SYSCONFDIR}/${CMAKE_PROJECT_NAME}/conf.d)
 OPTION(ENABLE_PERFORMANCE_COUNTERS "Enable block performance counters" OFF)
 if(ENABLE_PERFORMANCE_COUNTERS)
   message(STATUS "ADDING PERF COUNTERS")
+  SET(GR_PERFORMANCE_COUNTERS True)
   add_definitions(-DGR_PERFORMANCE_COUNTERS)
 else(ENABLE_PERFORMANCE_COUNTERS)
+  SET(GR_PERFORMANCE_COUNTERS False)
   message(STATUS "NO PERF COUNTERS")
 endif(ENABLE_PERFORMANCE_COUNTERS)
 
@@ -234,6 +241,9 @@ CPACK_COMPONENT("volk_devel"
 add_subdirectory(volk)
 endif(ENABLE_VOLK)
 
+# Handle gr_log enable/disable
+GR_LOGGING()
+
 ########################################################################
 # Distribute the README file
 ########################################################################
@@ -246,26 +256,29 @@ install(
 ########################################################################
 # The following dependency libraries are needed by all gr modules:
 ########################################################################
-list(APPEND GR_TEST_TARGET_DEPS volk gruel gnuradio-core)
+list(APPEND GR_TEST_TARGET_DEPS volk gnuradio-runtime)
 list(APPEND GR_TEST_PYTHON_DIRS
-    ${CMAKE_SOURCE_DIR}/gruel/src/python
-    ${CMAKE_BINARY_DIR}/gruel/src/swig
-    ${CMAKE_BINARY_DIR}/gnuradio-core/src/python
-    ${CMAKE_BINARY_DIR}/gnuradio-core/src/lib/swig
+    ${CMAKE_BINARY_DIR}/gnuradio-runtime/python
+    ${CMAKE_SOURCE_DIR}/gnuradio-runtime/python
+    ${CMAKE_BINARY_DIR}/gnuradio-runtime/swig
 )
+
+# Note that above we put the binary gnuradio-runtime/python directory
+# before the source directory. This is due to a quirk with ControlPort
+# and how slice generates files and names. We want the QA and
+# installed code to import the same names, so we have to grab from the
+# binary directory first.
 
 ########################################################################
 # Add subdirectories (in order of deps)
 ########################################################################
 add_subdirectory(docs)
-add_subdirectory(gruel)
-add_subdirectory(gnuradio-core)
+add_subdirectory(gnuradio-runtime)
 add_subdirectory(gr-blocks)
 add_subdirectory(grc)
 add_subdirectory(gr-fec)
 add_subdirectory(gr-fft)
 add_subdirectory(gr-filter)
-#add_subdirectory(gr-ctrlport)
 add_subdirectory(gr-analog)
 add_subdirectory(gr-digital)
 add_subdirectory(gr-atsc)
@@ -277,13 +290,32 @@ add_subdirectory(gr-pager)
 add_subdirectory(gr-qtgui)
 add_subdirectory(gr-trellis)
 add_subdirectory(gr-uhd)
-add_subdirectory(gr-shd)
 add_subdirectory(gr-utils)
 add_subdirectory(gr-video-sdl)
 add_subdirectory(gr-vocoder)
 add_subdirectory(gr-fcd)
 add_subdirectory(gr-wavelet)
 add_subdirectory(gr-wxgui)
+
+# Install our Cmake modules into $prefix/lib/cmake/gnuradio
+# See "Package Configuration Files" on page:
+#    http://www.cmake.org/Wiki/CMake/Tutorials/Packaging
+
+configure_file(
+  ${CMAKE_SOURCE_DIR}/cmake/Modules/GnuradioConfigVersion.cmake.in
+  ${CMAKE_BINARY_DIR}/cmake/Modules/GnuradioConfigVersion.cmake
+@ONLY)
+
+SET(cmake_configs 
+  ${CMAKE_SOURCE_DIR}/cmake/Modules/GnuradioConfig.cmake
+  ${CMAKE_BINARY_DIR}/cmake/Modules/GnuradioConfigVersion.cmake
+)
+
+install(
+  FILES ${cmake_configs} 
+  DESTINATION lib/cmake/gnuradio
+  COMPONENT "runtime_devel"
+)
 
 #finalize cpack after subdirs processed
 include(GrPackage)
@@ -295,3 +327,17 @@ CPACK_FINALIZE()
 GR_PRINT_COMPONENT_SUMMARY()
 message(STATUS "Using install prefix: ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "Building for version: ${VERSION} / ${LIBVER}")
+
+# Create a config.h with some definitions to export to other projects.
+CONFIGURE_FILE(
+  ${CMAKE_CURRENT_SOURCE_DIR}/config.h.in
+  ${CMAKE_CURRENT_BINARY_DIR}/config.h
+)
+
+# Install config.h in include/gnuradio
+install(
+    FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/config.h
+    DESTINATION ${GR_INCLUDE_DIR}/gnuradio
+    COMPONENT "runtime_devel"
+)

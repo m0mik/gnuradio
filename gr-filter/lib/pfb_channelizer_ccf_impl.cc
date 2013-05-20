@@ -25,7 +25,7 @@
 #endif
 
 #include "pfb_channelizer_ccf_impl.h"
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 
 namespace gr {
   namespace filter {
@@ -41,9 +41,9 @@ namespace gr {
     pfb_channelizer_ccf_impl::pfb_channelizer_ccf_impl(unsigned int nfilts,
 						       const std::vector<float> &taps,
 						       float oversample_rate)
-      : gr_block("pfb_channelizer_ccf",
-		 gr_make_io_signature(nfilts, nfilts, sizeof(gr_complex)),
-		 gr_make_io_signature(1, nfilts, sizeof(gr_complex))),
+      : block("pfb_channelizer_ccf",
+		 io_signature::make(nfilts, nfilts, sizeof(gr_complex)),
+		 io_signature::make(1, nfilts, sizeof(gr_complex))),
 	polyphase_filterbank(nfilts, taps),
 	d_updated(false), d_oversample_rate(oversample_rate)
     {
@@ -92,7 +92,7 @@ namespace gr {
     void
     pfb_channelizer_ccf_impl::set_taps(const std::vector<float> &taps)
     {
-      gruel::scoped_lock guard(d_mutex);
+      gr::thread::scoped_lock guard(d_mutex);
 
       polyphase_filterbank::set_taps(taps);
       set_history(d_taps_per_filter+1);
@@ -114,7 +114,7 @@ namespace gr {
     void
     pfb_channelizer_ccf_impl::set_channel_map(const std::vector<int> &map)
     {
-      gruel::scoped_lock guard(d_mutex);
+      gr::thread::scoped_lock guard(d_mutex);
       
       if(map.size() > 0) {
 	unsigned int max = (unsigned int)*std::max_element(map.begin(), map.end());
@@ -137,7 +137,7 @@ namespace gr {
 					   gr_vector_const_void_star &input_items,
 					   gr_vector_void_star &output_items)
     {
-      gruel::scoped_lock guard(d_mutex);
+      gr::thread::scoped_lock guard(d_mutex);
 
       gr_complex *in = (gr_complex *) input_items[0];
       gr_complex *out = (gr_complex *) output_items[0];

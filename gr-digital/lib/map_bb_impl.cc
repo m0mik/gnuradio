@@ -25,7 +25,7 @@
 #endif
 
 #include "map_bb_impl.h"
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 
 namespace gr {
   namespace digital {
@@ -37,9 +37,9 @@ namespace gr {
     }
 
     map_bb_impl::map_bb_impl(const std::vector<int> &map)
-      : gr_sync_block("map_bb",
-		      gr_make_io_signature(1, 1, sizeof(unsigned char)),
-		      gr_make_io_signature(1, 1, sizeof(unsigned char)))
+      : sync_block("map_bb",
+		      io_signature::make(1, 1, sizeof(unsigned char)),
+		      io_signature::make(1, 1, sizeof(unsigned char)))
     {
       set_map(map);
     }
@@ -51,7 +51,7 @@ namespace gr {
     void
     map_bb_impl::set_map(const std::vector<int> &map)
     {
-      gruel::scoped_lock guard(d_mutex);
+      gr::thread::scoped_lock guard(d_mutex);
 
       for(int i = 0; i < 0x100; i++)
 	d_map[i] = i;
@@ -75,7 +75,7 @@ namespace gr {
 		      gr_vector_const_void_star &input_items,
 		      gr_vector_void_star &output_items)
     {
-      gruel::scoped_lock guard(d_mutex);
+      gr::thread::scoped_lock guard(d_mutex);
 
       const unsigned char *in = (const unsigned char*)input_items[0];
       unsigned char *out = (unsigned char*)output_items[0];

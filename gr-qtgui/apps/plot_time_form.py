@@ -36,8 +36,8 @@ except ImportError:
     from plot_form import plot_form
 
 class plot_time_form(plot_form):
-    def __init__(self, top_block, title=''):
-        plot_form.__init__(self, top_block, title)
+    def __init__(self, top_block, title='', scale=1):
+        plot_form.__init__(self, top_block, title, scale)
 
         self.right_col_layout = QtGui.QVBoxLayout()
         self.right_col_form = QtGui.QFormLayout()
@@ -53,7 +53,7 @@ class plot_time_form(plot_form):
 
         self.stem = QtGui.QCheckBox("Stem", self)
         self.connect(self.stem, QtCore.SIGNAL("stateChanged(int)"),
-                     self.toggle_stem)
+                     self.enable_stem)
         self.right_col_layout.addWidget(self.stem)
 
         self.add_line_control(self.right_col_layout)
@@ -64,8 +64,8 @@ class plot_time_form(plot_form):
         else:
             self.top_block.auto_scale(False)
 
-    def toggle_stem(self, state):
-        self.top_block.gui_snk.toggle_stem_plot()
+    def enable_stem(self, state):
+        self.top_block.gui_snk.enable_stem_plot(state)
         if(state):
             index = self._qwtmarkers['Circle']+1
         else:

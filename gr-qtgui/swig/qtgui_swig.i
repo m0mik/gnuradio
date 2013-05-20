@@ -23,39 +23,42 @@
 #define QTGUI_API
 #define FILTER_API
 
-%include "gnuradio.i"
+%include "runtime_swig.i"
 
 //load generated python docstrings
 %include "qtgui_swig_doc.i"
 
 // So we understand the firdes window types
-%include "filter/firdes.h"
+%import "gnuradio/filter/firdes.h"
 
 %{
-#include "qtgui/sink_c.h"
-#include "qtgui/sink_f.h"
-#include "qtgui/time_sink_c.h"
-#include "qtgui/time_sink_f.h"
-#include "qtgui/time_raster_sink_b.h"
-#include "qtgui/time_raster_sink_f.h"
-#include "qtgui/freq_sink_c.h"
-#include "qtgui/freq_sink_f.h"
-#include "qtgui/const_sink_c.h"
-#include "qtgui/waterfall_sink_c.h"
-#include "qtgui/waterfall_sink_f.h"
+#include "gnuradio/qtgui/form_menus.h"
+#include "gnuradio/qtgui/DisplayPlot.h"
+#include "gnuradio/qtgui/displayform.h"
+#include "gnuradio/qtgui/sink_c.h"
+#include "gnuradio/qtgui/sink_f.h"
+#include "gnuradio/qtgui/time_sink_c.h"
+#include "gnuradio/qtgui/time_sink_f.h"
+#include "gnuradio/qtgui/time_raster_sink_b.h"
+#include "gnuradio/qtgui/time_raster_sink_f.h"
+#include "gnuradio/qtgui/freq_sink_c.h"
+#include "gnuradio/qtgui/freq_sink_f.h"
+#include "gnuradio/qtgui/const_sink_c.h"
+#include "gnuradio/qtgui/waterfall_sink_c.h"
+#include "gnuradio/qtgui/waterfall_sink_f.h"
 %}
 
-%include "qtgui/sink_c.h"
-%include "qtgui/sink_f.h"
-%include "qtgui/time_sink_c.h"
-%include "qtgui/time_sink_f.h"
-%include "qtgui/time_raster_sink_b.h"
-%include "qtgui/time_raster_sink_f.h"
-%include "qtgui/freq_sink_c.h"
-%include "qtgui/freq_sink_f.h"
-%include "qtgui/const_sink_c.h"
-%include "qtgui/waterfall_sink_c.h"
-%include "qtgui/waterfall_sink_f.h"
+%include "gnuradio/qtgui/sink_c.h"
+%include "gnuradio/qtgui/sink_f.h"
+%include "gnuradio/qtgui/time_sink_c.h"
+%include "gnuradio/qtgui/time_sink_f.h"
+%include "gnuradio/qtgui/time_raster_sink_b.h"
+%include "gnuradio/qtgui/time_raster_sink_f.h"
+%include "gnuradio/qtgui/freq_sink_c.h"
+%include "gnuradio/qtgui/freq_sink_f.h"
+%include "gnuradio/qtgui/const_sink_c.h"
+%include "gnuradio/qtgui/waterfall_sink_c.h"
+%include "gnuradio/qtgui/waterfall_sink_f.h"
 
 GR_SWIG_BLOCK_MAGIC2(qtgui, sink_c);
 GR_SWIG_BLOCK_MAGIC2(qtgui, sink_f);

@@ -46,9 +46,8 @@ GR_REGISTER_COMPONENT("gr-qtgui" ENABLE_GR_QTGUI
     Boost_FOUND
     QT4_FOUND
     QWT_FOUND
-    ENABLE_GRUEL
     ENABLE_VOLK
-    ENABLE_GR_CORE
+    ENABLE_GNURADIO_RUNTIME
     ENABLE_GR_FFT
     ENABLE_GR_FILTER
     PYTHONLIBS_FOUND
@@ -81,34 +80,34 @@ CPACK_COMPONENT("qtgui_runtime"
     GROUP        "QtGUI"
     DISPLAY_NAME "Runtime"
     DESCRIPTION  "Runtime"
-    DEPENDS      "core_runtime"
+    DEPENDS      "runtime_runtime"
 )
 
 CPACK_COMPONENT("qtgui_devel"
     GROUP        "QtGUI"
     DISPLAY_NAME "Development"
     DESCRIPTION  "C++ headers, package config, import libraries"
-    DEPENDS      "core_devel"
+    DEPENDS      "runtime_devel"
 )
 
 CPACK_COMPONENT("qtgui_python"
     GROUP        "QtGUI"
     DISPLAY_NAME "Python"
     DESCRIPTION  "Python modules for runtime; GRC xml files"
-    DEPENDS      "core_python;qtgui_runtime"
+    DEPENDS      "runtime_python;qtgui_runtime"
 )
 
 CPACK_COMPONENT("qtgui_swig"
     GROUP        "QtGUI"
     DISPLAY_NAME "SWIG"
     DESCRIPTION  "SWIG development .i files"
-    DEPENDS      "core_swig;qtgui_python;qtgui_devel"
+    DEPENDS      "runtime_swig;qtgui_python;qtgui_devel"
 )
 
 ########################################################################
 # Add subdirectories
 ########################################################################
-add_subdirectory(include/qtgui)
+add_subdirectory(include/gnuradio/qtgui)
 add_subdirectory(lib)
 add_subdirectory(doc)
 if(ENABLE_PYTHON)

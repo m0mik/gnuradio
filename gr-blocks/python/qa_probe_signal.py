@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2012 Free Software Foundation, Inc.
+# Copyright 2012-2013 Free Software Foundation, Inc.
 #
 # This file is part of GNU Radio
 #
@@ -20,27 +20,24 @@
 # Boston, MA 02110-1301, USA.
 #
 
-import time
-
 from gnuradio import gr, gr_unittest
 import blocks_swig as blocks
 
-class test_probe_signal (gr_unittest.TestCase):
+class test_probe_signal(gr_unittest.TestCase):
 
-    def setUp (self):
+    def setUp(self):
         self.tb = gr.top_block()
 
-    def tearDown (self):
+    def tearDown(self):
         self.tb = None
 
     def test_001(self):
-
         value = 12.3
         repeats = 100
         src_data = [value] * repeats
 
-        src = gr.vector_source_f(src_data)
-        dst = gr.probe_signal_f()
+        src = blocks.vector_source_f(src_data)
+        dst = blocks.probe_signal_f()
 
         self.tb.connect(src, dst)
         self.tb.run()
@@ -48,15 +45,14 @@ class test_probe_signal (gr_unittest.TestCase):
         self.assertAlmostEqual(value, output, places=6)
 
     def test_002(self):
-
         vector_length = 10
         repeats = 10
         value = [0.5+i for i in range(0, vector_length)]
         src_data = value * repeats
 
-        src = gr.vector_source_f(src_data)
+        src = blocks.vector_source_f(src_data)
         s2v = blocks.stream_to_vector(gr.sizeof_float, vector_length)
-        dst = gr.probe_signal_vf(vector_length)
+        dst = blocks.probe_signal_vf(vector_length)
 
         self.tb.connect(src, s2v, dst)
         self.tb.run()

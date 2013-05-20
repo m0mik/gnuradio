@@ -255,7 +255,7 @@ class MyFrame(wx.Frame):
             self.tune_offset = 0
 
         else:
-           self.src = gr.file_source (gr.sizeof_short,options.input_file)
+           self.src = blocks.file_source (gr.sizeof_short,options.input_file)
            self.tune_offset = 2200 # 2200 works for 3.5-4Mhz band
 
            # convert rf data in interleaved short int form to complex
@@ -271,7 +271,7 @@ class MyFrame(wx.Frame):
 
         # save radio data to a file
         if SAVE_RADIO_TO_FILE:
-           radio_file = gr.file_sink(gr.sizeof_short, options.radio_file)
+           radio_file = blocks.file_sink(gr.sizeof_short, options.radio_file)
            self.tb.connect (self.src, radio_file)
 
 	# 2nd DDC
@@ -305,7 +305,7 @@ class MyFrame(wx.Frame):
                                           sample_rate=self.af_sample_rate,
                                           average=True, size=(640,240))
 
-        c2f = gr.complex_to_float()
+        c2f = blocks.complex_to_float()
 
 	# AM branch
 	self.sel_am = blocks.multiply_const_cc(0)
@@ -318,8 +318,8 @@ class MyFrame(wx.Frame):
 	am_det = blocks.multiply_cc()
 	# these are for converting +7.5kHz to -7.5kHz
 	# for some reason blocks.conjugate_cc() adds noise ??
-	c2f2 = gr.complex_to_float()
-	c2f3 = gr.complex_to_float()
+	c2f2 = blocks.complex_to_float()
+	c2f3 = blocks.complex_to_float()
 	f2c = blocks.float_to_complex()
 	phaser1 = blocks.multiply_const_ff(1)
 	phaser2 = blocks.multiply_const_ff(-1)
@@ -375,7 +375,7 @@ class MyFrame(wx.Frame):
 	self.tb.connect(agc,dst)
 
 	if SAVE_AUDIO_TO_FILE:
-	  f_out = gr.file_sink(gr.sizeof_short,options.audio_file)
+	  f_out = blocks.file_sink(gr.sizeof_short,options.audio_file)
 	  sc1 = blocks.multiply_const_ff(64000)
 	  f2s1 = blocks.float_to_short()
 	  self.tb.connect(agc,sc1,f2s1,f_out)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2012 Free Software Foundation, Inc.
+# Copyright 2012,2013 Free Software Foundation, Inc.
 # 
 # This file is part of GNU Radio
 # 
@@ -77,7 +77,7 @@ class BitErrors(gr.hier_block2):
             intdump_decim = int(N_BITS)
         self.connect(self,
                      comp,
-                     gr.unpack_k_bits_bb(bits_per_byte),
+                     blocks.unpack_k_bits_bb(bits_per_byte),
                      blocks.uchar_to_float(),
                      blocks.integrate_ff(intdump_decim),
                      blocks.multiply_const_ff(1.0/N_BITS),
@@ -91,7 +91,7 @@ class BERAWGNSimu(gr.top_block):
         self.const = digital.qpsk_constellation()
         # Source is N_BITS bits, non-repeated
         data = map(int, numpy.random.randint(0, self.const.arity(), N_BITS/self.const.bits_per_symbol()))
-        src   = gr.vector_source_b(data, False)
+        src   = blocks.vector_source_b(data, False)
         mod   = digital.chunks_to_symbols_bc((self.const.points()), 1)
         add   = blocks.add_vcc()
         noise = analog.noise_source_c(analog.GR_GAUSSIAN,
@@ -99,7 +99,7 @@ class BERAWGNSimu(gr.top_block):
                                       RAND_SEED)
         demod = digital.constellation_decoder_cb(self.const.base())
         ber   = BitErrors(self.const.bits_per_symbol())
-        self.sink  = gr.vector_sink_f()
+        self.sink  = blocks.vector_sink_f()
         self.connect(src, mod, add, demod, ber, self.sink)
         self.connect(noise, (add, 1))
         self.connect(src, (ber, 1))

@@ -25,16 +25,16 @@
 //suppress 319. No access specifier given for base class name (ignored).
 #pragma SWIG nowarn=319
 
-%include "gnuradio.i"
+%include "runtime_swig.i"
 
 //load generated python docstrings
 %include "fcd_swig_doc.i"
 
 %{
-#include "fcd_source_c.h"
+#include "gnuradio/fcd/source_c.h"
 %}
 
-%include "fcd_source_c.h"
+%include "gnuradio/fcd/source_c.h"
 
-GR_SWIG_BLOCK_MAGIC(fcd,source_c);
-fcd_source_c_sptr fcd_make_source_c (const std::string device_name = "");
+GR_SWIG_BLOCK_MAGIC2(fcd, source_c);
+//source_c_sptr gr::fcd::source_c::make(const std::string device_name = "");

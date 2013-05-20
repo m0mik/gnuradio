@@ -36,20 +36,30 @@ except ImportError:
     from plot_form import plot_form
 
 class plot_constellation_form(plot_form):
-    def __init__(self, top_block, title=''):
-        plot_form.__init__(self, top_block, title)
+    def __init__(self, top_block, title='', scale=1):
+        plot_form.__init__(self, top_block, title, scale)
 
         self.right_col_layout = QtGui.QVBoxLayout()
         self.right_col_form = QtGui.QFormLayout()
         self.right_col_layout.addLayout(self.right_col_form)
         self.layout.addLayout(self.right_col_layout, 1,4,1,1)
 
+        # Constellation resizing scales x and y together.
+        # Set the bar to go from 0.001 to max
+        self.ybar.setMinimum(1)
+        self.ybar.setMaximum(self._pos_scale*self.top_block._y_max)
+        self.ybar.setSingleStep(self._pos_scale*(max(self.top_block._y_range/10, 0.010)))
+        self.ybar.setPageStep(self._pos_scale*(max(self.top_block._y_range/2, 0.010)))
+
         self.auto_scale = QtGui.QCheckBox("Auto Scale", self)
         if(self.top_block._auto_scale):
             self.auto_scale.setChecked(self.top_block._auto_scale)
+        self.set_auto_scale(self.top_block._auto_scale)
         self.connect(self.auto_scale, QtCore.SIGNAL("stateChanged(int)"),
                      self.set_auto_scale)
         self.right_col_layout.addWidget(self.auto_scale)
+
+        self.ybar.setValue(1000*self.top_block._y_value)
 
         self.add_line_control(self.right_col_layout)
         

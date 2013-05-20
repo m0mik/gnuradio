@@ -32,7 +32,7 @@ GR_REGISTER_COMPONENT("gr-comedi" ENABLE_GR_COMEDI
     COMEDI_FOUND
     LINUX #comedi uses linux specific device noces
     Boost_FOUND
-    ENABLE_GR_CORE
+    ENABLE_GNURADIO_RUNTIME
 )
 
 GR_SET_GLOBAL(GR_COMEDI_INCLUDE_DIRS
@@ -61,34 +61,34 @@ CPACK_COMPONENT("comedi_runtime"
     GROUP        "Comedi"
     DISPLAY_NAME "Runtime"
     DESCRIPTION  "Dynamic link libraries"
-    DEPENDS      "core_runtime"
+    DEPENDS      "runtime_runtime"
 )
 
 CPACK_COMPONENT("comedi_devel"
     GROUP        "Comedi"
     DISPLAY_NAME "Development"
     DESCRIPTION  "C++ headers, package config, import libraries"
-    DEPENDS      "core_devel"
+    DEPENDS      "runtime_devel"
 )
 
 CPACK_COMPONENT("comedi_python"
     GROUP        "Comedi"
     DISPLAY_NAME "Python"
     DESCRIPTION  "Python modules for runtime"
-    DEPENDS      "core_python;comedi_runtime"
+    DEPENDS      "runtime_python;comedi_runtime"
 )
 
 CPACK_COMPONENT("comedi_swig"
     GROUP        "Comedi"
     DISPLAY_NAME "SWIG"
     DESCRIPTION  "SWIG development .i files"
-    DEPENDS      "core_swig;comedi_python;comedi_devel"
+    DEPENDS      "runtime_swig;comedi_python;comedi_devel"
 )
 
 ########################################################################
 # Add subdirectories
 ########################################################################
-add_subdirectory(include/comedi)
+add_subdirectory(include/gnuradio/comedi)
 add_subdirectory(lib)
 if(ENABLE_PYTHON)
     add_subdirectory(swig)

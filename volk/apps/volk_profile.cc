@@ -1,8 +1,9 @@
 #include "qa_utils.h"
-extern "C" {
+
 #include <volk/volk.h>
 #include <volk/volk_prefs.h>
-}
+
+#include <ciso646>
 #include <vector>
 #include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
@@ -106,11 +107,11 @@ int main(int argc, char *argv[]) {
     //VOLK_PROFILE(volk_32fc_s32fc_multiply_32fc, 1e-4, lv_32fc_t(1.0, 0.5), 204600, 1000, &results);
     VOLK_PROFILE(volk_32fc_s32fc_multiply_32fc, 1e-4, 0, 204600, 1000, &results);
     VOLK_PROFILE(volk_32f_s32f_multiply_32f, 1e-4, 1.0, 204600, 10000, &results);
-    VOLK_PROFILE(volk_32f_s32f_multiply_32f, 1e-4, 0, 204600, 1000, &results);
 
 
     char path[1024];
     volk_get_config_path(path);
+
     const fs::path config_path(path);
 
     if (not fs::exists(config_path.branch_path()))

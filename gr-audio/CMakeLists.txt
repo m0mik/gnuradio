@@ -28,7 +28,7 @@ include(GrBoost)
 include(GrComponent)
 GR_REGISTER_COMPONENT("gr-audio" ENABLE_GR_AUDIO
     Boost_FOUND
-    ENABLE_GR_CORE
+    ENABLE_GNURADIO_RUNTIME
 )
 
 GR_SET_GLOBAL(GR_AUDIO_INCLUDE_DIRS
@@ -52,21 +52,21 @@ CPACK_COMPONENT("audio_runtime"
     GROUP        "Audio"
     DISPLAY_NAME "Runtime"
     DESCRIPTION  "Runtime"
-    DEPENDS      "core_runtime"
+    DEPENDS      "runtime_runtime"
 )
 
 CPACK_COMPONENT("audio_devel"
     GROUP        "Audio"
     DISPLAY_NAME "Development"
     DESCRIPTION  "C++ headers, package config, import libraries"
-    DEPENDS      "core_devel"
+    DEPENDS      "runtime_devel"
 )
 
 CPACK_COMPONENT("audio_python"
     GROUP        "Audio"
     DISPLAY_NAME "Python"
     DESCRIPTION  "Python modules for runtime; GRC xml files"
-    DEPENDS      "core_python;audio_runtime"
+    DEPENDS      "runtime_python;audio_runtime"
 )
 
 CPACK_COMPONENT("audio_examples"
@@ -80,13 +80,13 @@ CPACK_COMPONENT("audio_swig"
     GROUP        "Audio"
     DISPLAY_NAME "SWIG"
     DESCRIPTION  "SWIG development .i files"
-    DEPENDS      "core_swig;audio_python;audio_devel"
+    DEPENDS      "runtime_swig;audio_python;audio_devel"
 )
 
 ########################################################################
 # Add subdirectories
 ########################################################################
-add_subdirectory(include)
+add_subdirectory(include/gnuradio/audio)
 add_subdirectory(lib)
 add_subdirectory(doc)
 if(ENABLE_PYTHON)

@@ -23,12 +23,12 @@
 #ifndef INCLUDED_QTGUI_FREQ_SINK_C_IMPL_H
 #define INCLUDED_QTGUI_FREQ_SINK_C_IMPL_H
 
-#include <qtgui/freq_sink_c.h>
-#include <filter/firdes.h>
-#include <fft/fft.h>
-#include <gruel/high_res_timer.h>
-#include <gruel/thread.h>
-#include <freqdisplayform.h>
+#include <gnuradio/qtgui/freq_sink_c.h>
+#include <gnuradio/filter/firdes.h>
+#include <gnuradio/fft/fft.h>
+#include <gnuradio/high_res_timer.h>
+#include <gnuradio/thread/thread.h>
+#include <gnuradio/qtgui/freqdisplayform.h>
 
 namespace gr {
   namespace qtgui {
@@ -40,7 +40,7 @@ namespace gr {
 
       void initialize();
 
-      gruel::mutex d_mutex;
+      gr::thread::mutex d_mutex;
 
       int d_fftsize;
       float d_fftavg;
@@ -62,8 +62,8 @@ namespace gr {
       QWidget *d_parent;
       FreqDisplayForm *d_main_gui;
 
-      gruel::high_res_timer_type d_update_time;
-      gruel::high_res_timer_type d_last_time;
+      gr::high_res_timer_type d_update_time;
+      gr::high_res_timer_type d_last_time;
 
       void windowreset();
       void buildwindow();
@@ -116,6 +116,7 @@ namespace gr {
 
       void enable_menu(bool en);
       void enable_grid(bool en);
+      void enable_autoscale(bool en);
       void reset();
 
       int work(int noutput_items,

@@ -25,6 +25,7 @@ from numpy import fft
 from gnuradio import gr
 from gnuradio import analog
 from gnuradio import blocks
+from gnuradio import filter
 
 import digital_swig as digital
 from ofdm_sync_pn import ofdm_sync_pn
@@ -69,11 +70,11 @@ class ofdm_receiver(gr.hier_block2):
         
         bw = (float(occupied_tones) / float(fft_length)) / 2.0
         tb = bw*0.08
-        chan_coeffs = gr.firdes.low_pass (1.0,                     # gain
-                                          1.0,                     # sampling rate
-                                          bw+tb,                   # midpoint of trans. band
-                                          tb,                      # width of trans. band
-                                          gr.firdes.WIN_HAMMING)   # filter type
+        chan_coeffs = filter.firdes.low_pass (1.0,                     # gain
+                                              1.0,                     # sampling rate
+                                              bw+tb,                   # midpoint of trans. band
+                                              tb,                      # width of trans. band
+                                              filter.firdes.WIN_HAMMING)   # filter type
         self.chan_filt = filter.fft_filter_ccc(1, chan_coeffs)
         
         win = [1 for i in range(fft_length)]
@@ -124,7 +125,7 @@ class ofdm_receiver(gr.hier_block2):
         self.nco = analog.frequency_modulator_fc(nco_sensitivity)         # generate a signal proportional to frequency error of sync block
         self.sigmix = blocks.multiply_cc()
         self.sampler = digital.ofdm_sampler(fft_length, fft_length+cp_length)
-        self.fft_demod = gr.fft_vcc(fft_length, True, win, True)
+        self.fft_demod = fft.fft_vcc(fft_length, True, win, True)
         self.ofdm_frame_acq = digital.ofdm_frame_acquisition(occupied_tones,
                                                                   fft_length,
                                                                   cp_length, ks[0])
@@ -143,11 +144,11 @@ class ofdm_receiver(gr.hier_block2):
         self.connect((self.ofdm_frame_acq,1), (self,1))               # frame and symbol timing, and equalization
 
         if logging:
-            self.connect(self.chan_filt, gr.file_sink(gr.sizeof_gr_complex, "ofdm_receiver-chan_filt_c.dat"))
-            self.connect(self.fft_demod, gr.file_sink(gr.sizeof_gr_complex*fft_length, "ofdm_receiver-fft_out_c.dat"))
+            self.connect(self.chan_filt, blocks.file_sink(gr.sizeof_gr_complex, "ofdm_receiver-chan_filt_c.dat"))
+            self.connect(self.fft_demod, blocks.file_sink(gr.sizeof_gr_complex*fft_length, "ofdm_receiver-fft_out_c.dat"))
             self.connect(self.ofdm_frame_acq,
-                         gr.file_sink(gr.sizeof_gr_complex*occupied_tones, "ofdm_receiver-frame_acq_c.dat"))
-            self.connect((self.ofdm_frame_acq,1), gr.file_sink(1, "ofdm_receiver-found_corr_b.dat"))
-            self.connect(self.sampler, gr.file_sink(gr.sizeof_gr_complex*fft_length, "ofdm_receiver-sampler_c.dat"))
-            self.connect(self.sigmix, gr.file_sink(gr.sizeof_gr_complex, "ofdm_receiver-sigmix_c.dat"))
-            self.connect(self.nco, gr.file_sink(gr.sizeof_gr_complex, "ofdm_receiver-nco_c.dat"))
+                         blocks.file_sink(gr.sizeof_gr_complex*occupied_tones, "ofdm_receiver-frame_acq_c.dat"))
+            self.connect((self.ofdm_frame_acq,1), blocks.file_sink(1, "ofdm_receiver-found_corr_b.dat"))
+            self.connect(self.sampler, blocks.file_sink(gr.sizeof_gr_complex*fft_length, "ofdm_receiver-sampler_c.dat"))
+            self.connect(self.sigmix, blocks.file_sink(gr.sizeof_gr_complex, "ofdm_receiver-sigmix_c.dat"))
+            self.connect(self.nco, blocks.file_sink(gr.sizeof_gr_complex, "ofdm_receiver-nco_c.dat"))

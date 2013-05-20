@@ -25,7 +25,7 @@
 #endif
 
 #include "time_raster_sink_b_impl.h"
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 #include <string.h>
 #include <volk/volk.h>
 
@@ -57,9 +57,9 @@ namespace gr {
 						     const std::string &name,
 						     int nconnections,
 						     QWidget *parent)
-      : gr_sync_block("time_raster_sink_b",
-		      gr_make_io_signature(1, -1, sizeof(char)),
-		      gr_make_io_signature(0, 0, 0)),
+      : sync_block("time_raster_sink_b",
+		      io_signature::make(1, -1, sizeof(char)),
+		      io_signature::make(0, 0, 0)),
 	d_name(name), d_nconnections(nconnections), d_parent(parent),
 	d_rows(rows), d_cols(cols),
 	d_mult(std::vector<float>(nconnections,1)),
@@ -89,6 +89,9 @@ namespace gr {
 
     time_raster_sink_b_impl::~time_raster_sink_b_impl()
     {
+      if(!d_main_gui->isClosed())
+        d_main_gui->close();
+
       fft::free(d_tmpflt);
       for(int i = 0; i < d_nconnections; i++) {
 	fft::free(d_residbufs[i]);
@@ -124,7 +127,6 @@ namespace gr {
 
       // initialize update time to 10 times a second
       set_update_time(0.1);
-      d_last_time = 0;
     }
 
     void
@@ -151,9 +153,10 @@ namespace gr {
     time_raster_sink_b_impl::set_update_time(double t)
     {
       //convert update time to ticks
-      gruel::high_res_timer_type tps = gruel::high_res_timer_tps();
+      gr::high_res_timer_type tps = gr::high_res_timer_tps();
       d_update_time = t * tps;
       d_main_gui->setUpdateTime(t);
+      d_last_time = 0;
     }
 
     void
@@ -163,39 +166,58 @@ namespace gr {
     }
 
     void
-    time_raster_sink_b_impl::set_line_label(const std::string &label)
+    time_raster_sink_b_impl::set_line_label(int which, const std::string &label)
     {
-      d_main_gui->setLineLabel(0, label.c_str());
+      d_main_gui->setLineLabel(which, label.c_str());
     }
 
     void
-    time_raster_sink_b_impl::set_line_color(const std::string &color)
+    time_raster_sink_b_impl::set_line_color(int which, const std::string &color)
     {
-      d_main_gui->setLineColor(0, color.c_str());
+      d_main_gui->setLineColor(which, color.c_str());
     }
 
     void
-    time_raster_sink_b_impl::set_line_width(int width)
+    time_raster_sink_b_impl::set_line_width(int which, int width)
     {
-      d_main_gui->setLineWidth(0, width);
+      d_main_gui->setLineWidth(which, width);
     }
 
     void
-    time_raster_sink_b_impl::set_line_style(Qt::PenStyle style)
+    time_raster_sink_b_impl::set_line_style(int which, Qt::PenStyle style)
     {
-      d_main_gui->setLineStyle(0, style);
+      d_main_gui->setLineStyle(which, style);
     }
 
     void
-    time_raster_sink_b_impl::set_line_marker(QwtSymbol::Style marker)
+    time_raster_sink_b_impl::set_line_marker(int which, QwtSymbol::Style marker)
     {
-      d_main_gui->setLineMarker(0, marker);
+      d_main_gui->setLineMarker(which, marker);
+    }
+
+    void
+    time_raster_sink_b_impl::set_color_map(int which, const int color)
+    {
+      d_main_gui->setColorMap(which, color);
+    }
+
+    void
+    time_raster_sink_b_impl::set_line_alpha(int which, double alpha)
+    {
+      d_main_gui->setAlpha(which, (int)(255.0*alpha));
     }
 
     void
     time_raster_sink_b_impl::set_size(int width, int height)
     {
       d_main_gui->resize(QSize(width, height));
+    }
+
+    void
+    time_raster_sink_b_impl::set_samp_rate(const double samp_rate)
+    {
+      d_samp_rate = samp_rate;
+      d_main_gui->setSampleRate(d_samp_rate);
     }
 
     void
@@ -208,6 +230,66 @@ namespace gr {
     time_raster_sink_b_impl::set_num_cols(double cols)
     {
       d_main_gui->setNumCols(cols);
+    }
+
+    std::string
+    time_raster_sink_b_impl::title()
+    {
+      return d_main_gui->title().toStdString();
+    }
+
+    std::string
+    time_raster_sink_b_impl::line_label(int which)
+    {
+      return d_main_gui->lineLabel(which).toStdString();
+    }
+
+    std::string
+    time_raster_sink_b_impl::line_color(int which)
+    {
+      return d_main_gui->lineColor(which).toStdString();
+    }
+
+    int
+    time_raster_sink_b_impl::line_width(int which)
+    {
+      return d_main_gui->lineWidth(which);
+    }
+
+    int
+    time_raster_sink_b_impl::line_style(int which)
+    {
+      return d_main_gui->lineStyle(which);
+    }
+
+    int
+    time_raster_sink_b_impl::line_marker(int which)
+    {
+      return d_main_gui->lineMarker(which);
+    }
+
+    int
+    time_raster_sink_b_impl::color_map(int which)
+    {
+      return d_main_gui->getColorMap(which);
+    }
+
+    double
+    time_raster_sink_b_impl::line_alpha(int which)
+    {
+      return (double)(d_main_gui->markerAlpha(which))/255.0;
+    }
+
+    double
+    time_raster_sink_b_impl::num_rows()
+    {
+      return d_main_gui->numRows();
+    }
+
+    double
+    time_raster_sink_b_impl::num_cols()
+    {
+      return d_main_gui->numCols();
     }
 
     void
@@ -250,6 +332,30 @@ namespace gr {
     time_raster_sink_b_impl::set_intensity_range(float min, float max)
     {
       d_main_gui->setIntensityRange(min, max);
+    }
+
+    void
+    time_raster_sink_b_impl::enable_menu(bool en)
+    {
+      d_main_gui->enableMenu(en);
+    }
+
+    void
+    time_raster_sink_b_impl::enable_grid(bool en)
+    {
+      d_main_gui->setGrid(en);
+    }
+
+    void
+    time_raster_sink_b_impl::enable_autoscale(bool en)
+    {
+      d_main_gui->autoScale(en);
+    }
+
+    void
+    time_raster_sink_b_impl::reset()
+    {
+      d_index = 0;
     }
 
     int
@@ -298,8 +404,11 @@ namespace gr {
 				   d_tmpflt, resid);
 	  }
       
-	  d_qApplication->postEvent(d_main_gui,
-	    new TimeRasterUpdateEvent(d_residbufs, d_icols));
+	  if(gr::high_res_timer_now() - d_last_time > d_update_time) {
+	    d_last_time = gr::high_res_timer_now();
+	    d_qApplication->postEvent(d_main_gui,
+				      new TimeRasterUpdateEvent(d_residbufs, d_icols));
+	  }
 
 	  d_index = 0;
 	  j += resid;

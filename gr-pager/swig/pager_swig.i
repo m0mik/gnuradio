@@ -21,24 +21,24 @@
 
 #define PAGER_API
 
-%include "gnuradio.i"
+%include "runtime_swig.i"
 
 //load generated python docstrings
 %include "pager_swig_doc.i"
 
 %{
-#include "pager/flex_frame.h"
-#include "pager/slicer_fb.h"
-#include "pager/flex_sync.h"
-#include "pager/flex_deinterleave.h"
-#include "pager/flex_parse.h"
+#include "gnuradio/pager/flex_frame.h"
+#include "gnuradio/pager/slicer_fb.h"
+#include "gnuradio/pager/flex_sync.h"
+#include "gnuradio/pager/flex_deinterleave.h"
+#include "gnuradio/pager/flex_parse.h"
 %}
 
-%include "pager/flex_frame.h"
-%include "pager/slicer_fb.h"
-%include "pager/flex_sync.h"
-%include "pager/flex_deinterleave.h"
-%include "pager/flex_parse.h"
+%include "gnuradio/pager/flex_frame.h"
+%include "gnuradio/pager/slicer_fb.h"
+%include "gnuradio/pager/flex_sync.h"
+%include "gnuradio/pager/flex_deinterleave.h"
+%include "gnuradio/pager/flex_parse.h"
 
 GR_SWIG_BLOCK_MAGIC2(pager, flex_frame);
 GR_SWIG_BLOCK_MAGIC2(pager, slicer_fb);

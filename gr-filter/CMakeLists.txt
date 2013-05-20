@@ -28,10 +28,9 @@ include(GrBoost)
 include(GrComponent)
 
 GR_REGISTER_COMPONENT("gr-filter" ENABLE_GR_FILTER
-    ENABLE_GRUEL
     ENABLE_VOLK
     Boost_FOUND
-    ENABLE_GR_CORE
+    ENABLE_GNURADIO_RUNTIME
     ENABLE_GR_FFT
     ENABLE_GR_BLOCKS
 )
@@ -60,34 +59,34 @@ CPACK_COMPONENT("filter_runtime"
     GROUP        "Filter"
     DISPLAY_NAME "Runtime"
     DESCRIPTION  "Runtime"
-    DEPENDS      "core_runtime"
+    DEPENDS      "runtime_runtime"
 )
 
 CPACK_COMPONENT("filter_devel"
     GROUP        "Filter"
     DISPLAY_NAME "Development"
     DESCRIPTION  "C++ headers, package config, import libraries"
-    DEPENDS      "core_devel"
+    DEPENDS      "runtime_devel"
 )
 
 CPACK_COMPONENT("filter_python"
     GROUP        "Filter"
     DISPLAY_NAME "Python"
     DESCRIPTION  "Python modules for runtime; GRC xml files"
-    DEPENDS      "core_python;filter_runtime"
+    DEPENDS      "runtime_python;filter_runtime"
 )
 
 CPACK_COMPONENT("filter_swig"
     GROUP        "Filter"
     DISPLAY_NAME "SWIG"
     DESCRIPTION  "SWIG development .i files"
-    DEPENDS      "core_swig;filter_python;filter_devel"
+    DEPENDS      "runtime_swig;filter_python;filter_devel"
 )
 
 ########################################################################
 # Add subdirectories
 ########################################################################
-add_subdirectory(include/filter)
+add_subdirectory(include/gnuradio/filter)
 add_subdirectory(lib)
 if(ENABLE_PYTHON)
     add_subdirectory(swig)

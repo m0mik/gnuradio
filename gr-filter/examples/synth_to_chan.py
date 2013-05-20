@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2010,2012 Free Software Foundation, Inc.
+# Copyright 2010,2012,2013 Free Software Foundation, Inc.
 #
 # This file is part of GNU Radio
 #
@@ -53,7 +53,7 @@ def main():
     sigs = list()
     fmtx = list()
     for fi in freqs:
-        s = analog.sig_source_f(fs, gr.GR_SIN_WAVE, fi, 1)
+        s = analog.sig_source_f(fs, analog.GR_SIN_WAVE, fi, 1)
         fm = analog.nbfm_tx(fs, 4*fs, max_dev=10000, tau=75e-6)
         sigs.append(s)
         fmtx.append(fm)
@@ -68,10 +68,10 @@ def main():
     channelizer = filter.pfb.channelizer_ccf(nchans, chtaps)
 
     noise_level = 0.01
-    head = gr.head(gr.sizeof_gr_complex, N)
-    noise = analog.noise_source_c(gr.GR_GAUSSIAN, noise_level)
+    head = blocks.head(gr.sizeof_gr_complex, N)
+    noise = analog.noise_source_c(analog.GR_GAUSSIAN, noise_level)
     addnoise = blocks.add_cc()
-    snk_synth = gr.vector_sink_c()
+    snk_synth = blocks.vector_sink_c()
 
     tb = gr.top_block()
 
@@ -85,7 +85,7 @@ def main():
         tb.connect(si, fmtx[i], (filtbank, i))
 
     for i in xrange(nchans):
-        snk.append(gr.vector_sink_c())
+        snk.append(blocks.vector_sink_c())
         tb.connect((channelizer, i), snk[i])
 
     tb.run()

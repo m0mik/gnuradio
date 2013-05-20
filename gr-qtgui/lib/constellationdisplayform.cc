@@ -22,7 +22,7 @@
 
 #include <cmath>
 #include <QMessageBox>
-#include <constellationdisplayform.h>
+#include <gnuradio/qtgui/constellationdisplayform.h>
 #include <iostream>
 
 ConstellationDisplayForm::ConstellationDisplayForm(int nplots, QWidget* parent)
@@ -108,17 +108,15 @@ ConstellationDisplayForm::setXaxis(double min, double max)
 }
 
 void
-ConstellationDisplayForm::autoScale()
+ConstellationDisplayForm::autoScale(bool en)
 {
-  if(_autoscale_state == true) {
-    _autoscale_act->setText(tr("Auto Scale On"));
-    _autoscale_state = false;
-  }
-  else {
-    _autoscale_act->setText(tr("Auto Scale Off"));
-    _autoscale_state = true;
-  }
-
+  _autoscale_state = en;
+  _autoscale_act->setChecked(en);
   getPlot()->setAutoScale(_autoscale_state);
   getPlot()->replot();
+}
+
+void
+ConstellationDisplayForm::setSampleRate(const QString &samprate)
+{
 }

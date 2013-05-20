@@ -26,7 +26,7 @@
 ########################################################################
 include(GrComponent)
 GR_REGISTER_COMPONENT("gr-utils" ENABLE_GR_UTILS
-    ENABLE_GR_CORE
+    ENABLE_GNURADIO_RUNTIME
     ENABLE_PYTHON
 )
 
@@ -42,7 +42,7 @@ include(GrPackage)
 CPACK_COMPONENT("utils"
     DISPLAY_NAME "Utils"
     DESCRIPTION  "Misc gnuradio python utilities"
-    DEPENDS      "core_python"
+    DEPENDS      "runtime_python"
 )
 
 ########################################################################

@@ -29,11 +29,13 @@ include(GrComponent)
 GR_REGISTER_COMPONENT("gr-digital" ENABLE_GR_DIGITAL
     Boost_FOUND
     ENABLE_VOLK
-    ENABLE_GR_CORE
+    ENABLE_GNURADIO_RUNTIME
     ENABLE_GR_FFT
     ENABLE_GR_FILTER
     ENABLE_GR_BLOCKS
     ENABLE_GR_ANALOG
+    ENABLE_GR_BLOCKS
+    ENABLE_GR_FILTER
 )
 
 GR_SET_GLOBAL(GR_DIGITAL_INCLUDE_DIRS
@@ -62,34 +64,34 @@ CPACK_COMPONENT("digital_runtime"
     GROUP        "Digital"
     DISPLAY_NAME "Runtime"
     DESCRIPTION  "Dynamic link libraries"
-    DEPENDS      "core_runtime"
+    DEPENDS      "runtime_runtime"
 )
 
 CPACK_COMPONENT("digital_devel"
     GROUP        "Digital"
     DISPLAY_NAME "Development"
     DESCRIPTION  "C++ headers, package config, import libraries"
-    DEPENDS      "core_devel"
+    DEPENDS      "runtime_devel"
 )
 
 CPACK_COMPONENT("digital_python"
     GROUP        "Digital"
     DISPLAY_NAME "Python"
     DESCRIPTION  "Python modules for runtime"
-    DEPENDS      "core_python;digital_runtime"
+    DEPENDS      "runtime_python;digital_runtime"
 )
 
 CPACK_COMPONENT("digital_swig"
     GROUP        "Digital"
     DISPLAY_NAME "SWIG"
     DESCRIPTION  "SWIG development .i files"
-    DEPENDS      "core_swig;digital_python;digital_devel"
+    DEPENDS      "runtime_swig;digital_python;digital_devel"
 )
 
 ########################################################################
 # Add subdirectories
 ########################################################################
-add_subdirectory(include/digital)
+add_subdirectory(include/gnuradio/digital)
 add_subdirectory(lib)
 add_subdirectory(doc)
 if(ENABLE_PYTHON)

@@ -22,13 +22,15 @@
 
 #include <cmath>
 #include <QMessageBox>
-#include <timedisplayform.h>
+#include <gnuradio/qtgui/timedisplayform.h>
 #include <iostream>
 
 TimeDisplayForm::TimeDisplayForm(int nplots, QWidget* parent)
   : DisplayForm(nplots, parent)
 {
   d_stem = false;
+  d_semilogx = false;
+  d_semilogy = false;
 
   _intValidator = new QIntValidator(this);
   _intValidator->setBottom(0);
@@ -43,10 +45,23 @@ TimeDisplayForm::TimeDisplayForm(int nplots, QWidget* parent)
   connect(nptsmenu, SIGNAL(whichTrigger(int)),
 	  this, SLOT(setNPoints(const int)));
 
-  QAction *stemmenu = new QAction("Stem Plot", this);
-  _menu->addAction(stemmenu);
-  connect(stemmenu, SIGNAL(triggered(bool)),
+  d_stemmenu = new QAction("Stem Plot", this);
+  d_stemmenu->setCheckable(true);
+  _menu->addAction(d_stemmenu);
+  connect(d_stemmenu, SIGNAL(triggered(bool)),
 	  this, SLOT(setStem(bool)));
+
+  d_semilogxmenu = new QAction("Semilog X", this);
+  d_semilogxmenu->setCheckable(true);
+  _menu->addAction(d_semilogxmenu);
+  connect(d_semilogxmenu, SIGNAL(triggered(bool)),
+	  this, SLOT(setSemilogx(bool)));
+
+  d_semilogymenu = new QAction("Semilog Y", this);
+  d_semilogymenu->setCheckable(true);
+  _menu->addAction(d_semilogymenu);
+  connect(d_semilogymenu, SIGNAL(triggered(bool)),
+	  this, SLOT(setSemilogy(bool)));
 
   Reset();
 
@@ -89,6 +104,12 @@ TimeDisplayForm::customEvent(QEvent * e)
 }
 
 void
+TimeDisplayForm::setSampleRate(const QString &samprate)
+{
+  setSampleRate(samprate.toDouble());
+}
+
+void
 TimeDisplayForm::setSampleRate(const double samprate)
 {
   if(samprate > 0) {
@@ -124,24 +145,37 @@ TimeDisplayForm::setNPoints(const int npoints)
 }
 
 void
-TimeDisplayForm::setStem(bool trig)
+TimeDisplayForm::setStem(bool en)
 {
-  d_stem ^= 1;
+  d_stem = en;
+  d_stemmenu->setChecked(en);
   getPlot()->stemPlot(d_stem);
+  getPlot()->replot();
 }
 
 void
-TimeDisplayForm::autoScale()
+TimeDisplayForm::autoScale(bool en)
 {
-  if(_autoscale_state == true) {
-    _autoscale_act->setText(tr("Auto Scale On"));
-    _autoscale_state = false;
-  }
-  else {
-    _autoscale_act->setText(tr("Auto Scale Off"));
-    _autoscale_state = true;
-  }
-
+  _autoscale_state = en;
+  _autoscale_act->setChecked(en);
   getPlot()->setAutoScale(_autoscale_state);
+  getPlot()->replot();
+}
+
+void
+TimeDisplayForm::setSemilogx(bool en)
+{
+  d_semilogx = en;
+  d_semilogxmenu->setChecked(en);
+  getPlot()->setSemilogx(d_semilogx);
+  getPlot()->replot();
+}
+
+void
+TimeDisplayForm::setSemilogy(bool en)
+{
+  d_semilogy = en;
+  d_semilogymenu->setChecked(en);
+  getPlot()->setSemilogy(d_semilogy);
   getPlot()->replot();
 }
