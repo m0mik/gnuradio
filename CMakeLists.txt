@@ -165,7 +165,7 @@ add_custom_target(uninstall
 ########################################################################
 # Enable python component
 ########################################################################
-find_package(PythonLibs)
+find_package(PythonLibs 2)
 find_package(SWIG)
 
 if(SWIG_FOUND)
@@ -315,8 +315,11 @@ if(NOT CMAKE_MODULES_DIR)
    set(CMAKE_MODULES_DIR lib/cmake/gnuradio)
 endif(NOT CMAKE_MODULES_DIR)
 
+# Install all other cmake files into same directory
+file(GLOB cmake_others "cmake/Modules/*.cmake")
+
 install(
-  FILES ${cmake_configs}
+  FILES ${cmake_configs} ${cmake_others}
   DESTINATION ${CMAKE_MODULES_DIR}
   COMPONENT "runtime_devel"
 )
