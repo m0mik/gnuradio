@@ -25,6 +25,7 @@
 
 #include <gnuradio/digital/api.h>
 #include <gnuradio/digital/constellation.h>
+#include <gnuradio/blocks/control_loop.h>
 #include <gnuradio/block.h>
 
 namespace gr {
@@ -41,26 +42,38 @@ namespace gr {
      * loop that finds the error of the incoming signal point compared
      * to its nearest constellation point. The frequency and phase of
      * the NCO are updated according to this error.
+     *
+     * Message Ports:
+     *
+     * set_constellation (input):
+     *    Receives a PMT any containing a new gr::digital::constellation object.
+     *    The PMT is cast back to a gr::digital::constellation_sptr
+     *    and passes this to set_constellation.
+     *
+     * rotate_phase (input):
+     *    Receives a PMT double to update the phase.
+     *    The phase value passed in the message is added to the
+     *    current phase of the receiver.
      */
     class DIGITAL_API constellation_receiver_cb
-      : virtual public block
+      : virtual public block,
+        virtual public blocks::control_loop
     {
     public:
       // gr::digital::constellation_receiver_cb::sptr
       typedef boost::shared_ptr<constellation_receiver_cb> sptr;
 
       /*!
-       * \brief Constructor to synchronize incoming M-PSK symbols
+       * \brief Constructs a constellation receiver that (phase/fine
+       * freq) synchronizes and decodes constellation points specified
+       * by a constellation object.
        *
        * \param constellation constellation of points for generic modulation
        * \param loop_bw	Loop  bandwidth of the Costas Loop (~ 2pi/100)
        * \param fmin          minimum normalized frequency value the loop can achieve
        * \param fmax          maximum normalized frequency value the loop can achieve
-       *
-       * The constructor chooses which phase detector and decision
-       * maker to use in the work loop based on the value of M.
        */
-      static sptr make(constellation_sptr constellation, 
+      static sptr make(constellation_sptr constellation,
 		       float loop_bw, float fmin, float fmax);
 
       virtual void phase_error_tracking(float phase_error) = 0;

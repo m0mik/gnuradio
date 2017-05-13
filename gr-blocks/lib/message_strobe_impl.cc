@@ -47,15 +47,13 @@ namespace gr {
 
     message_strobe_impl::message_strobe_impl(pmt::pmt_t msg, float period_ms)
       : block("message_strobe",
-                 io_signature::make(0, 0, 0),
-                 io_signature::make(0, 0, 0)),
+              io_signature::make(0, 0, 0),
+              io_signature::make(0, 0, 0)),
         d_finished(false),
         d_period_ms(period_ms),
         d_msg(msg)
     {
       message_port_register_out(pmt::mp("strobe"));
-      d_thread = boost::shared_ptr<boost::thread>
-        (new boost::thread(boost::bind(&message_strobe_impl::run, this)));
 
       message_port_register_in(pmt::mp("set_msg"));
       set_msg_handler(pmt::mp("set_msg"),
@@ -64,15 +62,35 @@ namespace gr {
 
     message_strobe_impl::~message_strobe_impl()
     {
+    }
+
+    bool
+    message_strobe_impl::start()
+    {
+      // NOTE: d_finished should be something explicitely thread safe. But since
+      // nothing breaks on concurrent access, I'll just leave it as bool.
+      d_finished = false;
+      d_thread = boost::shared_ptr<gr::thread::thread>
+        (new gr::thread::thread(boost::bind(&message_strobe_impl::run, this)));
+
+      return block::start();
+    }
+
+    bool
+    message_strobe_impl::stop()
+    {
+      // Shut down the thread
       d_finished = true;
       d_thread->interrupt();
       d_thread->join();
+
+      return block::stop();
     }
 
     void message_strobe_impl::run()
     {
       while(!d_finished) {
-        boost::this_thread::sleep(boost::posix_time::milliseconds(d_period_ms)); 
+        boost::this_thread::sleep(boost::posix_time::milliseconds(d_period_ms));
         if(d_finished) {
           return;
         }

@@ -19,7 +19,7 @@ import wx
 from PyQt4 import Qt
 import sys
 #end if
-#if $generate_options() != 'hb'
+#if not $generate_options().startswith('hb')
 from optparse import OptionParser
 from gnuradio.eng_option import eng_option
 from gnuradio import eng_notation
@@ -49,24 +49,24 @@ else: self.stop(); self.wait()</callback>
 		<hide>#if $description() then 'none' else 'part'#</hide>
 	</param>
 	<param>
-		<name>Window Size</name>
+		<name>Canvas Size</name>
 		<key>window_size</key>
-		<value>1280, 1024</value>
+		<value></value>
 		<type>int_vector</type>
 		<hide>part</hide>
 	</param>
 	<param>
 		<name>Generate Options</name>
 		<key>generate_options</key>
-		<value>wx_gui</value>
+		<value>qt_gui</value>
 		<type>enum</type>
-		<option>
-			<name>WX GUI</name>
-			<key>wx_gui</key>
-		</option>
 		<option>
 			<name>QT GUI</name>
 			<key>qt_gui</key>
+		</option>
+		<option>
+			<name>WX GUI</name>
+			<key>wx_gui</key>
 		</option>
 		<option>
 			<name>No GUI</name>
@@ -76,13 +76,17 @@ else: self.stop(); self.wait()</callback>
 			<name>Hier Block</name>
 			<key>hb</key>
 		</option>
+		<option>
+			<name>Hier Block (QT GUI)</name>
+			<key>hb_qt_gui</key>
+		</option>
 	</param>
 	<param>
 		<name>Category</name>
 		<key>category</key>
-		<value>Custom</value>
+		<value>[GRC Hier Blocks]</value>
 		<type>string</type>
-		<hide>#if $generate_options() == 'hb' then 'none' else 'all'#</hide>
+		<hide>#if $generate_options().startswith('hb') then 'none' else 'all'#</hide>
 	</param>
 	<param>
 		<name>Run Options</name>
@@ -129,7 +133,7 @@ else: self.stop(); self.wait()</callback>
 		<key>max_nouts</key>
 		<value>0</value>
 		<type>int</type>
-		<hide>#if $generate_options() == 'hb'
+		<hide>#if $generate_options().startswith('hb')
 all#slurp
 #elif $max_nouts()
 none#slurp
@@ -142,7 +146,7 @@ part#slurp
 		<key>realtime_scheduling</key>
 		<value></value>
 		<type>enum</type>
-		<hide>#if $generate_options() == 'hb'
+		<hide>#if $generate_options().startswith('hb')
 all#slurp
 #elif $realtime_scheduling()
 none#slurp
@@ -158,9 +162,62 @@ part#slurp
 			<key>1</key>
 		</option>
 	</param>
-	<check>len($window_size) == 2</check>
-	<check>300 &lt;= $(window_size)[0] &lt;= 4096</check>
-	<check>300 &lt;= $(window_size)[1] &lt;= 4096</check>
+	<param>
+		<name>QSS Theme</name>
+		<key>qt_qss_theme</key>
+		<value></value>
+		<type>file_open</type>
+		<hide>
+#if $generate_options() in ('qt_gui',)
+	#if $qt_qss_theme()
+		none
+	#else
+		part
+	#end if
+#else
+	all
+#end if
+</hide>
+	</param>
+	<param>
+		<name>Thread-safe setters</name>
+		<key>thread_safe_setters</key>
+		<value></value>
+		<type>enum</type>
+		<hide>part</hide>
+		<option>
+			<name>Off</name>
+			<key></key>
+		</option>
+		<option>
+			<name>On</name>
+			<key>1</key>
+		</option>
+		<tab>Advanced</tab>
+	</param>
+	<param>
+		<name>Run Command</name>
+		<key>run_command</key>
+		<value>{python} -u {filename}</value>
+		<type>string</type>
+		<hide>#if $generate_options().startswith('hb')
+all#slurp
+#else
+part#slurp
+#end if</hide>
+		<tab>Advanced</tab>
+	</param>
+	<param>
+		<name>Hier Block Source Path</name>
+		<key>hier_block_src_path</key>
+		<value>.:</value>
+		<type>string</type>
+		<hide>part</hide>
+		<tab>Advanced</tab>
+	</param>
+	<check>not $window_size or len($window_size) == 2</check>
+	<check>not $window_size or 300 &lt;= $(window_size)[0] &lt;= 4096</check>
+	<check>not $window_size or 300 &lt;= $(window_size)[1] &lt;= 4096</check>
 	<doc>
 The options block sets special parameters for the flow graph. \
 Only one option block is allowed per flow graph.

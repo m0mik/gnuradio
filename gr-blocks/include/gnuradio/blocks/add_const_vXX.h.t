@@ -32,23 +32,23 @@ namespace gr {
   namespace blocks {
 
     /*!
-     * \brief output = input + constant vector
+     * \brief output[m] = input[m] + constant vector for all M streams.
      * \ingroup math_operators_blk
      */
     class BLOCKS_API @NAME@ : virtual public sync_block
     {
 
     public:
-      
+
       // gr::blocks::@NAME@::sptr
       typedef boost::shared_ptr<@NAME@> sptr;
-      
+
       /*!
        * \brief Create an instance of @NAME@
        * \param k additive constant vector
        */
       static sptr make(std::vector<@O_TYPE@> k);
-      
+
       /*!
        * \brief Return additive constant vector
        */

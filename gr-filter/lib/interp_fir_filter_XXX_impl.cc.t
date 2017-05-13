@@ -33,7 +33,7 @@
 
 namespace gr {
   namespace filter {
-    
+
     @BASE_NAME@::sptr
     @BASE_NAME@::make(unsigned interpolation,
 		      const std::vector<@TAP_TYPE@> &taps)
@@ -86,7 +86,7 @@ namespace gr {
       if(n > 0) {
 	n = interpolation() - n;
 	while(n-- > 0) {
-	  d_new_taps.insert(d_new_taps.begin(), 0);
+	  d_new_taps.insert(d_new_taps.end(), 0);
 	}
       }
 

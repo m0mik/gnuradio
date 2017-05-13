@@ -177,9 +177,8 @@ class gateway_block(object):
         forecast is only called from a general block
         this is the default implementation
         """
-        for ninput_item in ninput_items_required:
-            ninput_item = noutput_items + self.history() - 1;
-        return
+        for i in range(len(ninput_items_required)):
+            ninput_items_required[i] = noutput_items + self.history() - 1
 
     def general_work(self, *args, **kwargs):
         """general work to be overloaded in a derived class"""
@@ -189,8 +188,11 @@ class gateway_block(object):
         """work to be overloaded in a derived class"""
         raise NotImplementedError("work not implemented")
 
-    def start(self): return True
-    def stop(self): return True
+    def start(self):
+        return True
+
+    def stop(self):
+        return True
 
     def set_msg_handler(self, which_port, handler_func):
         handler = msg_handler()
@@ -198,6 +200,13 @@ class gateway_block(object):
         self.__gateway.set_msg_handler_feval(which_port, handler)
         # Save handler object in class so it's not garbage collected
         self.__msg_handlers[which_port] = handler
+
+    def in_sig(self):
+        return self.__in_sig
+
+    def out_sig(self):
+        return self.__out_sig
+
 
 ########################################################################
 # Wrappers for the user to inherit from

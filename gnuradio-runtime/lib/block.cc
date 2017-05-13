@@ -27,6 +27,7 @@
 #include <gnuradio/block.h>
 #include <gnuradio/block_registry.h>
 #include <gnuradio/block_detail.h>
+#include <gnuradio/buffer.h>
 #include <gnuradio/prefs.h>
 #include <stdexcept>
 #include <iostream>
@@ -43,6 +44,7 @@ namespace gr {
       d_is_unaligned(false),
       d_relative_rate (1.0),
       d_history(1),
+      d_attr_delay(0),
       d_fixed_rate(false),
       d_max_noutput_items_set(false),
       d_max_noutput_items(0),
@@ -50,61 +52,59 @@ namespace gr {
       d_tag_propagation_policy(TPP_ALL_TO_ALL),
       d_priority(-1),
       d_pc_rpc_set(false),
+      d_update_rate(false),
       d_max_output_buffer(std::max(output_signature->max_streams(),1), -1),
       d_min_output_buffer(std::max(output_signature->max_streams(),1), -1)
   {
     global_block_registry.register_primitive(alias(), this);
+    message_port_register_in(pmt::mp("system"));
+    set_msg_handler(pmt::mp("system"), boost::bind(&block::system_handler, this, _1));
 
-#ifdef ENABLE_GR_LOG
-#ifdef HAVE_LOG4CPP
-    prefs *p = prefs::singleton();
-    std::string config_file = p->get_string("LOG", "log_config", "");
-    std::string log_level = p->get_string("LOG", "log_level", "off");
-    std::string log_file = p->get_string("LOG", "log_file", "");
-    std::string debug_level = p->get_string("LOG", "debug_level", "off");
-    std::string debug_file = p->get_string("LOG", "debug_file", "");
-
-    GR_CONFIG_LOGGER(config_file);
-
-    GR_LOG_GETLOGGER(LOG, "gr_log." + alias());
-    GR_LOG_SET_LEVEL(LOG, log_level);
-    if(log_file.size() > 0) {
-      if(log_file == "stdout") {
-        GR_LOG_ADD_CONSOLE_APPENDER(LOG, "cout","gr::log :%p: %c{1} - %m%n");
-      }
-      else if(log_file == "stderr") {
-        GR_LOG_ADD_CONSOLE_APPENDER(LOG, "cerr","gr::log :%p: %c{1} - %m%n");
-      }
-      else {
-        GR_LOG_ADD_FILE_APPENDER(LOG, log_file , true,"%r :%p: %c{1} - %m%n");
-      }
-    }
-    d_logger = LOG;
-
-    GR_LOG_GETLOGGER(DLOG, "gr_log_debug." + alias());
-    GR_LOG_SET_LEVEL(DLOG, debug_level);
-    if(debug_file.size() > 0) {
-      if(debug_file == "stdout") {
-        GR_LOG_ADD_CONSOLE_APPENDER(DLOG, "cout","gr::debug :%p: %c{1} - %m%n");
-      }
-      else if(debug_file == "stderr") {
-        GR_LOG_ADD_CONSOLE_APPENDER(DLOG, "cerr", "gr::debug :%p: %c{1} - %m%n");
-      }
-      else {
-        GR_LOG_ADD_FILE_APPENDER(DLOG, debug_file, true, "%r :%p: %c{1} - %m%n");
-      }
-    }
-    d_debug_logger = DLOG;
-#endif /* HAVE_LOG4CPP */
-#else /* ENABLE_GR_LOG */
-    d_logger = NULL;
-    d_debug_logger = NULL;
-#endif /* ENABLE_GR_LOG */
+    configure_default_loggers(d_logger, d_debug_logger, symbol_name());
   }
 
   block::~block()
   {
-    global_block_registry.unregister_primitive(alias());
+    global_block_registry.unregister_primitive(symbol_name());
+  }
+
+  unsigned
+  block::history() const
+  {
+    return d_history;
+  }
+
+  void
+  block::set_history(unsigned history)
+  {
+    d_history = history;
+  }
+
+  void
+  block::declare_sample_delay(unsigned delay)
+  {
+    d_attr_delay = delay;
+    if(d_detail) {
+      unsigned int nins = static_cast<unsigned int>(d_detail->ninputs());
+      for(unsigned int n = 0; n < nins; n++) {
+        d_detail->input(n)->declare_sample_delay(d_attr_delay);
+      }
+    }
+  }
+
+  void
+  block::declare_sample_delay(int which, unsigned delay)
+  {
+    d_attr_delay = delay;
+    if(d_detail) {
+      d_detail->input(which)->declare_sample_delay(d_attr_delay);
+    }
+  }
+
+  unsigned
+  block::sample_delay(int which) const
+  {
+    return d_attr_delay;
   }
 
   // stub implementation:  1:1
@@ -246,19 +246,42 @@ namespace gr {
 
   void
   block::get_tags_in_range(std::vector<tag_t> &v,
-                           unsigned int which_output,
+                           unsigned int which_input,
                            uint64_t start, uint64_t end)
   {
-    d_detail->get_tags_in_range(v, which_output, start, end, unique_id());
+    d_detail->get_tags_in_range(v, which_input, start, end, unique_id());
   }
 
   void
   block::get_tags_in_range(std::vector<tag_t> &v,
-                           unsigned int which_output,
+                           unsigned int which_input,
                            uint64_t start, uint64_t end,
                            const pmt::pmt_t &key)
   {
-    d_detail->get_tags_in_range(v, which_output, start, end, key, unique_id());
+    d_detail->get_tags_in_range(v, which_input, start, end, key, unique_id());
+  }
+
+  void
+  block::get_tags_in_window(std::vector<tag_t> &v,
+                            unsigned int which_input,
+                            uint64_t start, uint64_t end)
+  {
+    d_detail->get_tags_in_range(v, which_input,
+                                nitems_read(which_input) + start,
+                                nitems_read(which_input) + end,
+                                unique_id());
+  }
+
+  void
+  block::get_tags_in_window(std::vector<tag_t> &v,
+                            unsigned int which_input,
+                            uint64_t start, uint64_t end,
+                            const pmt::pmt_t &key)
+  {
+    d_detail->get_tags_in_range(v, which_input,
+                                nitems_read(which_input) + start,
+                                nitems_read(which_input) + end,
+                                key, unique_id());
   }
 
   block::tag_propagation_policy_t
@@ -319,7 +342,7 @@ namespace gr {
     }
   }
 
-  int 
+  int
   block::active_thread_priority()
   {
     if(d_detail) {
@@ -328,13 +351,13 @@ namespace gr {
     return -1;
   }
 
-  int 
+  int
   block::thread_priority()
   {
     return d_priority;
   }
 
-  int 
+  int
   block::set_thread_priority(int priority)
   {
     d_priority = priority;
@@ -360,10 +383,10 @@ namespace gr {
       throw std::invalid_argument("basic_block::max_output_buffer: port out of range.");
     return d_max_output_buffer[i];
   }
-  
+
   void
   block::set_max_output_buffer(long max_output_buffer)
-  { 
+  {
     for(int i = 0; i < output_signature()->max_streams(); i++) {
       set_max_output_buffer(i, max_output_buffer);
     }
@@ -375,9 +398,9 @@ namespace gr {
     if((size_t)port >= d_max_output_buffer.size())
       d_max_output_buffer.push_back(max_output_buffer);
     else
-      d_max_output_buffer[port] = max_output_buffer; 
+      d_max_output_buffer[port] = max_output_buffer;
   }
-  
+
   long
   block::min_output_buffer(size_t i)
   {
@@ -385,7 +408,7 @@ namespace gr {
       throw std::invalid_argument("basic_block::min_output_buffer: port out of range.");
     return d_min_output_buffer[i];
   }
-  
+
   void
   block::set_min_output_buffer(long min_output_buffer)
   {
@@ -394,16 +417,29 @@ namespace gr {
       set_min_output_buffer(i, min_output_buffer);
     }
   }
-  
+
   void
   block::set_min_output_buffer(int port, long min_output_buffer)
   {
     if((size_t)port >= d_min_output_buffer.size())
       d_min_output_buffer.push_back(min_output_buffer);
     else
-      d_min_output_buffer[port] = min_output_buffer; 
+      d_min_output_buffer[port] = min_output_buffer;
   }
-  
+
+
+  bool
+  block::update_rate() const
+  {
+    return d_update_rate;
+  }
+
+  void
+  block::enable_update_rate(bool en)
+  {
+    d_update_rate = en;
+  }
+
   float
   block::pc_noutput_items()
   {
@@ -635,6 +671,27 @@ namespace gr {
     }
   }
 
+  float
+  block::pc_work_time_total()
+  {
+    if(d_detail) {
+      return d_detail->pc_work_time_total();
+    }
+    else {
+      return 0;
+    }
+  }
+
+  float
+  block::pc_throughput_avg() {
+    if(d_detail) {
+      return d_detail->pc_throughput_avg();
+    }
+    else {
+      return 0;
+    }
+  }
+
   void
   block::reset_perf_counters()
   {
@@ -643,11 +700,75 @@ namespace gr {
     }
   }
 
+
+  void
+  block::system_handler(pmt::pmt_t msg)
+  {
+    //std::cout << "system_handler " << msg << "\n";
+    pmt::pmt_t op = pmt::car(msg);
+    if(pmt::eqv(op, pmt::mp("done"))){
+        d_finished = pmt::to_long(pmt::cdr(msg));
+        global_block_registry.notify_blk(alias());
+    } else {
+        std::cout << "WARNING: bad message op on system port!\n";
+        pmt::print(msg);
+    }
+  }
+
+  void
+  block::notify_msg_neighbors()
+  {
+    size_t len = pmt::length(d_message_subscribers);
+    pmt::pmt_t port_names = pmt::make_vector(len, pmt::PMT_NIL);
+    pmt::pmt_t keys = pmt::dict_keys(d_message_subscribers);
+    for(size_t i = 0; i < len; i++) {
+      // for each output port
+      pmt::pmt_t oport = pmt::nth(i,keys);
+
+      // for each subscriber on this port
+      pmt::pmt_t currlist = pmt::dict_ref(d_message_subscribers, oport, pmt::PMT_NIL);
+
+      // iterate through subscribers on port
+      while(pmt::is_pair(currlist)) {
+        pmt::pmt_t target = pmt::car(currlist);
+
+        pmt::pmt_t block = pmt::car(target);
+        pmt::pmt_t port = pmt::mp("system");
+
+        currlist = pmt::cdr(currlist);
+        basic_block_sptr blk = global_block_registry.block_lookup(block);
+        blk->post(port, pmt::cons(pmt::mp("done"), pmt::mp(true)));
+
+        //std::cout << "notify finished --> ";
+        //pmt::print(pmt::cons(block,port));
+        //std::cout << "\n";
+
+        }
+    }
+  }
+
+  bool
+  block::finished()
+  {
+    if((detail()->ninputs() != 0) || (detail()->noutputs() != 0))
+      return false;
+    else
+      return d_finished;
+  }
+
+
+
   void
   block::setup_pc_rpc()
   {
     d_pc_rpc_set = true;
-#ifdef GR_CTRLPORT
+#if defined(GR_CTRLPORT) && defined(GR_PERFORMANCE_COUNTERS)
+#include <gnuradio/rpcregisterhelpers.h>
+    d_rpc_vars.push_back(
+      rpcbasic_sptr(new rpcbasic_register_trigger<block>(
+        alias(), "reset_perf_counters", &block::reset_perf_counters,
+        "Reset the Performance Counters", RPC_PRIVLVL_MIN)));
+
     d_rpc_vars.push_back(
       rpcbasic_sptr(new rpcbasic_register_get<block, float>(
         alias(), "noutput_items", &block::pc_noutput_items,
@@ -712,47 +833,61 @@ namespace gr {
         DISPTIME | DISPOPTSTRIP)));
 
     d_rpc_vars.push_back(
+      rpcbasic_sptr(new rpcbasic_register_get<block, float>(
+        alias(), "total work time", &block::pc_work_time_total,
+        pmt::mp(0), pmt::mp(1e9), pmt::mp(0),
+        "", "Total clock cycles in calls to work", RPC_PRIVLVL_MIN,
+        DISPTIME | DISPOPTSTRIP)));
+
+    d_rpc_vars.push_back(
+      rpcbasic_sptr(new rpcbasic_register_get<block, float>(
+        alias(), "avg throughput", &block::pc_throughput_avg,
+        pmt::mp(0), pmt::mp(1e9), pmt::mp(0),
+        "items/s", "Average items throughput in call to work", RPC_PRIVLVL_MIN,
+        DISPTIME | DISPOPTSTRIP)));
+
+    d_rpc_vars.push_back(
       rpcbasic_sptr(new rpcbasic_register_get<block, std::vector<float> >(
         alias(), "input \% full", &block::pc_input_buffers_full,
-        pmt::make_c32vector(0,0), pmt::make_c32vector(0,1), pmt::make_c32vector(0,0),
+        pmt::make_f32vector(0,0), pmt::make_f32vector(0,1), pmt::make_f32vector(0,0),
         "", "how full input buffers are", RPC_PRIVLVL_MIN,
         DISPTIME | DISPOPTSTRIP)));
 
     d_rpc_vars.push_back(
       rpcbasic_sptr(new rpcbasic_register_get<block, std::vector<float> >(
         alias(), "avg input \% full", &block::pc_input_buffers_full_avg,
-        pmt::make_c32vector(0,0), pmt::make_c32vector(0,1), pmt::make_c32vector(0,0),
+        pmt::make_f32vector(0,0), pmt::make_f32vector(0,1), pmt::make_f32vector(0,0),
         "", "Average of how full input buffers are", RPC_PRIVLVL_MIN,
         DISPTIME | DISPOPTSTRIP)));
 
     d_rpc_vars.push_back(
       rpcbasic_sptr(new rpcbasic_register_get<block, std::vector<float> >(
         alias(), "var input \% full", &block::pc_input_buffers_full_var,
-        pmt::make_c32vector(0,0), pmt::make_c32vector(0,1), pmt::make_c32vector(0,0),
+        pmt::make_f32vector(0,0), pmt::make_f32vector(0,1), pmt::make_f32vector(0,0),
         "", "Var. of how full input buffers are", RPC_PRIVLVL_MIN,
         DISPTIME | DISPOPTSTRIP)));
 
     d_rpc_vars.push_back(
       rpcbasic_sptr(new rpcbasic_register_get<block, std::vector<float> >(
         alias(), "output \% full", &block::pc_output_buffers_full,
-        pmt::make_c32vector(0,0), pmt::make_c32vector(0,1), pmt::make_c32vector(0,0),
+        pmt::make_f32vector(0,0), pmt::make_f32vector(0,1), pmt::make_f32vector(0,0),
         "", "how full output buffers are", RPC_PRIVLVL_MIN,
         DISPTIME | DISPOPTSTRIP)));
 
     d_rpc_vars.push_back(
       rpcbasic_sptr(new rpcbasic_register_get<block, std::vector<float> >(
         alias(), "avg output \% full", &block::pc_output_buffers_full_avg,
-        pmt::make_c32vector(0,0), pmt::make_c32vector(0,1), pmt::make_c32vector(0,0),
+        pmt::make_f32vector(0,0), pmt::make_f32vector(0,1), pmt::make_f32vector(0,0),
         "", "Average of how full output buffers are", RPC_PRIVLVL_MIN,
         DISPTIME | DISPOPTSTRIP)));
 
     d_rpc_vars.push_back(
       rpcbasic_sptr(new rpcbasic_register_get<block, std::vector<float> >(
         alias(), "var output \% full", &block::pc_output_buffers_full_var,
-        pmt::make_c32vector(0,0), pmt::make_c32vector(0,1), pmt::make_c32vector(0,0),
+        pmt::make_f32vector(0,0), pmt::make_f32vector(0,1), pmt::make_f32vector(0,0),
         "", "Var. of how full output buffers are", RPC_PRIVLVL_MIN,
         DISPTIME | DISPOPTSTRIP)));
-#endif /* GR_CTRLPORT */
+#endif /* defined(GR_CTRLPORT) && defined(GR_PERFORMANCE_COUNTERS) */
   }
 
   std::ostream&

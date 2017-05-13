@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2012,2013 Free Software Foundation, Inc.
+ * Copyright 2012,2013,2015 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -27,7 +27,6 @@
 #include <gnuradio/filter/firdes.h>
 #include <gnuradio/fft/fft.h>
 #include <gnuradio/high_res_timer.h>
-#include <gnuradio/thread/thread.h>
 #include <gnuradio/qtgui/timerasterdisplayform.h>
 
 namespace gr {
@@ -46,6 +45,8 @@ namespace gr {
 
       float *d_tmpflt;
 
+      int d_argc;
+      char *d_argv;
       QWidget *d_parent;
       TimeRasterDisplayForm *d_main_gui;
 
@@ -57,6 +58,11 @@ namespace gr {
 
       gr::high_res_timer_type d_update_time;
       gr::high_res_timer_type d_last_time;
+
+      void _ncols_resize();
+
+      // Handles message input port for displaying PDU samples.
+      void handle_pdus(pmt::pmt_t msg);
 
     public:
       time_raster_sink_f_impl(double samp_rate,
@@ -72,7 +78,12 @@ namespace gr {
 
       void exec_();
       QWidget*  qwidget();
+
+#ifdef ENABLE_PYTHON
       PyObject* pyqwidget();
+#else
+      void* pyqwidget();
+#endif
 
       void set_update_time(double t);
       void set_title(const std::string &title);
@@ -110,6 +121,7 @@ namespace gr {
       void enable_menu(bool en);
       void enable_grid(bool en);
       void enable_autoscale(bool en);
+      void enable_axis_labels(bool en);
       void reset();
 
       int work(int noutput_items,

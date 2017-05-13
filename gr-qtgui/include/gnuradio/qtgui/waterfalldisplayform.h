@@ -46,6 +46,7 @@ class WaterfallDisplayForm : public DisplayForm
   WaterfallDisplayPlot* getPlot();
 
   int getFFTSize() const;
+  double getTimePerFFT();
   float getFFTAverage() const;
   gr::filter::firdes::win_type getFFTWindowType() const;
 
@@ -56,9 +57,15 @@ class WaterfallDisplayForm : public DisplayForm
 
   void clearData();
 
+  // returns the frequency that was last double-clicked on by the user
+  float getClickedFreq() const;
+
+  // checks if there was a double-click event; reset if there was
+  bool checkClicked();
+
 public slots:
   void customEvent(QEvent *e);
-
+  void setTimeTitle(const std::string);
   void setSampleRate(const QString &samprate);
   void setFFTSize(const int);
   void setFFTAverage(const float);
@@ -69,6 +76,8 @@ public slots:
 
   void setIntensityRange(const double minIntensity,
 			 const double maxIntensity);
+  void setMaxIntensity(const QString &m);
+  void setMinIntensity(const QString &m);
 
   void setAlpha(int which, int alpha);
 
@@ -78,21 +87,33 @@ public slots:
 		   const QColor highColor=QColor("white"));
 
   void autoScale(bool en=false);
+  void setPlotPosHalf(bool half);
+  void setTimePerFFT(double t);
+  void setUpdateTime(double t);
 
 private slots:
   void newData(const QEvent *updateEvent);
+  void onPlotPointSelected(const QPointF p);
 
 private:
-  uint64_t _numRealDataPoints;
-  QIntValidator* _intValidator;
+  QIntValidator* d_int_validator;
 
-  double _samp_rate, _center_freq;
-  int _fftsize;
-  float _fftavg;
-  gr::filter::firdes::win_type _fftwintype;
+  double d_samp_rate, d_center_freq;
+  int d_fftsize;
+  double d_time_per_fft;
+  float d_fftavg;
+  gr::filter::firdes::win_type d_fftwintype;
+  double d_units;
 
-  double _min_val;
-  double _max_val;
+  bool d_clicked;
+  double d_clicked_freq;
+
+  double d_min_val, d_cur_min_val;
+  double d_max_val, d_cur_max_val;
+
+  FFTSizeMenu *d_sizemenu;
+  FFTAverageMenu *d_avgmenu;
+  FFTWindowMenu *d_winmenu;
 };
 
 #endif /* WATERFALL_DISPLAY_FORM_H */

@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2008,2009,2011,2012 Free Software Foundation, Inc.
+ * Copyright 2008,2009,2011,2012,2014 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -23,7 +23,10 @@
 #ifndef INCLUDED_QTGUI_SINK_C_H
 #define INCLUDED_QTGUI_SINK_C_H
 
+#ifdef ENABLE_PYTHON
 #include <Python.h>
+#endif
+
 #include <gnuradio/qtgui/api.h>
 #include <gnuradio/block.h>
 #include <qapplication.h>
@@ -44,8 +47,26 @@ namespace gr {
      * spectrogram (waterfall), time domain I&Q, and constellation (I
      * vs. Q) plots. The plots may be turned off by setting the
      * appropriate boolean value in the constructor to False.
+     *
+     * Message Ports:
+     *
+     * - freq (input):
+     *        Receives a PMT pair: (intern("freq"), double(frequency).
+     *        This is used to retune the center frequency of the
+     *        display's x-axis.
+     *
+     * - freq (output):
+     *        Produces a PMT pair with (intern("freq"), double(frequency).
+     *        When a user double-clicks on the display, the block
+     *        produces and emits a message containing the frequency of
+     *        where on the x-axis the user clicked. This value can be
+     *        used by other blocks to update their frequency setting.
+     *
+     *        To perform click-to-tune behavior, this output 'freq'
+     *        port can be redirected to this block's input 'freq' port
+     *        to catch the message and update the center frequency of
+     *        the display.
      */
-
     class QTGUI_API sink_c : virtual public block
     {
     public:
@@ -74,7 +95,13 @@ namespace gr {
 		       QWidget *parent=NULL);
 
       virtual void exec_() = 0;
+      virtual QWidget* qwidget() = 0;
+
+#ifdef ENABLE_PYTHON
       virtual PyObject* pyqwidget() = 0;
+#else
+      virtual void* pyqwidget() = 0;
+#endif
 
       virtual void set_fft_size(const int fftsize) = 0;
       virtual int fft_size() const = 0;
@@ -82,6 +109,7 @@ namespace gr {
       virtual void set_frequency_range(const double centerfreq,
 				       const double bandwidth) = 0;
       virtual void set_fft_power_db(double min, double max) = 0;
+      virtual void enable_rf_freq(bool en) = 0;
 
       //void set_time_domain_axis(double min, double max);
       //void set_constellation_axis(double xmin, double xmax,

@@ -80,12 +80,15 @@ namespace gr {
 
   top_block_impl::top_block_impl(top_block *owner)
     : d_owner(owner), d_ffg(),
-      d_state(IDLE), d_lock_count(0)
+      d_state(IDLE), d_lock_count(0), d_retry_wait(false)
   {
   }
 
   top_block_impl::~top_block_impl()
   {
+    if (d_lock_count) {
+      std::cerr << "error: destroying locked block." << std::endl;
+    }
     d_owner = 0;
   }
 
@@ -122,17 +125,39 @@ namespace gr {
   void
   top_block_impl::stop()
   {
+    gr::thread::scoped_lock lock(d_mutex);
+
     if(d_scheduler)
       d_scheduler->stop();
+
+    d_state = IDLE;
   }
 
   void
   top_block_impl::wait()
   {
+    do {
+      wait_for_jobs();
+      {
+        gr::thread::scoped_lock lock(d_mutex);
+        if (!d_lock_count) {
+          if(d_retry_wait) {
+            d_retry_wait = false;
+            continue;
+          }
+          d_state = IDLE;
+          break;
+        }
+        d_lock_cond.wait(lock);
+      }
+    } while(true);
+  }
+
+  void
+  top_block_impl::wait_for_jobs()
+  {
     if(d_scheduler)
       d_scheduler->wait();
-
-    d_state = IDLE;
   }
 
   // N.B. lock() and unlock() cannot be called from a flow graph
@@ -141,6 +166,8 @@ namespace gr {
   top_block_impl::lock()
   {
     gr::thread::scoped_lock lock(d_mutex);
+    if(d_scheduler)
+      d_scheduler->stop();
     d_lock_count++;
   }
 
@@ -159,6 +186,7 @@ namespace gr {
       return;
 
     restart();
+    d_lock_cond.notify_all();
   }
 
   /*
@@ -167,8 +195,7 @@ namespace gr {
   void
   top_block_impl::restart()
   {
-    stop();		     // Stop scheduler and wait for completion
-    wait();
+    wait_for_jobs();
 
     // Create new simple flow graph
     flat_flowgraph_sptr new_ffg = d_owner->flatten();
@@ -178,7 +205,7 @@ namespace gr {
 
     // Create a new scheduler to execute it
     d_scheduler = make_scheduler(d_ffg, d_max_noutput_items);
-    d_state = RUNNING;
+    d_retry_wait = true;
   }
 
   std::string

@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2008-2011 Free Software Foundation, Inc.
+ * Copyright 2008-2011,2014 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -31,6 +31,9 @@ SpectrumDisplayForm::SpectrumDisplayForm(QWidget* parent)
 {
   setupUi(this);
 
+  d_clicked = false;
+  d_clicked_freq = 0;
+
   _systemSpecifiedFlag = false;
   _intValidator = new QIntValidator(this);
   _intValidator->setBottom(0);
@@ -49,11 +52,20 @@ SpectrumDisplayForm::SpectrumDisplayForm(QWidget* parent)
   AvgLineEdit->setRange(0, 500);                 // Set range of Average box value from 0 to 500
   minHoldCheckBox_toggled( false );
   maxHoldCheckBox_toggled( false );
-  
+
+#if QWT_VERSION < 0x060100
   WaterfallMaximumIntensitySlider->setRange(-200, 0);
   WaterfallMinimumIntensitySlider->setRange(-200, 0);
   WaterfallMinimumIntensitySlider->setValue(-200);
-  
+#else /* QWT_VERSION < 0x060100 */
+  WaterfallMaximumIntensitySlider->setScale(-200, 0);
+  WaterfallMinimumIntensitySlider->setScale(-200, 0);
+  WaterfallMinimumIntensitySlider->setValue(-200);
+#endif /* QWT_VERSION < 0x060100 */
+
+  WaterfallMaximumIntensitySlider->setOrientation(Qt::Horizontal);
+  WaterfallMinimumIntensitySlider->setOrientation(Qt::Horizontal);
+
   _peakFrequency = 0;
   _peakAmplitude = -HUGE_VAL;
 
@@ -163,12 +175,12 @@ static void fftshift_and_sum(double *outFFT, const float *inFFT,
       peak_ampl = *outptr;
     }
     sum_mean += *outptr;
-    
+
     inptr++;
     outptr++;
   }
-  
-  // This loop takes the first half of the input data and puts it in the 
+
+  // This loop takes the first half of the input data and puts it in the
   // second half of the plotted data
   inptr = inFFT;
   for(uint64_t point = 0; point < num_points/2; point++) {
@@ -417,7 +429,7 @@ SpectrumDisplayForm::setFrequencyRange(const double newCenterFrequency,
     std::string strtime[4] = {"sec", "ms", "us", "ns"};
     double units10 = floor(log10(fdiff));
     double units3  = std::max(floor(units10 / 3.0), 0.0);
-    double units = pow(10, (units10-fmod(units10, 3.0)));
+    d_units = pow(10, (units10-fmod(units10, 3.0)));
     int iunit = static_cast<int>(units3);
 
     _startFrequency = newStartFrequency;
@@ -425,11 +437,11 @@ SpectrumDisplayForm::setFrequencyRange(const double newCenterFrequency,
     _centerFrequency = newCenterFrequency;
 
     _frequencyDisplayPlot->setFrequencyRange(fcenter, fdiff,
-					     units, strunits[iunit]);
+					     d_units, strunits[iunit]);
     _waterfallDisplayPlot->setFrequencyRange(fcenter, fdiff,
-					     units, strunits[iunit]);
+					     d_units, strunits[iunit]);
     _timeDomainDisplayPlot->setSampleRate((_stopFrequency - _startFrequency)/2.0,
-					  units, strtime[iunit]);
+					  d_units, strtime[iunit]);
   }
 }
 
@@ -563,6 +575,12 @@ SpectrumDisplayForm::useRFFrequenciesCB(bool useRFFlag)
   setFrequencyRange(_centerFrequency, _startFrequency, _stopFrequency);
 }
 
+void
+SpectrumDisplayForm::toggleRFFrequencies(bool en)
+{
+  UseRFFrequenciesCheckBox->setChecked(en);
+}
+
 
 void
 SpectrumDisplayForm::waterfallMaximumIntensityChangedCB(double newValue)
@@ -606,14 +624,26 @@ void
 SpectrumDisplayForm::waterfallAutoScaleBtnCB()
 {
   double minimumIntensity = _noiseFloorAmplitude - 5;
-  if(minimumIntensity < WaterfallMinimumIntensitySlider->minValue()){
+  double maximumIntensity = _peakAmplitude + 10;
+
+#if QWT_VERSION < 0x060100
+  if(minimumIntensity < WaterfallMinimumIntensitySlider->minValue()) {
     minimumIntensity = WaterfallMinimumIntensitySlider->minValue();
   }
   WaterfallMinimumIntensitySlider->setValue(minimumIntensity);
-  double maximumIntensity = _peakAmplitude + 10;
-  if(maximumIntensity > WaterfallMaximumIntensitySlider->maxValue()){
+  if(maximumIntensity > WaterfallMaximumIntensitySlider->maxValue()) {
     maximumIntensity = WaterfallMaximumIntensitySlider->maxValue();
   }
+#else /* QWT_VERSION < 0x060100 */
+  if(minimumIntensity < WaterfallMinimumIntensitySlider->lowerBound()) {
+    minimumIntensity = WaterfallMinimumIntensitySlider->lowerBound();
+  }
+  WaterfallMinimumIntensitySlider->setValue(minimumIntensity);
+  if(maximumIntensity > WaterfallMaximumIntensitySlider->upperBound()) {
+    maximumIntensity = WaterfallMaximumIntensitySlider->upperBound();
+  }
+#endif /* QWT_VERSION < 0x060100 */
+
   WaterfallMaximumIntensitySlider->setValue(maximumIntensity);
   waterfallMaximumIntensityChangedCB(maximumIntensity);
 }
@@ -741,23 +771,47 @@ SpectrumDisplayForm::setUpdateTime(double t)
 void
 SpectrumDisplayForm::onFFTPlotPointSelected(const QPointF p)
 {
-  emit plotPointSelected(p, 1);
+  d_clicked = true;
+  d_clicked_freq = d_units*p.x();
+
+  setFrequencyRange(d_clicked_freq, _startFrequency, _stopFrequency);
 }
 
 void
 SpectrumDisplayForm::onWFallPlotPointSelected(const QPointF p)
 {
-  emit plotPointSelected(p, 2);
+  d_clicked = true;
+  d_clicked_freq = d_units*p.x();
+
+  setFrequencyRange(d_clicked_freq, _startFrequency, _stopFrequency);
 }
 
 void
 SpectrumDisplayForm::onTimePlotPointSelected(const QPointF p)
 {
-  emit plotPointSelected(p, 3);
+  //emit plotPointSelected(p, 3);
 }
 
 void
 SpectrumDisplayForm::onConstPlotPointSelected(const QPointF p)
 {
-  emit plotPointSelected(p, 4);
+  //emit plotPointSelected(p, 4);
+}
+
+bool
+SpectrumDisplayForm::checkClicked()
+{
+  if(d_clicked) {
+    d_clicked = false;
+    return true;
+  }
+  else {
+    return false;
+  }
+}
+
+float
+SpectrumDisplayForm::getClickedFreq() const
+{
+  return d_clicked_freq;
 }

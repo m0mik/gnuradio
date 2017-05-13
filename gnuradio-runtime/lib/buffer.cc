@@ -23,7 +23,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-
+#include <algorithm>
 #include <gnuradio/buffer.h>
 #include <gnuradio/math.h>
 #include "vmcircbuf.h"
@@ -40,7 +40,7 @@ namespace gr {
 
   /* ----------------------------------------------------------------------------
   			Notes on storage management
-  
+
    Pretty much all the fundamental classes are now using the
    shared_ptr stuff for automatic reference counting. To ensure that
    no mistakes are made, we make the constructors for classes private,
@@ -68,7 +68,7 @@ namespace gr {
   /*
    * Compute the minimum number of buffer items that work (i.e.,
    * address space wrap-around works).  To work is to satisfy this
-   * contraint for integer buffer_size and k:
+   * constraint for integer buffer_size and k:
    *
    *     type_size * nitems == k * page_size
    */
@@ -79,8 +79,8 @@ namespace gr {
   }
 
 
-  buffer::buffer(int nitems, size_t sizeof_item, block_sptr link) 
-    : d_base(0), d_bufsize(0), d_vmcircbuf(0),
+  buffer::buffer(int nitems, size_t sizeof_item, block_sptr link)
+    : d_base(0), d_bufsize(0), d_max_reader_delay(0), d_vmcircbuf(0),
       d_sizeof_item(sizeof_item), d_link(link),
       d_write_index(0), d_abs_write_offset(0), d_done(false),
       d_last_min_items_read(0)
@@ -194,7 +194,7 @@ namespace gr {
   }
 
   buffer_reader_sptr
-  buffer_add_reader(buffer_sptr buf, int nzero_preload, block_sptr link)
+  buffer_add_reader(buffer_sptr buf, int nzero_preload, block_sptr link, int delay)
   {
     if(nzero_preload < 0)
       throw std::invalid_argument("buffer_add_reader: nzero_preload must be >= 0");
@@ -203,6 +203,7 @@ namespace gr {
                                            buf->index_sub(buf->d_write_index,
                                                           nzero_preload),
                                            link));
+    r->declare_sample_delay(delay);
     buf->d_readers.push_back(r.get ());
 
     return r;
@@ -224,16 +225,16 @@ namespace gr {
   buffer::add_item_tag(const tag_t &tag)
   {
     gr::thread::scoped_lock guard(*mutex());
-    d_item_tags.push_back(tag);
+    d_item_tags.insert(std::pair<uint64_t,tag_t>(tag.offset,tag));
   }
 
   void
   buffer::remove_item_tag(const tag_t &tag, long id)
   {
     gr::thread::scoped_lock guard(*mutex());
-    for(std::deque<tag_t>::iterator it = d_item_tags.begin(); it != d_item_tags.end(); ++it) {
-      if(*it == tag) {
-	(*it).marked_deleted.push_back(id);
+    for(std::multimap<uint64_t,tag_t>::iterator it = d_item_tags.lower_bound(tag.offset); it != d_item_tags.upper_bound(tag.offset); ++it) {
+      if((*it).second == tag) {
+        (*it).second.marked_deleted.push_back(id);
       }
     }
   }
@@ -247,28 +248,37 @@ namespace gr {
        locks the mutex itself.
 
        If this function is used elsewhere, remember to lock the
-       buffer's mutex al la the scoped_lock line below.
-    */
-    //gr::thread::scoped_lock guard(*mutex());
-    std::deque<tag_t>::iterator itr = d_item_tags.begin();
+       buffer's mutex al la the scoped_lock:
+           gr::thread::scoped_lock guard(*mutex());
+     */
+
+    /*
+      http://www.cplusplus.com/reference/map/multimap/erase/
+      "Iterators, pointers and references referring to elements removed
+      by the function are invalidated. All other iterators, pointers
+      and references keep their validity."
+
+      Store the iterator to be deleted in tmp; increment itr to the
+      next valid iterator, then erase tmp, which now becomes invalid.
+     */
 
     uint64_t item_time;
-
-    // Since tags are not guarenteed to be in any particular order, we
-    // need to erase here instead of pop_front. An erase in the middle
-    // invalidates all iterators; so this resets the iterator to find
-    // more. Mostly, we wil be erasing from the front and
-    // therefore lose little time this way.
+   std::multimap<uint64_t,tag_t>::iterator itr(d_item_tags.begin()), tmp;
     while(itr != d_item_tags.end()) {
-      item_time = (*itr).offset;
-      if(item_time < max_time) {
-        d_item_tags.erase(itr);
-        itr = d_item_tags.begin();
+      item_time = (*itr).second.offset;
+      if(item_time+d_max_reader_delay + bufsize() < max_time) {
+        tmp = itr;
+       itr++;
+        d_item_tags.erase(tmp);
       }
-      else
-        itr++;
+      else {
+        // d_item_tags is a map sorted by offset, so when the if
+        // condition above fails, all future tags in the map must also
+        // fail. So just break here.
+        break;
+      }
     }
-  }
+   }
 
   long
   buffer_ncurrently_allocated()
@@ -280,15 +290,32 @@ namespace gr {
 
   buffer_reader::buffer_reader(buffer_sptr buffer, unsigned int read_index,
                                block_sptr link)
-    : d_buffer(buffer), d_read_index(read_index), d_abs_read_offset(0), d_link(link)
+    : d_buffer(buffer), d_read_index(read_index), d_abs_read_offset(0), d_link(link),
+      d_attr_delay(0)
   {
     s_buffer_reader_count++;
+
+    buffer->d_max_reader_delay = 0;
   }
 
   buffer_reader::~buffer_reader()
   {
     d_buffer->drop_reader(this);
     s_buffer_reader_count--;
+  }
+
+  void
+  buffer_reader::declare_sample_delay(unsigned delay)
+  {
+    d_attr_delay = delay;
+    d_buffer->d_max_reader_delay = std::max(d_attr_delay,
+                                            d_buffer->d_max_reader_delay);
+  }
+
+  unsigned
+  buffer_reader::sample_delay() const
+  {
+    return d_attr_delay;
   }
 
   int
@@ -315,26 +342,28 @@ namespace gr {
   buffer_reader::get_tags_in_range(std::vector<tag_t> &v,
                                    uint64_t abs_start,
                                    uint64_t abs_end,
-				   long id)
+                                   long id)
   {
     gr::thread::scoped_lock guard(*mutex());
 
     v.resize(0);
-    std::deque<tag_t>::iterator itr = d_buffer->get_tags_begin();
+    std::multimap<uint64_t,tag_t>::iterator itr = d_buffer->get_tags_lower_bound(std::min(abs_start, abs_start - d_attr_delay));
+    std::multimap<uint64_t,tag_t>::iterator itr_end = d_buffer->get_tags_upper_bound(std::min(abs_end, abs_end - d_attr_delay));
 
     uint64_t item_time;
-    while(itr != d_buffer->get_tags_end()) {
-      item_time = (*itr).offset;
-
+    while(itr != itr_end) {
+      item_time = (*itr).second.offset + d_attr_delay;
       if((item_time >= abs_start) && (item_time < abs_end)) {
-	std::vector<long>::iterator id_itr;
-	id_itr = std::find(itr->marked_deleted.begin(), itr->marked_deleted.end(), id);
-	if (id_itr == itr->marked_deleted.end()) { // If id is not in the vector of marked blocks
-	  v.push_back(*itr);
-	  v.back().marked_deleted.clear();
-	}
+        std::vector<long>::iterator id_itr;
+        id_itr = std::find(itr->second.marked_deleted.begin(), itr->second.marked_deleted.end(), id);
+        // If id is not in the vector of marked blocks
+        if(id_itr == itr->second.marked_deleted.end()) {
+          tag_t t = (*itr).second;
+          t.offset += d_attr_delay;
+          v.push_back(t);
+          v.back().marked_deleted.clear();
+        }
       }
-      
       itr++;
     }
   }

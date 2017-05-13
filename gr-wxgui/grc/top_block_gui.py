@@ -31,7 +31,7 @@ class top_block_gui(gr.top_block):
 		"""
 		Initialize the gr top block.
 		Create the wx gui elements.
-		
+
 		Args:
 		    title: the main window title
 		    size: the main window size tuple in pixels
@@ -47,6 +47,7 @@ class top_block_gui(gr.top_block):
 		self.Add = self._panel.Add
 		self.GridAdd = self._panel.GridAdd
 		self.GetWin = self._panel.GetWin
+                self.Start(False)
 
 	def SetIcon(self, *args, **kwargs): self._frame.SetIcon(*args, **kwargs)
 

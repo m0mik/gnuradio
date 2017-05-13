@@ -45,7 +45,7 @@ function(GR_ADD_TEST test_name)
             get_target_property(location ${target} LOCATION)
             if(location)
                 get_filename_component(path ${location} PATH)
-                string(REGEX REPLACE "\\$\\(.*\\)" ${CMAKE_BUILD_TYPE} path ${path})
+                string(REGEX REPLACE "\\$\\(.*\\)" "${CMAKE_BUILD_TYPE}" path "${path}")
                 list(APPEND GR_TEST_LIBRARY_DIRS ${path})
             endif(location)
         endforeach(target)
@@ -66,7 +66,8 @@ function(GR_ADD_TEST test_name)
     file(TO_NATIVE_PATH "${GR_TEST_LIBRARY_DIRS}" libpath) #ok to use on dir list?
     file(TO_NATIVE_PATH "${GR_TEST_PYTHON_DIRS}" pypath) #ok to use on dir list?
 
-    set(environs "GR_DONT_LOAD_PREFS=1" "srcdir=${srcdir}")
+    set(environs "VOLK_GENERIC=1" "GR_DONT_LOAD_PREFS=1" "srcdir=${srcdir}"
+        "GR_CONF_CONTROLPORT_ON=False")
     list(APPEND environs ${GR_TEST_ENVIRONS})
 
     #http://www.cmake.org/pipermail/cmake/2009-May/029464.html
@@ -91,7 +92,11 @@ function(GR_ADD_TEST test_name)
         list(APPEND environs "PATH=${binpath}" "${LD_PATH_VAR}=${libpath}" "PYTHONPATH=${pypath}")
 
         #generate a bat file that sets the environment and runs the test
-        find_program(SHELL sh)
+	if (CMAKE_CROSSCOMPILING)
+                set(SHELL "/bin/sh")
+        else(CMAKE_CROSSCOMPILING)
+                find_program(SHELL sh)
+        endif(CMAKE_CROSSCOMPILING)
         set(sh_file ${CMAKE_CURRENT_BINARY_DIR}/${test_name}_test.sh)
         file(WRITE ${sh_file} "#!${SHELL}\n")
         #each line sets an environment variable
@@ -108,7 +113,6 @@ function(GR_ADD_TEST test_name)
         execute_process(COMMAND chmod +x ${sh_file})
 
         add_test(${test_name} ${SHELL} ${sh_file})
-
     endif(UNIX)
 
     if(WIN32)

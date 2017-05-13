@@ -31,7 +31,7 @@
 
 namespace gr {
   namespace blocks {
-    
+
     message_debug::sptr
     message_debug::make()
     {
@@ -61,7 +61,7 @@ namespace gr {
       pmt::pmt_t vector = pmt::cdr(pdu);
       std::cout << "* MESSAGE DEBUG PRINT PDU VERBOSE *\n";
       pmt::print(meta);
-      size_t len = pmt::length(vector);
+      size_t len = pmt::blob_length(vector);
       std::cout << "pdu_length = " << len << std::endl;
       std::cout << "contents = " << std::endl;
       size_t offset(0);
@@ -103,7 +103,7 @@ namespace gr {
     {
       message_port_register_in(pmt::mp("print"));
       set_msg_handler(pmt::mp("print"), boost::bind(&message_debug_impl::print, this, _1));
-  
+
       message_port_register_in(pmt::mp("store"));
       set_msg_handler(pmt::mp("store"), boost::bind(&message_debug_impl::store, this, _1));
 

@@ -44,6 +44,9 @@ namespace gr {
                  io_signature::make(1, -1, itemsize)),
         d_itemsize(itemsize)
     {
+      if(delay < 0) {
+        throw std::runtime_error("delay: Cannot initialize block with a delay < 0.");
+      }
       set_dly(delay);
       d_delta = 0;
     }
@@ -72,6 +75,7 @@ namespace gr {
         gr::thread::scoped_lock l(d_mutex_delay);
         int old = dly();
         set_history(d+1);
+        declare_sample_delay(history()-1);
         d_delta += dly() - old;
       }
     }

@@ -38,7 +38,6 @@ include(GrComponent)
 if(NOT CMAKE_CROSSCOMPILING)
     set(qt_gui_python_deps
         PYQT4_FOUND
-        #we could check for pyqwt, but its not strictly required
     )
 endif(NOT CMAKE_CROSSCOMPILING)
 
@@ -110,6 +109,7 @@ CPACK_COMPONENT("qtgui_swig"
 add_subdirectory(include/gnuradio/qtgui)
 add_subdirectory(lib)
 add_subdirectory(doc)
+add_subdirectory(examples/c++)
 if(ENABLE_PYTHON)
     add_subdirectory(grc)
     add_subdirectory(swig)
@@ -130,6 +130,29 @@ install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/gnuradio-qtgui.pc
     DESTINATION ${GR_LIBRARY_DIR}/pkgconfig
     COMPONENT "qtgui_devel"
+)
+
+########################################################################
+# Install the conf file
+########################################################################
+install(
+    FILES ${CMAKE_CURRENT_SOURCE_DIR}/gr-qtgui.conf
+    DESTINATION ${GR_PREFSDIR}
+    COMPONENT "qtgui"
+)
+
+
+########################################################################
+# Install the themes (QSS) files
+########################################################################
+install(
+    FILES
+    themes/plain.qss
+    themes/dark.qss
+    themes/alt.qss
+    themes/projector.qss
+    DESTINATION ${GR_THEMES_DIR}
+    COMPONENT "qtgui"
 )
 
 endif(ENABLE_GR_QTGUI)

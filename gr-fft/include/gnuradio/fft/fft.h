@@ -42,7 +42,7 @@ namespace gr {
     /*! \brief Helper function for allocating float* buffers
      */
     FFT_API float* malloc_float(int size);
-    
+
     /*! \brief Helper function for allocating double* buffers
      */
     FFT_API double* malloc_double(int size);
@@ -69,16 +69,16 @@ namespace gr {
      * \ingroup misc
      */
     class FFT_API fft_complex {
-      int	      d_fft_size;
+      int         d_fft_size;
       int         d_nthreads;
       gr_complex *d_inbuf;
       gr_complex *d_outbuf;
-      void	     *d_plan;
+      void       *d_plan;
 
     public:
       fft_complex(int fft_size, bool forward = true, int nthreads=1);
       virtual ~fft_complex();
-      
+
       /*
        * These return pointers to buffers owned by fft_impl_fft_complex
        * into which input and output take place. It's done this way in
@@ -86,20 +86,20 @@ namespace gr {
        */
       gr_complex *get_inbuf()  const { return d_inbuf; }
       gr_complex *get_outbuf() const { return d_outbuf; }
-      
+
       int inbuf_length()  const { return d_fft_size; }
       int outbuf_length() const { return d_fft_size; }
-      
+
       /*!
        *  Set the number of threads to use for caclulation.
        */
       void set_nthreads(int n);
-      
+
       /*!
        *  Get the number of threads being used by FFTW
        */
       int nthreads() const { return d_nthreads; }
-      
+
       /*!
        * compute FFT. The input comes from inbuf, the output is placed in
        * outbuf.
@@ -112,16 +112,16 @@ namespace gr {
      * \ingroup misc
      */
     class FFT_API fft_real_fwd {
-      int	  d_fft_size;
+      int     d_fft_size;
       int         d_nthreads;
-      float	 *d_inbuf;
+      float  *d_inbuf;
       gr_complex *d_outbuf;
-      void	 *d_plan;
+      void   *d_plan;
 
     public:
       fft_real_fwd (int fft_size, int nthreads=1);
       virtual ~fft_real_fwd ();
-      
+
       /*
        * These return pointers to buffers owned by fft_impl_fft_real_fwd
        * into which input and output take place. It's done this way in
@@ -129,20 +129,20 @@ namespace gr {
        */
       float *get_inbuf()      const { return d_inbuf; }
       gr_complex *get_outbuf() const { return d_outbuf; }
-      
+
       int inbuf_length()  const { return d_fft_size; }
       int outbuf_length() const { return d_fft_size / 2 + 1; }
-      
+
       /*!
        *  Set the number of threads to use for caclulation.
        */
       void set_nthreads(int n);
-      
+
       /*!
        *  Get the number of threads being used by FFTW
        */
       int nthreads() const { return d_nthreads; }
-      
+
       /*!
        * compute FFT. The input comes from inbuf, the output is placed in
        * outbuf.
@@ -155,16 +155,16 @@ namespace gr {
      * \ingroup misc
      */
     class FFT_API fft_real_rev {
-      int	      d_fft_size;
+      int         d_fft_size;
       int         d_nthreads;
       gr_complex *d_inbuf;
-      float	     *d_outbuf;
-      void	     *d_plan;
-      
+      float      *d_outbuf;
+      void       *d_plan;
+
     public:
       fft_real_rev(int fft_size, int nthreads=1);
       virtual ~fft_real_rev();
-      
+
       /*
        * These return pointers to buffers owned by fft_impl_fft_real_rev
        * into which input and output take place. It's done this way in
@@ -172,20 +172,20 @@ namespace gr {
        */
       gr_complex *get_inbuf() const { return d_inbuf; }
       float *get_outbuf() const { return d_outbuf; }
-      
+
       int inbuf_length()  const { return d_fft_size / 2 + 1; }
       int outbuf_length() const { return d_fft_size; }
-      
+
       /*!
        *  Set the number of threads to use for caclulation.
        */
       void set_nthreads(int n);
-      
+
       /*!
        *  Get the number of threads being used by FFTW
        */
       int nthreads() const { return d_nthreads; }
-      
+
       /*!
        * compute FFT. The input comes from inbuf, the output is placed in
        * outbuf.

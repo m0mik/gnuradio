@@ -26,9 +26,12 @@
 #include <stdexcept>
 #include <vector>
 #include <QtGui/QtGui>
+#include <QtGui/QIntValidator>
+#include <QtGui/QDoubleValidator>
 #include <qwt_symbol.h>
 #include <gnuradio/filter/firdes.h>
 #include <gnuradio/qtgui/qtgui_types.h>
+#include <gnuradio/qtgui/trigger_mode.h>
 
 class LineColorMenu: public QMenu
 {
@@ -38,6 +41,8 @@ public:
   LineColorMenu(int which, QWidget *parent)
     : QMenu("Line Color", parent), d_which(which)
   {
+    d_grp = new QActionGroup(this);
+
     d_act.push_back(new QAction("Blue", this));
     d_act.push_back(new QAction("Red", this));
     d_act.push_back(new QAction("Green", this));
@@ -67,6 +72,8 @@ public:
     QListIterator<QAction*> i(d_act);
     while(i.hasNext()) {
       QAction *a = i.next();
+      a->setCheckable(true);
+      a->setActionGroup(d_grp);
       addAction(a);
     }
   }
@@ -78,7 +85,7 @@ public:
   {
     return d_act.size();
   }
-  
+
   QAction * getAction(int which)
   {
     if(which < d_act.size())
@@ -105,6 +112,7 @@ public slots:
   void getDarkGray() { emit whichTrigger(d_which, "darkgray"); }
 
 private:
+  QActionGroup *d_grp;
   QList<QAction *> d_act;
   int d_which;
 };
@@ -121,6 +129,8 @@ public:
   LineWidthMenu(int which, QWidget *parent)
     : QMenu("Line Width", parent), d_which(which)
   {
+    d_grp = new QActionGroup(this);
+
     d_act.push_back(new QAction("1", this));
     d_act.push_back(new QAction("2", this));
     d_act.push_back(new QAction("3", this));
@@ -146,6 +156,8 @@ public:
     QListIterator<QAction*> i(d_act);
     while(i.hasNext()) {
       QAction *a = i.next();
+      a->setCheckable(true);
+      a->setActionGroup(d_grp);
       addAction(a);
     }
   }
@@ -157,7 +169,7 @@ public:
   {
     return d_act.size();
   }
-  
+
   QAction * getAction(int which)
   {
     if(which < d_act.size())
@@ -182,6 +194,7 @@ public slots:
   void getTen()   { emit whichTrigger(d_which, 10); }
 
 private:
+  QActionGroup *d_grp;
   QList<QAction *> d_act;
   int d_which;
 };
@@ -198,6 +211,8 @@ public:
   LineStyleMenu(int which, QWidget *parent)
     : QMenu("Line Style", parent), d_which(which)
   {
+    d_grp = new QActionGroup(this);
+
     d_act.push_back(new QAction("None", this));
     d_act.push_back(new QAction("Solid", this));
     d_act.push_back(new QAction("Dash", this));
@@ -215,6 +230,8 @@ public:
     QListIterator<QAction*> i(d_act);
     while(i.hasNext()) {
       QAction *a = i.next();
+      a->setCheckable(true);
+      a->setActionGroup(d_grp);
       addAction(a);
     }
   }
@@ -226,7 +243,7 @@ public:
   {
     return d_act.size();
   }
-  
+
   QAction * getAction(int which)
   {
     if(which < d_act.size())
@@ -247,6 +264,7 @@ public slots:
   void getDashDotDot() { emit whichTrigger(d_which, Qt::DashDotDotLine); }
 
 private:
+  QActionGroup *d_grp;
   QList<QAction *> d_act;
   int d_which;
 };
@@ -263,6 +281,8 @@ public:
   LineMarkerMenu(int which, QWidget *parent)
     : QMenu("Line Marker", parent), d_which(which)
   {
+    d_grp = new QActionGroup(this);
+
     d_act.push_back(new QAction("None", this));
     d_act.push_back(new QAction("Circle", this));
     d_act.push_back(new QAction("Rectangle", this));
@@ -298,6 +318,8 @@ public:
     QListIterator<QAction*> i(d_act);
     while(i.hasNext()) {
       QAction *a = i.next();
+      a->setCheckable(true);
+      a->setActionGroup(d_grp);
       addAction(a);
     }
   }
@@ -309,7 +331,7 @@ public:
   {
     return d_act.size();
   }
-  
+
   QAction * getAction(int which)
   {
     if(which < d_act.size())
@@ -339,6 +361,7 @@ public slots:
   void getHexagon()   { emit whichTrigger(d_which, QwtSymbol::Hexagon); }
 
 private:
+  QActionGroup *d_grp;
   QList<QAction *> d_act;
   int d_which;
 };
@@ -355,6 +378,8 @@ public:
   MarkerAlphaMenu(int which, QWidget *parent)
     : QMenu("Line Transparency", parent), d_which(which)
   {
+    d_grp = new QActionGroup(this);
+
     d_act.push_back(new QAction("None", this));
     d_act.push_back(new QAction("Low", this));
     d_act.push_back(new QAction("Medium", this));
@@ -370,6 +395,8 @@ public:
     QListIterator<QAction*> i(d_act);
     while(i.hasNext()) {
       QAction *a = i.next();
+      a->setCheckable(true);
+      a->setActionGroup(d_grp);
       addAction(a);
     }
   }
@@ -381,7 +408,7 @@ public:
   {
     return d_act.size();
   }
-  
+
   QAction * getAction(int which)
   {
     if(which < d_act.size())
@@ -401,6 +428,7 @@ public slots:
   void getOff()    { emit whichTrigger(d_which, 0); }
 
 private:
+  QActionGroup *d_grp;
   QList<QAction *> d_act;
   int d_which;
 };
@@ -438,7 +466,7 @@ public:
 
   ~LineTitleAction()
   {}
-  
+
 signals:
   void whichTrigger(int which, const QString &text);
 
@@ -450,7 +478,7 @@ public slots:
 
 private slots:
   void getText()
-  { 
+  {
     emit whichTrigger(d_which, d_text->text());
     d_diag->accept();
   }
@@ -475,6 +503,7 @@ public:
     : QAction("Other", parent)
   {
     d_diag = new QDialog(parent);
+    d_diag->setWindowTitle("Other");
     d_diag->setModal(true);
 
     d_text = new QLineEdit();
@@ -496,6 +525,16 @@ public:
   ~OtherAction()
   {}
 
+  void setValidator(QValidator *v)
+  {
+    d_text->setValidator(v);
+  }
+
+  void setDiagText(QString text)
+  {
+    d_text->setText(text);
+  }
+
 signals:
   void whichTrigger(const QString &text);
 
@@ -507,7 +546,7 @@ public slots:
 
 private slots:
   void getText()
-  { 
+  {
     emit whichTrigger(d_text->text());
     d_diag->accept();
   }
@@ -529,11 +568,12 @@ public:
     : QAction("Other", parent)
   {
     d_diag = new QDialog(parent);
+    d_diag->setWindowTitle("Other");
     d_diag->setModal(true);
 
     d_text0 = new QLineEdit();
     d_text1 = new QLineEdit();
-    
+
     QLabel *_label0 = new QLabel(label0);
     QLabel *_label1 = new QLabel(label1);
 
@@ -569,7 +609,7 @@ public slots:
 
 private slots:
   void getText()
-  { 
+  {
     emit whichTrigger(d_text0->text(), d_text1->text());
     d_diag->accept();
   }
@@ -592,6 +632,8 @@ public:
   FFTSizeMenu(QWidget *parent)
     : QMenu("FFT Size", parent)
   {
+    d_grp = new QActionGroup(this);
+
     d_act.push_back(new QAction("32", this));
     d_act.push_back(new QAction("64", this));
     d_act.push_back(new QAction("128", this));
@@ -600,10 +642,19 @@ public:
     d_act.push_back(new QAction("1024", this));
     d_act.push_back(new QAction("2048", this));
     d_act.push_back(new QAction("4096", this));
-    d_act.push_back(new QAction("8192", this));
-    d_act.push_back(new QAction("16384", this));
-    d_act.push_back(new QAction("32768", this));
+    //d_act.push_back(new QAction("8192", this));
+    //d_act.push_back(new QAction("16384", this));
+    //d_act.push_back(new QAction("32768", this));
     d_act.push_back(new OtherAction(this));
+
+    d_grp = new QActionGroup(this);
+    for(int t = 0; t < d_act.size(); t++) {
+      d_act[t]->setCheckable(true);
+      d_act[t]->setActionGroup(d_grp);
+    }
+
+    QIntValidator *valid = new QIntValidator(32, 4096, this);
+    ((OtherAction*)d_act[d_act.size()-1])->setValidator(valid);
 
     connect(d_act[0], SIGNAL(triggered()), this, SLOT(get05()));
     connect(d_act[1], SIGNAL(triggered()), this, SLOT(get06()));
@@ -613,118 +664,189 @@ public:
     connect(d_act[5], SIGNAL(triggered()), this, SLOT(get10()));
     connect(d_act[6], SIGNAL(triggered()), this, SLOT(get11()));
     connect(d_act[7], SIGNAL(triggered()), this, SLOT(get12()));
-    connect(d_act[8], SIGNAL(triggered()), this, SLOT(get13()));
-    connect(d_act[9], SIGNAL(triggered()), this, SLOT(get14()));
-    connect(d_act[10], SIGNAL(triggered()), this, SLOT(get15()));
-    connect(d_act[11], SIGNAL(whichTrigger(const QString&)),
-	     this, SLOT(getOther(const QString&)));
+    //connect(d_act[8], SIGNAL(triggered()), this, SLOT(get13()));
+    //connect(d_act[9], SIGNAL(triggered()), this, SLOT(get14()));
+    //connect(d_act[10], SIGNAL(triggered()), this, SLOT(get15()));
+    connect(d_act[8], SIGNAL(whichTrigger(const QString&)),
+            this, SLOT(getOther(const QString&)));
 
-     QListIterator<QAction*> i(d_act);
-     while(i.hasNext()) {
-       QAction *a = i.next();
-       addAction(a);
-     }
-   }
+    QListIterator<QAction*> i(d_act);
+    while(i.hasNext()) {
+      QAction *a = i.next();
+      a->setCheckable(true);
+      a->setActionGroup(d_grp);
+      addAction(a);
+    }
+  }
 
-   ~FFTSizeMenu()
-   {}
+  ~FFTSizeMenu()
+  {}
 
-   int getNumActions() const
-   {
-     return d_act.size();
-   }
+  int getNumActions() const
+  {
+    return d_act.size();
+  }
 
-   QAction * getAction(int which)
-   {
-     if(which < d_act.size())
-       return d_act[which];
-     else
-       throw std::runtime_error("FFTSizeMenu::getAction: which out of range.\n");
-   }
+  QAction * getAction(int which)
+  {
+    if(which < d_act.size())
+      return d_act[which];
+    else
+      throw std::runtime_error("FFTSizeMenu::getAction: which out of range.\n");
+  }
 
- signals:
-   void whichTrigger(int size);
+  QAction * getActionFromSize(int size)
+  {
+    float ipt;
+    float which = logf(static_cast<float>(size))/logf(2.0) - 5;
+    // If we're a predefined value
+    if(modff(which,&ipt) == 0) {
+      if(which < d_act.size()-1)
+        return d_act[static_cast<int>(which)];
+      else
+        throw std::runtime_error("FFTSizeMenu::getActionFromString: which out of range.\n");
+    }
+    // Or a non-predefined value, return Other
+    else {
+      ((OtherAction*)d_act[d_act.size()-1])->setDiagText(QString().setNum(size));
+      return d_act[d_act.size()-1];
+    }
+  }
 
- public slots:
-   void get05() { emit whichTrigger(32); }
-   void get06() { emit whichTrigger(64); }
-   void get07() { emit whichTrigger(128); }
-   void get08() { emit whichTrigger(256); }
-   void get09() { emit whichTrigger(512); }
-   void get10() { emit whichTrigger(1024); }
-   void get11() { emit whichTrigger(2048); }
-   void get12() { emit whichTrigger(4096); }
-   void get13() { emit whichTrigger(8192); }
-   void get14() { emit whichTrigger(16384); }
-   void get15() { emit whichTrigger(32768); }
-   void getOther(const QString &str) 
-   {
-     int value = str.toInt();
-     emit whichTrigger(value);
-   }
+signals:
+  void whichTrigger(int size);
+
+public slots:
+  void get05() { emit whichTrigger(32); }
+  void get06() { emit whichTrigger(64); }
+  void get07() { emit whichTrigger(128); }
+  void get08() { emit whichTrigger(256); }
+  void get09() { emit whichTrigger(512); }
+  void get10() { emit whichTrigger(1024); }
+  void get11() { emit whichTrigger(2048); }
+  void get12() { emit whichTrigger(4096); }
+  //void get13() { emit whichTrigger(8192); }
+  //void get14() { emit whichTrigger(16384); }
+  //void get15() { emit whichTrigger(32768); }
+  void getOther(const QString &str)
+  {
+    int value = str.toInt();
+    emit whichTrigger(value);
+  }
 
 private:
   QList<QAction *> d_act;
   OtherAction *d_other;
+  QActionGroup *d_grp;
 };
-
 
 /********************************************************************/
 
-
-class FFTAverageMenu: public QMenu
+class AverageMenu: public QMenu
 {
   Q_OBJECT
 
 public:
-  FFTAverageMenu(QWidget *parent)
-    : QMenu("FFT Average", parent)
+  AverageMenu(const std::string &menuTitle, QWidget *parent)
+    : QMenu(menuTitle.c_str(), parent)
   {
+    d_grp = new QActionGroup(this);
+
+    d_off = 1.0;
+    d_high = 0.05;
+    d_medium = 0.1;
+    d_low = 0.2;
+
     d_act.push_back(new QAction("Off", this));
     d_act.push_back(new QAction("High", this));
     d_act.push_back(new QAction("Medium", this));
     d_act.push_back(new QAction("Low", this));
     d_act.push_back(new OtherAction(this));
 
+    d_grp = new QActionGroup(this);
+    for(int t = 0; t < d_act.size(); t++) {
+      d_act[t]->setCheckable(true);
+      d_act[t]->setActionGroup(d_grp);
+    }
+    d_act[0]->setChecked(true);
+
+    QDoubleValidator *valid = new QDoubleValidator(0.0, 1.0, 3, this);
+    ((OtherAction*)d_act[d_act.size()-1])->setValidator(valid);
+
     connect(d_act[0], SIGNAL(triggered()), this, SLOT(getOff()));
     connect(d_act[1], SIGNAL(triggered()), this, SLOT(getHigh()));
     connect(d_act[2], SIGNAL(triggered()), this, SLOT(getMedium()));
     connect(d_act[3], SIGNAL(triggered()), this, SLOT(getLow()));
     connect(d_act[4], SIGNAL(whichTrigger(const QString&)),
-	     this, SLOT(getOther(const QString&)));
+            this, SLOT(getOther(const QString&)));
 
-     QListIterator<QAction*> i(d_act);
-     while(i.hasNext()) {
-       QAction *a = i.next();
-       addAction(a);
-     }
-   }
+    QListIterator<QAction*> i(d_act);
+    while(i.hasNext()) {
+      QAction *a = i.next();
+      a->setCheckable(true);
+      a->setActionGroup(d_grp);
+      addAction(a);
+    }
+  }
 
-   ~FFTAverageMenu()
-   {}
+  ~AverageMenu()
+  {}
 
-   int getNumActions() const
-   {
-     return d_act.size();
-   }
+  int getNumActions() const
+  {
+    return d_act.size();
+  }
 
-   QAction * getAction(int which)
-   {
-     if(which < d_act.size())
-       return d_act[which];
-     else
-       throw std::runtime_error("FFTSizeMenu::getAction: which out of range.\n");
-   }
+  QAction * getAction(int which)
+  {
+    if(which < d_act.size())
+      return d_act[which];
+    else
+      throw std::runtime_error("FFTSizeMenu::getAction: which out of range.\n");
+  }
+
+  QAction * getActionFromAvg(float avg)
+  {
+    int which = 0;
+    if(avg == d_off)
+      which = 0;
+    else if(avg == d_high)
+      which = 1;
+    else if(avg == d_medium)
+      which = 2;
+    else if(avg == d_low)
+      which = 3;
+    else {
+      ((OtherAction*)d_act[d_act.size()-1])->setDiagText(QString().setNum(avg));
+      which = 4;
+    }
+    return d_act[static_cast<int>(which)];
+  }
+
+  void setHigh(float x)
+  {
+    d_high = x;
+  }
+
+  void setMedium(float x)
+  {
+    d_medium = x;
+  }
+
+  void setLow(float x)
+  {
+    d_low = x;
+  }
 
  signals:
    void whichTrigger(float alpha);
 
  public slots:
-   void getOff() { emit whichTrigger(1.0); }
-   void getHigh() { emit whichTrigger(0.05); }
-   void getMedium() { emit whichTrigger(0.1); }
-   void getLow() { emit whichTrigger(0.2); }
-   void getOther(const QString &str) 
+   void getOff() { emit whichTrigger(d_off); }
+   void getHigh() { emit whichTrigger(d_high); }
+   void getMedium() { emit whichTrigger(d_medium); }
+   void getLow() { emit whichTrigger(d_low); }
+   void getOther(const QString &str)
    {
      float value = str.toFloat();
      emit whichTrigger(value);
@@ -733,8 +855,22 @@ public:
 private:
   QList<QAction *> d_act;
   OtherAction *d_other;
+  QActionGroup *d_grp;
+  float d_off, d_high, d_medium, d_low;
 };
 
+/********************************************************************/
+
+class FFTAverageMenu : public AverageMenu
+{
+public:
+  FFTAverageMenu(QWidget *parent) : AverageMenu("FFT Average", parent)
+  {
+    // nop
+  }
+
+  ~FFTAverageMenu() {}
+};
 
 /********************************************************************/
 
@@ -754,6 +890,13 @@ public:
     d_act.push_back(new QAction("Blackman-harris", this));
     d_act.push_back(new QAction("Rectangular", this));
     d_act.push_back(new QAction("Kaiser", this));
+    d_act.push_back(new QAction("Flat-top", this));
+
+    d_grp = new QActionGroup(this);
+    for(int t = 0; t < d_act.size(); t++) {
+      d_act[t]->setCheckable(true);
+      d_act[t]->setActionGroup(d_grp);
+    }
 
     connect(d_act[0], SIGNAL(triggered()), this, SLOT(getNone()));
     connect(d_act[1], SIGNAL(triggered()), this, SLOT(getHamming()));
@@ -762,6 +905,7 @@ public:
     connect(d_act[4], SIGNAL(triggered()), this, SLOT(getBlackmanharris()));
     connect(d_act[5], SIGNAL(triggered()), this, SLOT(getRectangular()));
     connect(d_act[6], SIGNAL(triggered()), this, SLOT(getKaiser()));
+    connect(d_act[7], SIGNAL(triggered()), this, SLOT(getFlattop()));
 
     QListIterator<QAction*> i(d_act);
     while(i.hasNext()) {
@@ -777,13 +921,29 @@ public:
   {
     return d_act.size();
   }
-  
+
   QAction * getAction(int which)
   {
     if(which < d_act.size())
       return d_act[which];
     else
       throw std::runtime_error("FFTWindowMenu::getAction: which out of range.\n");
+  }
+
+  QAction * getActionFromWindow(gr::filter::firdes::win_type type)
+  {
+    int which = 0;
+    switch(static_cast<int>(type)) {
+    case((gr::filter::firdes::WIN_NONE)): which = 0; break;
+    case((gr::filter::firdes::WIN_HAMMING)): which = 1; break;
+    case((gr::filter::firdes::WIN_HANN)): which = 2; break;
+    case((gr::filter::firdes::WIN_BLACKMAN)): which = 3; break;
+    case((gr::filter::firdes::WIN_BLACKMAN_hARRIS)): which = 4; break;
+    case((gr::filter::firdes::WIN_RECTANGULAR)): which = 5; break;
+    case((gr::filter::firdes::WIN_KAISER)): which = 6; break;
+    case((gr::filter::firdes::WIN_FLATTOP)): which = 7; break;
+    }
+    return d_act[which];
   }
 
 signals:
@@ -797,9 +957,11 @@ public slots:
   void getBlackmanharris() { emit whichTrigger(gr::filter::firdes::WIN_BLACKMAN_hARRIS); }
   void getRectangular() { emit whichTrigger(gr::filter::firdes::WIN_RECTANGULAR); }
   void getKaiser() { emit whichTrigger(gr::filter::firdes::WIN_KAISER); }
+  void getFlattop() { emit whichTrigger(gr::filter::firdes::WIN_FLATTOP); }
 
 private:
   QList<QAction *> d_act;
+  QActionGroup *d_grp;
   int d_which;
 };
 
@@ -816,6 +978,7 @@ public:
     : QAction("Number of Points", parent)
   {
     d_diag = new QDialog(parent);
+    d_diag->setWindowTitle("Number of Points");
     d_diag->setModal(true);
 
     d_text = new QLineEdit();
@@ -841,6 +1004,11 @@ signals:
   void whichTrigger(const int npts);
 
 public slots:
+  void setDiagText(const int npts)
+  {
+    d_text->setText(QString().setNum(npts));
+  }
+
   void getTextDiag()
   {
     d_diag->show();
@@ -848,7 +1016,7 @@ public slots:
 
 private slots:
   void getText()
-  { 
+  {
     emit whichTrigger(d_text->text().toInt());
     d_diag->accept();
   }
@@ -870,10 +1038,14 @@ public:
   ColorMapMenu(int which, QWidget *parent)
     : QMenu("Color Map", parent), d_which(which)
   {
+    d_grp = new QActionGroup(this);
+
     d_act.push_back(new QAction("Multi-Color", this));
     d_act.push_back(new QAction("White Hot", this));
     d_act.push_back(new QAction("Black Hot", this));
     d_act.push_back(new QAction("Incandescent", this));
+    d_act.push_back(new QAction("Sunset", this));
+    d_act.push_back(new QAction("Cool", this));
     d_act.push_back(new QAction("Other", this));
     //d_act.push_back(new OtherDualAction("Min Intensity: ", "Max Intensity: ", this));
 
@@ -881,11 +1053,15 @@ public:
     connect(d_act[1], SIGNAL(triggered()), this, SLOT(getWhiteHot()));
     connect(d_act[2], SIGNAL(triggered()), this, SLOT(getBlackHot()));
     connect(d_act[3], SIGNAL(triggered()), this, SLOT(getIncandescent()));
-    connect(d_act[4], SIGNAL(triggered()), this, SLOT(getOther()));
+    connect(d_act[4], SIGNAL(triggered()), this, SLOT(getSunset()));
+    connect(d_act[5], SIGNAL(triggered()), this, SLOT(getCool()));
+    connect(d_act[6], SIGNAL(triggered()), this, SLOT(getOther()));
 
      QListIterator<QAction*> i(d_act);
      while(i.hasNext()) {
        QAction *a = i.next();
+       a->setCheckable(true);
+       a->setActionGroup(d_grp);
        addAction(a);
      }
 
@@ -919,6 +1095,8 @@ public:
   void getWhiteHot() { emit whichTrigger(d_which, INTENSITY_COLOR_MAP_TYPE_WHITE_HOT); }
   void getBlackHot() { emit whichTrigger(d_which, INTENSITY_COLOR_MAP_TYPE_BLACK_HOT); }
   void getIncandescent() { emit whichTrigger(d_which, INTENSITY_COLOR_MAP_TYPE_INCANDESCENT); }
+  void getSunset() { emit whichTrigger(d_which, INTENSITY_COLOR_MAP_TYPE_SUNSET); }
+  void getCool() { emit whichTrigger(d_which, INTENSITY_COLOR_MAP_TYPE_COOL); }
   //void getOther(d_which, const QString &min_str, const QString &max_str)
   void getOther()
   {
@@ -933,8 +1111,378 @@ public:
   }
 
 private:
+  QActionGroup *d_grp;
   QList<QAction *> d_act;
   OtherDualAction *d_other;
+  QColor d_max_value, d_min_value;
+  int d_which;
+};
+
+
+/********************************************************************/
+
+
+class TriggerModeMenu: public QMenu
+{
+  Q_OBJECT
+
+public:
+  TriggerModeMenu(QWidget *parent)
+    : QMenu("Mode", parent)
+  {
+    d_grp = new QActionGroup(this);
+    d_act.push_back(new QAction("Free", this));
+    d_act.push_back(new QAction("Auto", this));
+    d_act.push_back(new QAction("Normal", this));
+    d_act.push_back(new QAction("Tag", this));
+
+    connect(d_act[0], SIGNAL(triggered()), this, SLOT(getFree()));
+    connect(d_act[1], SIGNAL(triggered()), this, SLOT(getAuto()));
+    connect(d_act[2], SIGNAL(triggered()), this, SLOT(getNorm()));
+    connect(d_act[3], SIGNAL(triggered()), this, SLOT(getTag()));
+
+    QListIterator<QAction*> i(d_act);
+    while(i.hasNext()) {
+      QAction *a = i.next();
+      a->setCheckable(true);
+      a->setActionGroup(d_grp);
+      addAction(a);
+    }
+  }
+
+  ~TriggerModeMenu()
+  {}
+
+  int getNumActions() const
+  {
+    return d_act.size();
+  }
+
+  QAction * getAction(int which)
+  {
+    if(which < d_act.size())
+      return d_act[which];
+    else
+      throw std::runtime_error("TriggerModeMenu::getAction: which out of range.\n");
+  }
+
+  QAction * getAction(gr::qtgui::trigger_mode mode)
+  {
+    switch(mode) {
+    case gr::qtgui::TRIG_MODE_FREE:
+      return d_act[0];
+      break;
+    case gr::qtgui::TRIG_MODE_AUTO:
+      return d_act[1];
+      break;
+    case gr::qtgui::TRIG_MODE_NORM:
+      return d_act[2];
+      break;
+    case gr::qtgui::TRIG_MODE_TAG:
+      return d_act[3];
+      break;
+    default:
+      throw std::runtime_error("TriggerModeMenu::getAction: unknown trigger mode.\n");
+    }
+  }
+
+signals:
+  void whichTrigger(gr::qtgui::trigger_mode mode);
+
+public slots:
+  void getFree() { emit whichTrigger(gr::qtgui::TRIG_MODE_FREE); }
+  void getAuto() { emit whichTrigger(gr::qtgui::TRIG_MODE_AUTO); }
+  void getNorm() { emit whichTrigger(gr::qtgui::TRIG_MODE_NORM); }
+  void getTag()  { emit whichTrigger(gr::qtgui::TRIG_MODE_TAG); }
+
+private:
+  QList<QAction *> d_act;
+  QActionGroup *d_grp;
+};
+
+
+/********************************************************************/
+
+
+class TriggerSlopeMenu: public QMenu
+{
+  Q_OBJECT
+
+public:
+  TriggerSlopeMenu(QWidget *parent)
+    : QMenu("Slope", parent)
+  {
+    d_grp = new QActionGroup(this);
+    d_act.push_back(new QAction("Positive", this));
+    d_act.push_back(new QAction("Negative", this));
+
+    connect(d_act[0], SIGNAL(triggered()), this, SLOT(getPos()));
+    connect(d_act[1], SIGNAL(triggered()), this, SLOT(getNeg()));
+
+    QListIterator<QAction*> i(d_act);
+    while(i.hasNext()) {
+      QAction *a = i.next();
+      a->setCheckable(true);
+      a->setActionGroup(d_grp);
+      addAction(a);
+    }
+  }
+
+  ~TriggerSlopeMenu()
+  {}
+
+  int getNumActions() const
+  {
+    return d_act.size();
+  }
+
+  QAction * getAction(int which)
+  {
+    if(which < d_act.size())
+      return d_act[which];
+    else
+      throw std::runtime_error("TriggerSlopeMenu::getAction: which out of range.\n");
+  }
+
+  QAction * getAction(gr::qtgui::trigger_slope slope)
+  {
+    switch(slope) {
+    case gr::qtgui::TRIG_SLOPE_POS:
+      return d_act[0];
+      break;
+    case gr::qtgui::TRIG_SLOPE_NEG:
+      return d_act[1];
+      break;
+    default:
+      throw std::runtime_error("TriggerSlopeMenu::getAction: unknown trigger slope.\n");
+    }
+  }
+
+signals:
+  void whichTrigger(gr::qtgui::trigger_slope slope);
+
+public slots:
+  void getPos() { emit whichTrigger(gr::qtgui::TRIG_SLOPE_POS); }
+  void getNeg() { emit whichTrigger(gr::qtgui::TRIG_SLOPE_NEG); }
+
+private:
+  QList<QAction *> d_act;
+  QActionGroup *d_grp;
+};
+
+
+/********************************************************************/
+
+
+class TriggerChannelMenu: public QMenu
+{
+  Q_OBJECT
+
+public:
+  TriggerChannelMenu(int nchans, QWidget *parent)
+    : QMenu("Channel", parent)
+  {
+    d_grp = new QActionGroup(this);
+    for(int i = 0; i < nchans; i++) {
+      d_act.push_back(new QAction(QString().setNum(i), this));
+      d_act[i]->setCheckable(true);
+      d_act[i]->setActionGroup(d_grp);
+
+      addAction(d_act[i]);
+      connect(d_act[i], SIGNAL(triggered()), this, SLOT(getChannel()));
+    }
+  }
+
+  ~TriggerChannelMenu()
+  {}
+
+  int getNumActions() const
+  {
+    return d_act.size();
+  }
+
+  QAction * getAction(int which)
+  {
+    if(which < d_act.size())
+      return d_act[which];
+    else
+      throw std::runtime_error("TriggerChannelMenu::getAction: which out of range.\n");
+  }
+
+
+signals:
+  void whichTrigger(int n);
+
+public slots:
+  void getChannel()
+  {
+    QAction *a = d_grp->checkedAction();
+    int which = a->text().toInt();
+    emit whichTrigger(which);
+  }
+
+private:
+  QList<QAction *> d_act;
+  QActionGroup *d_grp;
+};
+
+
+/********************************************************************/
+
+
+class NumberLayoutMenu: public QMenu
+{
+  Q_OBJECT
+
+public:
+  NumberLayoutMenu(QWidget *parent)
+    : QMenu("Layout", parent)
+  {
+    d_grp = new QActionGroup(this);
+    d_act.push_back(new QAction("Horizontal", this));
+    d_act.push_back(new QAction("Vertical", this));
+    d_act.push_back(new QAction("None", this));
+
+    connect(d_act[0], SIGNAL(triggered()), this, SLOT(getHoriz()));
+    connect(d_act[1], SIGNAL(triggered()), this, SLOT(getVert()));
+    connect(d_act[2], SIGNAL(triggered()), this, SLOT(getNone()));
+
+    QListIterator<QAction*> i(d_act);
+    while(i.hasNext()) {
+      QAction *a = i.next();
+      a->setCheckable(true);
+      a->setActionGroup(d_grp);
+      addAction(a);
+    }
+  }
+
+  ~NumberLayoutMenu()
+  {}
+
+  int getNumActions() const
+  {
+    return d_act.size();
+  }
+
+  QAction * getAction(int which)
+  {
+    if(which < d_act.size())
+      return d_act[which];
+    else
+      throw std::runtime_error("NumberLayoutMenu::getAction: which out of range.\n");
+  }
+
+  QAction * getAction(gr::qtgui::graph_t layout)
+  {
+    switch(layout) {
+    case gr::qtgui::NUM_GRAPH_HORIZ:
+      return d_act[0];
+      break;
+    case gr::qtgui::NUM_GRAPH_VERT:
+      return d_act[1];
+      break;
+    case gr::qtgui::NUM_GRAPH_NONE:
+      return d_act[1];
+      break;
+    default:
+      throw std::runtime_error("NumberLayoutMenu::getAction: unknown layout type.\n");
+    }
+  }
+
+signals:
+  void whichTrigger(gr::qtgui::graph_t layout);
+
+public slots:
+  void getHoriz() { emit whichTrigger(gr::qtgui::NUM_GRAPH_HORIZ); }
+  void getVert() { emit whichTrigger(gr::qtgui::NUM_GRAPH_VERT); }
+  void getNone() { emit whichTrigger(gr::qtgui::NUM_GRAPH_NONE); }
+
+private:
+  QList<QAction *> d_act;
+  QActionGroup *d_grp;
+};
+
+
+/********************************************************************/
+
+
+class NumberColorMapMenu: public QMenu
+{
+  Q_OBJECT
+
+public:
+  NumberColorMapMenu(int which, QWidget *parent)
+    : QMenu("Color Map", parent), d_which(which)
+  {
+    d_grp = new QActionGroup(this);
+
+    d_act.push_back(new QAction("Black", this));
+    d_act.push_back(new QAction("Blue-Red", this));
+    d_act.push_back(new QAction("White Hot", this));
+    d_act.push_back(new QAction("Black Hot", this));
+    d_act.push_back(new QAction("Black-Red", this));
+    d_act.push_back(new QAction("Other", this));
+
+    connect(d_act[0], SIGNAL(triggered()), this, SLOT(getBlack()));
+    connect(d_act[1], SIGNAL(triggered()), this, SLOT(getBlueRed()));
+    connect(d_act[2], SIGNAL(triggered()), this, SLOT(getWhiteHot()));
+    connect(d_act[3], SIGNAL(triggered()), this, SLOT(getBlackHot()));
+    connect(d_act[4], SIGNAL(triggered()), this, SLOT(getBlackRed()));
+    connect(d_act[5], SIGNAL(triggered()), this, SLOT(getOther()));
+
+     QListIterator<QAction*> i(d_act);
+     while(i.hasNext()) {
+       QAction *a = i.next();
+       a->setCheckable(true);
+       a->setActionGroup(d_grp);
+       addAction(a);
+     }
+
+     d_max_value = QColor("black");
+     d_min_value = QColor("black");
+   }
+
+   ~NumberColorMapMenu()
+   {}
+
+   int getNumActions() const
+   {
+     return d_act.size();
+   }
+
+   QAction * getAction(int which)
+   {
+     if(which < d_act.size())
+       return d_act[which];
+     else
+       throw std::runtime_error("ColorMapMenu::getAction: which out of range.\n");
+   }
+
+ signals:
+  void whichTrigger(int which,
+		    const QColor &min_color,
+		    const QColor &max_color);
+
+ public slots:
+  void getBlack() { emit whichTrigger(d_which, QColor("black"), QColor("black")); }
+  void getBlueRed() { emit whichTrigger(d_which, QColor("blue"), QColor("red")); }
+  void getWhiteHot() { emit whichTrigger(d_which, QColor("black"), QColor("white")); }
+  void getBlackHot() { emit whichTrigger(d_which, QColor("white"), QColor("black")); }
+  void getBlackRed() { emit whichTrigger(d_which, QColor("black"), QColor("red")); }
+  void getOther()
+  {
+    QMessageBox::information(this, "Set low and high intensities",
+       "In the next windows, select the low and then the high intensity colors.",
+       QMessageBox::Ok);
+    d_min_value = QColorDialog::getColor(d_min_value, this);
+    d_max_value = QColorDialog::getColor(d_max_value, this);
+
+    emit whichTrigger(d_which, d_min_value, d_max_value);
+  }
+
+private:
+  QActionGroup *d_grp;
+  QList<QAction *> d_act;
   QColor d_max_value, d_min_value;
   int d_which;
 };
@@ -952,6 +1500,7 @@ public:
     : QAction(desc, parent)
   {
     d_diag = new QDialog(parent);
+    d_diag->setWindowTitle(desc);
     d_diag->setModal(true);
 
     d_text = new QLineEdit();
@@ -973,6 +1522,11 @@ public:
   ~PopupMenu()
   {}
 
+  void setText(QString s)
+  {
+    d_text->setText(s);
+  }
+
 signals:
   void whichTrigger(const QString data);
 
@@ -984,7 +1538,7 @@ public slots:
 
 private slots:
   void getText()
-  { 
+  {
     emit whichTrigger(d_text->text());
     d_diag->accept();
   }
@@ -993,6 +1547,70 @@ private:
   QDialog *d_diag;
   QLineEdit *d_text;
 };
+
+
+/********************************************************************/
+
+
+class ItemFloatAct: public QAction
+{
+  Q_OBJECT
+
+public:
+  ItemFloatAct(int which, QString title, QWidget *parent)
+    : QAction(title, parent), d_which(which)
+  {
+    d_diag = new QDialog(parent);
+    d_diag->setWindowTitle(title);
+    d_diag->setModal(true);
+
+    d_text = new QLineEdit();
+
+    QGridLayout *layout = new QGridLayout(d_diag);
+    QPushButton *btn_ok = new QPushButton(tr("OK"));
+    QPushButton *btn_cancel = new QPushButton(tr("Cancel"));
+
+    layout->addWidget(d_text, 0, 0, 1, 2);
+    layout->addWidget(btn_ok, 1, 0);
+    layout->addWidget(btn_cancel, 1, 1);
+
+    connect(btn_ok, SIGNAL(clicked()), this, SLOT(getText()));
+    connect(btn_cancel, SIGNAL(clicked()), d_diag, SLOT(close()));
+
+    connect(this, SIGNAL(triggered()), this, SLOT(getTextDiag()));
+  }
+
+  ~ItemFloatAct()
+  {}
+
+  void setText(float f)
+  {
+    d_text->setText(QString("%1").arg(f));
+  }
+
+
+signals:
+  void whichTrigger(int which, float data);
+
+public slots:
+  void getTextDiag()
+  {
+    d_diag->show();
+  }
+
+private slots:
+  void getText()
+  {
+    emit whichTrigger(d_which, d_text->text().toFloat());
+    d_diag->accept();
+  }
+
+private:
+  int d_which;
+  QDialog *d_diag;
+  QLineEdit *d_text;
+};
+
 
 
 /********************************************************************/

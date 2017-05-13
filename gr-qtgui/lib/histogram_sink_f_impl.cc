@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2013 Free Software Foundation, Inc.
+ * Copyright 2013,2015 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -26,14 +26,14 @@
 
 #include "histogram_sink_f_impl.h"
 #include <gnuradio/io_signature.h>
+#include <gnuradio/prefs.h>
 #include <string.h>
 #include <volk/volk.h>
-#include <gnuradio/fft/fft.h>
 #include <qwt_symbol.h>
 
 namespace gr {
   namespace qtgui {
-    
+
     histogram_sink_f::sptr
     histogram_sink_f::make(int size, int bins,
                            double xmin, double xmax,
@@ -52,17 +52,32 @@ namespace gr {
                                                  int nconnections,
                                                  QWidget *parent)
       : sync_block("histogram_sink_f",
-                   io_signature::make(nconnections, nconnections, sizeof(float)),
+                   io_signature::make(0, nconnections, sizeof(float)),
                    io_signature::make(0, 0, 0)),
 	d_size(size), d_bins(bins), d_xmin(xmin), d_xmax(xmax), d_name(name),
 	d_nconnections(nconnections), d_parent(parent)
     {
+      // Required now for Qt; argc must be greater than 0 and argv
+      // must have at least one valid character. Must be valid through
+      // life of the qApplication:
+      // http://harmattan-dev.nokia.com/docs/library/html/qt4/qapplication.html
+      d_argc = 1;
+      d_argv = new char;
+      d_argv[0] = '\0';
+
       d_main_gui = NULL;
 
       d_index = 0;
 
-      for(int i = 0; i < d_nconnections; i++) {
-	d_residbufs.push_back(fft::malloc_double(d_size));
+      // setup PDU handling input port
+      message_port_register_in(pmt::mp("in"));
+      set_msg_handler(pmt::mp("in"),
+                      boost::bind(&histogram_sink_f_impl::handle_pdus, this, _1));
+
+      // +1 for the PDU buffer
+      for(int i = 0; i < d_nconnections+1; i++) {
+	d_residbufs.push_back((double*)volk_malloc(d_size*sizeof(double),
+                                                   volk_get_alignment()));
 	memset(d_residbufs[i], 0, d_size*sizeof(double));
       }
 
@@ -80,9 +95,11 @@ namespace gr {
         d_main_gui->close();
 
       // d_main_gui is a qwidget destroyed with its parent
-      for(int i = 0; i < d_nconnections; i++) {
-	fft::free(d_residbufs[i]);
+      for(int i = 0; i < d_nconnections+1; i++) {
+	volk_free(d_residbufs[i]);
       }
+
+      delete d_argv;
     }
 
     bool
@@ -98,15 +115,24 @@ namespace gr {
 	d_qApplication = qApp;
       }
       else {
-	int argc=0;
-	char **argv = NULL;
-	d_qApplication = new QApplication(argc, argv);
+#if QT_VERSION >= 0x040500
+        std::string style = prefs::singleton()->get_string("qtgui", "style", "raster");
+        QApplication::setGraphicsSystem(QString(style.c_str()));
+#endif
+	d_qApplication = new QApplication(d_argc, &d_argv);
       }
 
-      d_main_gui = new HistogramDisplayForm(d_nconnections, d_parent);
+      // If a style sheet is set in the prefs file, enable it here.
+      check_set_qss(d_qApplication);
+
+      int numplots = (d_nconnections > 0) ? d_nconnections : 1;
+      d_main_gui = new HistogramDisplayForm(numplots, d_parent);
       d_main_gui->setNumBins(d_bins);
       d_main_gui->setNPoints(d_size);
       d_main_gui->setXaxis(d_xmin, d_xmax);
+
+      if(d_name.size() > 0)
+        set_title(d_name);
 
       // initialize update time to 10 times a second
       set_update_time(0.1);
@@ -124,6 +150,7 @@ namespace gr {
       return d_main_gui;
     }
 
+#ifdef ENABLE_PYTHON
     PyObject*
     histogram_sink_f_impl::pyqwidget()
     {
@@ -131,6 +158,13 @@ namespace gr {
       PyObject *retarg = Py_BuildValue("N", w);
       return retarg;
     }
+#else
+    void *
+    histogram_sink_f_impl::pyqwidget()
+    {
+      return NULL;
+    }
+#endif
 
     void
     histogram_sink_f_impl::set_y_axis(double min, double max)
@@ -247,19 +281,20 @@ namespace gr {
     void
     histogram_sink_f_impl::set_nsamps(const int newsize)
     {
-      gr::thread::scoped_lock lock(d_mutex);
+      gr::thread::scoped_lock lock(d_setlock);
 
       if(newsize != d_size) {
 	// Resize residbuf and replace data
-	for(int i = 0; i < d_nconnections; i++) {
-	  fft::free(d_residbufs[i]);
-	  d_residbufs[i] = fft::malloc_double(newsize);
+	for(int i = 0; i < d_nconnections+1; i++) {
+	  volk_free(d_residbufs[i]);
+	  d_residbufs[i] = (double*)volk_malloc(newsize*sizeof(double),
+                                                volk_get_alignment());
 
 	  memset(d_residbufs[i], 0, newsize*sizeof(double));
 	}
 
-	// Set new size and reset buffer index 
-	// (throws away any currently held data, but who cares?) 
+	// Set new size and reset buffer index
+	// (throws away any currently held data, but who cares?)
 	d_size = newsize;
 	d_index = 0;
 
@@ -270,7 +305,7 @@ namespace gr {
     void
     histogram_sink_f_impl::set_bins(const int bins)
     {
-      gr::thread::scoped_lock lock(d_mutex);
+      gr::thread::scoped_lock lock(d_setlock);
       d_bins = bins;
       d_main_gui->setNumBins(d_bins);
     }
@@ -307,6 +342,12 @@ namespace gr {
     }
 
     void
+    histogram_sink_f_impl::enable_axis_labels(bool en)
+    {
+        d_main_gui->setAxisLabels(en);
+    }
+
+    void
     histogram_sink_f_impl::enable_autoscale(bool en)
     {
       d_main_gui->autoScale(en);
@@ -331,6 +372,18 @@ namespace gr {
     }
 
     void
+    histogram_sink_f_impl::disable_legend()
+    {
+      d_main_gui->disableLegend();
+    }
+
+    void
+    histogram_sink_f_impl::autoscalex()
+    {
+      d_main_gui->autoScaleX();
+    }
+
+    void
     histogram_sink_f_impl::reset()
     {
       d_index = 0;
@@ -338,8 +391,8 @@ namespace gr {
 
     int
     histogram_sink_f_impl::work(int noutput_items,
-			   gr_vector_const_void_star &input_items,
-			   gr_vector_void_star &output_items)
+                                gr_vector_const_void_star &input_items,
+                                gr_vector_void_star &output_items)
     {
       int n=0, j=0, idx=0;
       const float *in = (const float*)input_items[idx];
@@ -385,6 +438,72 @@ namespace gr {
       }
 
       return j;
+    }
+
+    void
+    histogram_sink_f_impl::handle_pdus(pmt::pmt_t msg)
+    {
+      size_t len;
+      pmt::pmt_t dict, samples;
+
+      // Test to make sure this is either a PDU or a uniform vector of
+      // samples. Get the samples PMT and the dictionary if it's a PDU.
+      // If not, we throw an error and exit.
+      if(pmt::is_pair(msg)) {
+        dict = pmt::car(msg);
+        samples = pmt::cdr(msg);
+      }
+      else if(pmt::is_uniform_vector(msg)) {
+        samples = msg;
+      }
+      else {
+        throw std::runtime_error("time_sink_c: message must be either "
+                                 "a PDU or a uniform vector of samples.");
+      }
+
+      len = pmt::length(samples);
+
+      const float *in;
+      if(pmt::is_f32vector(samples)) {
+        in = (const float*)pmt::f32vector_elements(samples, len);
+      }
+      else {
+        throw std::runtime_error("histogram_sink_f: unknown data type "
+                                 "of samples; must be float.");
+      }
+
+      // Plot if we're past the last update time
+      if(gr::high_res_timer_now() - d_last_time > d_update_time) {
+        d_last_time = gr::high_res_timer_now();
+
+        npoints_resize();
+
+        // Clear the histogram
+        if(!d_main_gui->getAccumulate()) {
+          d_qApplication->postEvent(d_main_gui, new HistogramClearEvent());
+
+          // Set to accumulate over length of the current PDU
+          d_qApplication->postEvent(d_main_gui, new HistogramSetAccumulator(true));
+        }
+
+        float nplots_f = static_cast<float>(len) / static_cast<float>(d_size);
+        int nplots = static_cast<int>(ceilf(nplots_f));
+        int idx = 0;
+        for(int n = 0; n < nplots; n++) {
+          int size = std::min(d_size, (int)(len - idx));
+          volk_32f_convert_64f_u(d_residbufs[d_nconnections], &in[idx], size);
+
+          d_qApplication->postEvent(d_main_gui,
+                                    new HistogramUpdateEvent(d_residbufs, size));
+
+          idx += size;
+        }
+
+        if(!d_main_gui->getAccumulate()) {
+          // Turn accumulation off
+          d_qApplication->postEvent(d_main_gui, new HistogramSetAccumulator(false));
+        }
+      }
     }
 
   } /* namespace qtgui */

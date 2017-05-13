@@ -100,6 +100,13 @@ namespace gr {
     // Return the number of items written on output stream which_output
     uint64_t nitems_written(unsigned int which_output);
 
+    // sets nitems_read and nitems_written to 0 for all input/output
+    // buffers.
+    void reset_nitem_counters();
+
+    // Clears all tags from the input buffers.
+    void clear_tags();
+
     /*!
      * \brief  Adds a new tag to the given output stream.
      *
@@ -219,6 +226,7 @@ namespace gr {
     float pc_output_buffers_full_avg(size_t which);
     std::vector<float> pc_output_buffers_full_avg();
     float pc_work_time_avg();
+    float pc_throughput_avg();
 
     float pc_noutput_items_var();
     float pc_nproduced_var();
@@ -227,9 +235,13 @@ namespace gr {
     float pc_output_buffers_full_var(size_t which);
     std::vector<float> pc_output_buffers_full_var();
     float pc_work_time_var();
- 
+
+    float pc_work_time_total();
+
     tpb_detail d_tpb;	// used by thread-per-block scheduler
     int d_produce_or;
+
+    int consumed() const;
 
     // ----------------------------------------------------------------------------
 
@@ -239,11 +251,15 @@ namespace gr {
     std::vector<buffer_reader_sptr> d_input;
     std::vector<buffer_sptr>        d_output;
     bool                            d_done;
+    int                             d_consumed;
 
     // Performance counters
     float d_ins_noutput_items;
     float d_avg_noutput_items;
     float d_var_noutput_items;
+    float d_total_noutput_items;
+    gr::high_res_timer_type d_pc_start_time;
+    gr::high_res_timer_type d_pc_last_work_time;
     float d_ins_nproduced;
     float d_avg_nproduced;
     float d_var_nproduced;
@@ -257,8 +273,10 @@ namespace gr {
     float d_ins_work_time;
     float d_avg_work_time;
     float d_var_work_time;
+    float d_total_work_time;
+    float d_avg_throughput;
     float d_pc_counter;
-  
+
     block_detail(unsigned int ninputs, unsigned int noutputs);
 
     friend struct tpb_detail;

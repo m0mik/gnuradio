@@ -57,6 +57,10 @@ namespace gr {
     void set_processor_affinity(const std::vector<int> &mask);
     void unset_processor_affinity();
     std::vector<int> processor_affinity();
+    
+    // Track output buffer min/max settings
+    std::vector<size_t> d_max_output_buffer;
+    std::vector<size_t> d_min_output_buffer;
 
   private:
     // Private implementation data
@@ -67,6 +71,7 @@ namespace gr {
     endpoint_vector_t d_outputs;             // Single internal endpoint per external output
     basic_block_vector_t d_blocks;
 
+    void refresh_io_signature();
     void connect_input(int my_port, int port, basic_block_sptr block);
     void connect_output(int my_port, int port, basic_block_sptr block);
     void disconnect_input(int my_port, int port, basic_block_sptr block);

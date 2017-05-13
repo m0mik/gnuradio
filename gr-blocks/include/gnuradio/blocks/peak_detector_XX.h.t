@@ -56,7 +56,7 @@ namespace gr {
        * \param threshold_factor_fall The threshold factor determins
        *        when a peak has ended. An average of the signal is
        *        calculated and when the value of the signal goes
-       *        bellow threshold_factor_fall*average, we stop looking
+       *        below threshold_factor_fall*average, we stop looking
        *        for a peak.
        * \param look_ahead The look-ahead value is used when the
        *        threshold is found to look if there another peak
@@ -85,11 +85,11 @@ namespace gr {
        *  \param look new look-ahead factor
        */
       virtual void set_look_ahead(int look) = 0;
-      
+
       /*! \brief Set the running average alpha
        *  \param alpha new alpha for running average
        */
-      virtual void set_alpha(int alpha) = 0;
+      virtual void set_alpha(float alpha) = 0;
 
       /*! \brief Get the threshold factor value for the rise time
        *  \return threshold factor

@@ -23,14 +23,17 @@ install(FILES
     filter_fft_filter_xxx.xml
     filter_fir_filter_xxx.xml
     filter_filter_delay_fc.xml
+    filter_filterbank_vcvcf.xml
     filter_fractional_interpolator_xx.xml
     filter_fractional_resampler_xx.xml
+    filter_freq_xlating_fft_filter_ccc.xml
     filter_freq_xlating_fir_filter_xxx.xml
     filter_hilbert_fc.xml
-    filter_iir_filter_ffd.xml
+    filter_iir_filter_xxx.xml
     filter_interp_fir_filter_xxx.xml
     filter_pfb_arb_resampler.xml
     filter_pfb_channelizer.xml
+    filter_pfb_channelizer_hier.xml
     filter_pfb_decimator.xml
     filter_pfb_interpolator.xml
     filter_pfb_synthesizer.xml
@@ -42,6 +45,11 @@ install(FILES
     filter_band_pass_filter.xml
     filter_band_reject_filter.xml
     filter_root_raised_cosine_filter.xml
+    variable_low_pass_filter_taps.xml
+    variable_high_pass_filter_taps.xml
+    variable_band_pass_filter_taps.xml
+    variable_band_reject_filter_taps.xml
+    variable_rrc_filter_taps.xml
     DESTINATION ${GRC_BLOCKS_DIR}
     COMPONENT "filter_python"
 )

@@ -27,11 +27,26 @@
 #include <gnuradio/qtgui/api.h>
 #include <qwt_plot_picker.h>
 #include <qwt_picker_machine.h>
+#include <QString>
+#include <QCoreApplication>
+
+/*!
+ * From QSS file name, extracts the file contents and returns a
+ * QString that contains the QSS information. Designed to be passed to
+ * the qApplication. The QSS file is typically retrieved using the
+ * [qtgui] qss=\<filename\> section of the preferences files.
+ */
+QTGUI_API QString get_qt_style_sheet(QString filename);
 
 class QTGUI_API QwtDblClickPlotPicker: public QwtPlotPicker
 {
 public:
+#if QWT_VERSION < 0x060100
     QwtDblClickPlotPicker(QwtPlotCanvas *);
+#else /* QWT_VERSION < 0x060100 */
+    QwtDblClickPlotPicker(QWidget *);
+#endif /* QWT_VERSION < 0x060100 */
+
     ~QwtDblClickPlotPicker();
 
     virtual QwtPickerMachine * stateMachine(int) const;
@@ -51,5 +66,7 @@ public:
     transition( const QwtEventPattern &eventPattern,
 				  const QEvent *e);
 };
+
+void check_set_qss(QApplication *app);
 
 #endif /* INCLUDED_QTGUI_UTILS_H */

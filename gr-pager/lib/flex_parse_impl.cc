@@ -43,7 +43,7 @@ namespace gr {
 
     flex_parse_impl::flex_parse_impl(msg_queue::sptr queue, float freq) :
       sync_block("flex_parse",
-		    io_signature::make(1, 1, sizeof(gr_int32)),
+		    io_signature::make(1, 1, sizeof(int32_t)),
 		    io_signature::make(0, 0, 0)),
       d_queue(queue),
       d_freq(freq)
@@ -59,7 +59,7 @@ namespace gr {
 			      gr_vector_const_void_star &input_items,
 			      gr_vector_void_star &output_items)
     {
-      const gr_int32 *in = (const gr_int32 *)input_items[0];
+      const int32_t *in = (const int32_t *)input_items[0];
 
       int i = 0;
       while(i < noutput_items) {
@@ -97,7 +97,7 @@ namespace gr {
     {
       // Block information word is the first data word in frame
       int biw = d_datawords[0];
-      
+
       // Nothing to see here, please move along
       if(biw == 0 || biw == 0x001FFFFF)
 	return;

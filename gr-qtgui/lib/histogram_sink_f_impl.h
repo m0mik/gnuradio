@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2013 Free Software Foundation, Inc.
+ * Copyright 2013,2015 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -25,18 +25,15 @@
 
 #include <gnuradio/qtgui/histogram_sink_f.h>
 #include <gnuradio/qtgui/histogramdisplayform.h>
-#include <gnuradio/thread/thread.h>
 #include <gnuradio/high_res_timer.h>
 
 namespace gr {
   namespace qtgui {
-    
+
     class QTGUI_API histogram_sink_f_impl : public histogram_sink_f
     {
     private:
       void initialize();
-
-      gr::thread::mutex d_mutex;
 
       int d_size;
       int d_bins;
@@ -47,6 +44,8 @@ namespace gr {
       int d_index;
       std::vector<double*> d_residbufs;
 
+      int d_argc;
+      char *d_argv;
       QWidget *d_parent;
       HistogramDisplayForm *d_main_gui;
 
@@ -54,6 +53,9 @@ namespace gr {
       gr::high_res_timer_type d_last_time;
 
       void npoints_resize();
+
+      // Handles message input port for displaying PDU samples.
+      void handle_pdus(pmt::pmt_t msg);
 
     public:
       histogram_sink_f_impl(int size, int bins,
@@ -67,7 +69,12 @@ namespace gr {
 
       void exec_();
       QWidget*  qwidget();
+
+#ifdef ENABLE_PYTHON
       PyObject* pyqwidget();
+#else
+      void* pyqwidget();
+#endif
 
       void set_y_axis(double min, double max);
       void set_x_axis(double min, double max);
@@ -81,6 +88,7 @@ namespace gr {
       void set_line_alpha(int which, double alpha);
       void set_nsamps(const int newsize);
       void set_bins(const int bins);
+      void enable_axis_labels(bool en);
 
       std::string title();
       std::string line_label(int which);
@@ -98,6 +106,8 @@ namespace gr {
       void enable_semilogx(bool en);
       void enable_semilogy(bool en);
       void enable_accumulate(bool en);
+      void disable_legend();
+      void autoscalex();
       int  nsamps() const;
       int  bins() const;
       void reset();

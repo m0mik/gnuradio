@@ -21,7 +21,29 @@
  */
 
 #include <gnuradio/qtgui/utils.h>
+#include <gnuradio/prefs.h>
 #include <QDebug>
+#include <QFile>
+#include <QCoreApplication>
+#include <qapplication.h>
+
+QString
+get_qt_style_sheet(QString filename)
+{
+  QString sstext;
+  QFile ss(filename);
+  if(!ss.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    return sstext;
+  }
+
+  QTextStream sstream(&ss);
+  while(!sstream.atEnd()) {
+    sstext += sstream.readLine();
+  }
+  ss.close();
+
+  return sstext;
+}
 
 QwtPickerDblClickPointMachine::QwtPickerDblClickPointMachine()
 #if QWT_VERSION < 0x060000
@@ -61,7 +83,11 @@ QwtPickerDblClickPointMachine::transition(const QwtEventPattern &eventPattern,
   return cmdList;
 }
 
+#if QWT_VERSION < 0x060100
 QwtDblClickPlotPicker::QwtDblClickPlotPicker(QwtPlotCanvas* canvas)
+#else /* QWT_VERSION < 0x060100 */
+QwtDblClickPlotPicker::QwtDblClickPlotPicker(QWidget* canvas)
+#endif /* QWT_VERSION < 0x060100 */
   : QwtPlotPicker(canvas)
 {
 #if QWT_VERSION < 0x060000
@@ -77,5 +103,13 @@ QwtPickerMachine*
 QwtDblClickPlotPicker::stateMachine(int n) const
 {
   return new QwtPickerDblClickPointMachine;
+}
+
+void check_set_qss(QApplication *app){
+      std::string qssfile = gr::prefs::singleton()->get_string("qtgui","qss","");
+      if(qssfile.size() > 0) {
+        QString sstext = get_qt_style_sheet(QString(qssfile.c_str()));
+        app->setStyleSheet(sstext);
+      }
 }
 

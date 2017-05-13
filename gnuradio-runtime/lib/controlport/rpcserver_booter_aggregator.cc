@@ -23,9 +23,10 @@
 #include <gnuradio/rpcserver_booter_aggregator.h>
 
 rpcserver_booter_aggregator::rpcserver_booter_aggregator() :
-  d_type(std::string("aggregator")), server(new rpcserver_aggregator())
+  d_type(std::string("aggregator")),
+  server(new rpcserver_aggregator())
 {;}
- 
+
 rpcserver_booter_aggregator::~rpcserver_booter_aggregator()
 {;}
 

@@ -37,6 +37,13 @@
 #    define __GR_ATTR_EXPORT
 #    define __GR_ATTR_IMPORT
 #  endif
+#elif defined __clang__
+#  define __GR_ATTR_ALIGNED(x) __attribute__((aligned(x)))
+#  define __GR_ATTR_UNUSED     __attribute__((unused))
+#  define __GR_ATTR_INLINE     __attribute__((always_inline))
+#  define __GR_ATTR_DEPRECATED __attribute__((deprecated))
+#  define __GR_ATTR_EXPORT     __attribute__((visibility("default")))
+#  define __GR_ATTR_IMPORT     __attribute__((visibility("default")))
 #elif _MSC_VER
 #  define __GR_ATTR_ALIGNED(x) __declspec(align(x))
 #  define __GR_ATTR_UNUSED
@@ -69,6 +76,15 @@
 #  pragma warning(disable: 4244) // conversion from 'double' to 'float', possible loss of data
 #  pragma warning(disable: 4305) // 'initializing' : truncation from 'double' to 'float'
 #  pragma warning(disable: 4290) // C++ exception specification ignored except to indicate a function is not __declspec(nothrow)
+#endif
+
+////////////////////////////////////////////////////////////////////////
+// implement cross-compiler VLA macros
+////////////////////////////////////////////////////////////////////////
+#ifdef _MSC_VER
+#  define __GR_VLA(TYPE, buf, size) TYPE * buf = (TYPE *) alloca(sizeof(TYPE) * (size))
+#else
+#  define __GR_VLA(TYPE, buf, size) TYPE buf[size]
 #endif
 
 #endif /* INCLUDED_GNURADIO_ATTRIBUTES_H */

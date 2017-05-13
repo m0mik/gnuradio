@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Copyright 2009-2012 Free Software Foundation, Inc.
+Copyright 2016 Free Software Foundation, Inc.
 This file is part of GNU Radio
 
 GNU Radio Companion is free software; you can redistribute it and/or
@@ -18,55 +18,82 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 """
 
-import pygtk
-pygtk.require('2.0')
-import gtk
+import os
+import sys
+import warnings
 
-try: from gnuradio import gr
-except ImportError, e:
-    d = gtk.MessageDialog(type=gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_CLOSE, message_format="""
+
+GR_IMPORT_ERROR_MESSAGE = """\
 Cannot import gnuradio.
 
-Is the python path environment variable set correctly?
+Is the model path environment variable set correctly?
     All OS: PYTHONPATH
 
 Is the library path environment variable set correctly?
     Linux: LD_LIBRARY_PATH
     Windows: PATH
     MacOSX: DYLD_LIBRARY_PATH
-""")
-    d.set_title(str(e))
-    d.run()
-    exit(-1)
+"""
 
-from optparse import OptionParser
-import os
 
-if __name__ == "__main__":
-    if ('GR_DONT_LOAD_PREFS' in os.environ.keys() and
-        (not 'GRC_BLOCKS_PATH' in os.environ.keys() or len(os.environ['GRC_BLOCKS_PATH']) == 0)):
+def die(error, message):
+    msg = "{0}\n\n({1})".format(message, error)
+    try:
+        import gtk
         d = gtk.MessageDialog(
             type=gtk.MESSAGE_ERROR,
             buttons=gtk.BUTTONS_CLOSE,
-            message_format="""Can't find block definitions. Use config.conf or GRC_BLOCKS_PATH. """)
-        d.set_title("No block definitions available.")
+            message_format=msg,
+        )
+        d.set_title(type(error).__name__)
         d.run()
-        exit(-1)
-    usage = 'usage: %prog [options] [saved flow graphs]'
-    version = """
-GNU Radio Companion %s
+        exit(1)
+    except ImportError:
+        exit(type(error).__name__ + '\n\n' + msg)
 
-This program is part of GNU Radio
-GRC comes with ABSOLUTELY NO WARRANTY.
-This is free software,
-and you are welcome to redistribute it.
-"""%gr.version()
-    parser = OptionParser(usage=usage, version=version)
-    (options, args) = parser.parse_args()
-    from gnuradio.grc.python.Platform import Platform
-    from gnuradio.grc.gui.ActionHandler import ActionHandler
-    #setup icon using icon theme
-    try: gtk.window_set_default_icon(gtk.IconTheme().load_icon('gnuradio-grc', 256, 0))
-    except: pass
-    ActionHandler(args, Platform())
 
+def check_gtk():
+    try:
+        warnings.filterwarnings("error")
+        import pygtk
+        pygtk.require('2.0')
+        import gtk
+        gtk.init_check()
+        warnings.filterwarnings("always")
+    except Exception as err:
+        die(err, "Failed to initialize GTK. If you are running over ssh, "
+                 "did you enable X forwarding and start ssh with -X?")
+
+
+def check_gnuradio_import():
+    try:
+        from gnuradio import gr
+    except ImportError as err:
+        die(err, GR_IMPORT_ERROR_MESSAGE)
+
+
+def check_blocks_path():
+    if 'GR_DONT_LOAD_PREFS' in os.environ and not os.environ.get('GRC_BLOCKS_PATH', ''):
+        die(EnvironmentError("No block definitions available"),
+            "Can't find block definitions. Use config.conf or GRC_BLOCKS_PATH.")
+
+
+def run_main():
+    script_path = os.path.dirname(os.path.abspath(__file__))
+    source_tree_subpath = "/grc/scripts"
+
+    if not script_path.endswith(source_tree_subpath):
+        # run the installed version
+        from gnuradio.grc.main import main
+    else:
+        print("Running from source tree")
+        sys.path.insert(1, script_path[:-len(source_tree_subpath)])
+        from grc.main import main
+    exit(main())
+
+
+if __name__ == '__main__':
+    check_gnuradio_import()
+    check_gtk()
+    check_blocks_path()
+    run_main()

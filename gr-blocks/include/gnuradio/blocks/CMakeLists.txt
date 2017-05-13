@@ -1,4 +1,4 @@
-# Copyright 2013 Free Software Foundation, Inc.
+# Copyright 2013-2014 Free Software Foundation, Inc.
 #
 # This file is part of GNU Radio
 #
@@ -18,79 +18,39 @@
 # Boston, MA 02110-1301, USA.
 
 ########################################################################
-# generate helper scripts to expand templated files
+# Invoke macro to generate various headers
 ########################################################################
-include(GrPython)
-
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/generate_helper.py "
-#!${PYTHON_EXECUTABLE}
-
-import sys, os, re
-sys.path.append('${GR_RUNTIME_PYTHONPATH}')
-os.environ['srcdir'] = '${CMAKE_CURRENT_SOURCE_DIR}'
-os.chdir('${CMAKE_CURRENT_BINARY_DIR}')
-
-if __name__ == '__main__':
-    import build_utils
-    root, inp = sys.argv[1:3]
-    for sig in sys.argv[3:]:
-        name = re.sub ('X+', sig, root)
-        d = build_utils.standard_dict(name, sig, 'blocks')
-        build_utils.expand_template(d, inp)
-
-")
-
-macro(expand_h root)
-  #make a list of all the generated files
-  unset(expanded_files_h)
-  foreach(sig ${ARGN})
-    string(REGEX REPLACE "X+" ${sig} name ${root})
-    list(APPEND expanded_files_h ${CMAKE_CURRENT_BINARY_DIR}/${name}.h)
-  endforeach(sig)
-  
-  #create a command to generate the files
-  add_custom_command(
-    OUTPUT ${expanded_files_h}
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${root}.h.t
-    COMMAND ${PYTHON_EXECUTABLE} ${PYTHON_DASH_B}
-    ${CMAKE_CURRENT_BINARY_DIR}/generate_helper.py
-    ${root} ${root}.h.t ${ARGN}
-    )
-
-  #install rules for the generated h files
-  list(APPEND generated_includes ${expanded_files_h})
-endmacro(expand_h)
-
-########################################################################
-# Invoke macro to generate various sources
-########################################################################
-expand_h(add_XX             ss ii cc)
-expand_h(add_const_XX       bb ss ii ff cc)
-expand_h(add_const_vXX      bb ss ii ff cc)
-expand_h(and_XX             bb ss ii)
-expand_h(and_const_XX       bb ss ii)
-expand_h(argmax_XX          fs is ss)
-expand_h(divide_XX          ss ii ff cc)
-expand_h(integrate_XX       ss ii ff cc)
-expand_h(max_XX             ff ii ss)
-expand_h(moving_average_XX  ss ii ff cc)
-expand_h(multiply_XX        ss ii)
-expand_h(multiply_const_XX  ss ii)
-expand_h(multiply_const_vXX ss ii ff cc)
-expand_h(mute_XX            ss ii ff cc)
-expand_h(not_XX             bb ss ii)
-expand_h(or_XX              bb ss ii)
-expand_h(peak_detector_XX   fb ib sb)
-expand_h(probe_signal_X     b s i f c)
-expand_h(probe_signal_vX    b s i f c)
-expand_h(sample_and_hold_XX bb ss ii ff)
-expand_h(sub_XX             ss ii ff cc)
-expand_h(xor_XX             bb ss ii)
-expand_h(packed_to_unpacked_XX bb ss ii)
-expand_h(unpacked_to_packed_XX bb ss ii)
-expand_h(vector_insert_X    b s i f c)
-expand_h(vector_sink_X      b s i f c)
-expand_h(vector_source_X    b s i f c)
+include(GrMiscUtils)
+GR_EXPAND_X_H(blocks abs_XX             ss ii ff)
+GR_EXPAND_X_H(blocks add_XX             ss ii cc)
+GR_EXPAND_X_H(blocks add_const_vXX      bb ss ii ff cc)
+GR_EXPAND_X_H(blocks and_XX             bb ss ii)
+GR_EXPAND_X_H(blocks and_const_XX       bb ss ii)
+GR_EXPAND_X_H(blocks argmax_XX          fs is ss)
+GR_EXPAND_X_H(blocks divide_XX          ss ii ff cc)
+GR_EXPAND_X_H(blocks integrate_XX       ss ii ff cc)
+GR_EXPAND_X_H(blocks max_XX             ss ii ff)
+GR_EXPAND_X_H(blocks min_XX             ss ii ff)
+GR_EXPAND_X_H(blocks moving_average_XX  ss ii ff cc)
+GR_EXPAND_X_H(blocks multiply_XX        ss ii)
+GR_EXPAND_X_H(blocks multiply_const_XX  ss ii)
+GR_EXPAND_X_H(blocks multiply_const_vXX ss ii)
+GR_EXPAND_X_H(blocks multiply_matrix_XX ff cc)
+GR_EXPAND_X_H(blocks mute_XX            ss ii ff cc)
+GR_EXPAND_X_H(blocks not_XX             bb ss ii)
+GR_EXPAND_X_H(blocks or_XX              bb ss ii)
+GR_EXPAND_X_H(blocks peak_detector_XX   fb ib sb)
+GR_EXPAND_X_H(blocks probe_signal_X     b s i f c)
+GR_EXPAND_X_H(blocks probe_signal_vX    b s i f c)
+GR_EXPAND_X_H(blocks sample_and_hold_XX bb ss ii ff)
+GR_EXPAND_X_H(blocks sub_XX             ss ii cc)
+GR_EXPAND_X_H(blocks tsb_vector_sink_X  b s i f c)
+GR_EXPAND_X_H(blocks xor_XX             bb ss ii)
+GR_EXPAND_X_H(blocks packed_to_unpacked_XX bb ss ii)
+GR_EXPAND_X_H(blocks unpacked_to_packed_XX bb ss ii)
+GR_EXPAND_X_H(blocks vector_insert_X    b s i f c)
+GR_EXPAND_X_H(blocks vector_sink_X      b s i f c)
+GR_EXPAND_X_H(blocks vector_source_X    b s i f c)
 
 add_custom_target(blocks_generated_includes DEPENDS
     ${generated_includes}
@@ -108,9 +68,16 @@ install(FILES
     lfsr_15_1_0.h
     lfsr_32k.h
     log2_const.h
+    pack_k_bits.h
     rotator.h
+    unpack_k_bits.h
     wavfile.h
     add_ff.h
+    add_const_bb.h
+    add_const_ss.h
+    add_const_ii.h
+    add_const_ff.h
+    add_const_cc.h
     annotator_1to1.h
     annotator_alltoall.h
     annotator_raw.h
@@ -121,6 +88,7 @@ install(FILES
     check_lfsr_32k_s.h
     complex_to_interleaved_short.h
     complex_to_float.h
+    complex_to_magphase.h
     complex_to_imag.h
     complex_to_real.h
     complex_to_mag.h
@@ -131,6 +99,7 @@ install(FILES
     deinterleave.h
     delay.h
     endian_swap.h
+    exponentiate_const_cci.h
     file_descriptor_sink.h
     file_descriptor_source.h
     file_sink.h
@@ -139,6 +108,7 @@ install(FILES
     file_meta_source.h
     float_to_char.h
     float_to_complex.h
+    magphase_to_complex.h
     float_to_int.h
     float_to_short.h
     float_to_uchar.h
@@ -154,12 +124,16 @@ install(FILES
     message_sink.h
     message_source.h
     message_strobe.h
+    message_strobe_random.h
     message_burst_source.h
     multiply_cc.h
     multiply_ff.h
     multiply_conjugate_cc.h
     multiply_const_cc.h
+    multiply_const_vcc.h
     multiply_const_ff.h
+    multiply_const_vff.h
+    multiply_by_tag_value_cc.h
     nlog10_ff.h
     nop.h
     null_sink.h
@@ -167,32 +141,43 @@ install(FILES
     pack_k_bits_bb.h
     patterned_interleaver.h
     pdu.h
+    pdu_filter.h
+    pdu_set.h
+    pdu_remove.h
     pdu_to_tagged_stream.h
     peak_detector2_fb.h
     random_pdu.h
     plateau_detector_fb.h
     probe_rate.h
     regenerate_bb.h
-    repack_bits_bb.h 
+    repack_bits_bb.h
     repeat.h
     rms_cf.h
     rms_ff.h
+    rotator_cc.h
     short_to_char.h
     short_to_float.h
     skiphead.h
     socket_pdu.h
     stream_mux.h
     stream_to_streams.h
+    stream_to_tagged_stream.h
     stream_to_vector.h
     streams_to_stream.h
     streams_to_vector.h
     stretch_ff.h
+    sub_ff.h
     tag_debug.h
     tag_gate.h
+    tag_share.h
     tagged_file_sink.h
+    tagged_stream_align.h
     tagged_stream_mux.h
+    tagged_stream_multiply_length.h
     tagged_stream_to_pdu.h
     tags_strobe.h
+    tcp_server_sink.h
+    test_tag_variable_rate_ff.h
     threshold_ff.h
     throttle.h
     transcendental.h

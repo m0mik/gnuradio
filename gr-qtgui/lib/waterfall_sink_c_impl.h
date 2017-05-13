@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2012 Free Software Foundation, Inc.
+ * Copyright 2012,2015 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -27,7 +27,6 @@
 #include <gnuradio/filter/firdes.h>
 #include <gnuradio/fft/fft.h>
 #include <gnuradio/high_res_timer.h>
-#include <gnuradio/thread/thread.h>
 #include <gnuradio/qtgui/waterfalldisplayform.h>
 
 namespace gr {
@@ -48,6 +47,7 @@ namespace gr {
       double d_bandwidth;
       std::string d_name;
       int d_nconnections;
+      int d_nrows;
 
       bool d_shift;
       fft::fft_complex *d_fft;
@@ -55,8 +55,11 @@ namespace gr {
       int d_index;
       std::vector<gr_complex*> d_residbufs;
       std::vector<double*> d_magbufs;
+      double* d_pdu_magbuf;
       float *d_fbuf;
 
+      int d_argc;
+      char *d_argv;
       QWidget *d_parent;
       WaterfallDisplayForm *d_main_gui;
 
@@ -66,7 +69,15 @@ namespace gr {
       void windowreset();
       void buildwindow();
       void fftresize();
+      void check_clicked();
       void fft(float *data_out, const gr_complex *data_in, int size);
+
+      // Handles message input port for setting new center frequency.
+      // The message is a PMT pair (intern('freq'), double(frequency)).
+      void handle_set_freq(pmt::pmt_t msg);
+
+      // Handles message input port for displaying PDU samples.
+      void handle_pdus(pmt::pmt_t msg);
 
     public:
       waterfall_sink_c_impl(int size, int wintype,
@@ -80,7 +91,12 @@ namespace gr {
 
       void exec_();
       QWidget*  qwidget();
+
+#ifdef ENABLE_PYTHON
       PyObject* pyqwidget();
+#else
+      void* pyqwidget();
+#endif
 
       void clear_data();
 
@@ -95,7 +111,9 @@ namespace gr {
       void set_intensity_range(const double min, const double max);
 
       void set_update_time(double t);
+      void set_time_per_fft(double t);
       void set_title(const std::string &title);
+      void set_time_title(const std::string &title);
       void set_line_label(int which, const std::string &label);
       void set_line_alpha(int which, double alpha);
       void set_color_map(int which, const int color);
@@ -113,6 +131,8 @@ namespace gr {
 
       void enable_menu(bool en);
       void enable_grid(bool en);
+      void disable_legend();
+      void enable_axis_labels(bool en);
 
       int work(int noutput_items,
 	       gr_vector_const_void_star &input_items,

@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2012,2013 Free Software Foundation, Inc.
+ * Copyright 2012,2013,2015 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -23,7 +23,10 @@
 #ifndef INCLUDED_QTGUI_TIME_RASTER_SINK_F_H
 #define INCLUDED_QTGUI_TIME_RASTER_SINK_F_H
 
+#ifdef ENABLE_PYTHON
 #include <Python.h>
+#endif
+
 #include <gnuradio/qtgui/api.h>
 #include <gnuradio/sync_block.h>
 #include <qapplication.h>
@@ -42,6 +45,16 @@ namespace gr {
      * This is a QT-based graphical sink that takes set of a floating
      * point streams and plots a time_raster (spectrogram) plot.
      *
+     * The sink supports plotting streaming float data or
+     * messages. The message port is named "in". The two modes cannot
+     * be used simultaneously, and \p nconnections should be set to 0
+     * when using the message mode. GRC handles this issue by
+     * providing the "Float Message" type that removes the streaming
+     * port(s).
+     *
+     * This sink can plot messages that contain either uniform vectors
+     * of float 32 values (pmt::is_f32vector) or PDUs where the data
+     * is a uniform vector of float 32 values.
      */
     class QTGUI_API time_raster_sink_f : virtual public sync_block
     {
@@ -70,7 +83,13 @@ namespace gr {
 		       QWidget *parent=NULL);
 
       virtual void exec_() = 0;
+      virtual QWidget* qwidget() = 0;
+
+#ifdef ENABLE_PYTHON
       virtual PyObject* pyqwidget() = 0;
+#else
+      virtual void* pyqwidget() = 0;
+#endif
 
       virtual void set_update_time(double t) = 0;
       virtual void set_title(const std::string &title) = 0;
@@ -108,6 +127,7 @@ namespace gr {
       virtual void enable_menu(bool en) = 0;
       virtual void enable_grid(bool en) = 0;
       virtual void enable_autoscale(bool en) = 0;
+      virtual void enable_axis_labels(bool en=true) = 0;
       virtual void reset() = 0;
 
       QApplication *d_qApplication;

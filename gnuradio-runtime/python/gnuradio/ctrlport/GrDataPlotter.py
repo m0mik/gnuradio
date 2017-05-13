@@ -23,7 +23,7 @@
 from gnuradio import gr
 from gnuradio import blocks
 from gnuradio import filter
-from gnuradio.ctrlport import GNURadio
+from gnuradio.ctrlport.GNURadio import ControlPort
 import sys, time, struct
 
 try:
@@ -184,7 +184,7 @@ class GrDataPlotParent(gr.top_block, QtGui.QWidget):
                     data[n] = [data[n],]
                 data[n] = self.data_to_complex(data[n])
                 self.src[n].set_data(data[n])
-            
+
 
 
 class GrDataPlotterC(GrDataPlotParent):
@@ -236,7 +236,7 @@ class GrDataPlotterF(GrDataPlotParent):
                                 self._name, self._ncons)
         snk.enable_autoscale(True)
         return snk
-    
+
     def get_vecsource(self):
         return blocks.vector_source_f([])
 
@@ -246,7 +246,7 @@ class GrDataPlotterF(GrDataPlotParent):
 
     def set_line_label(self, n, name):
         self.snk.set_line_label(n, self.knobnames[n])
-            
+
 
 class GrDataPlotterConst(GrDataPlotParent):
     def __init__(self, name, rate, pmin=None, pmax=None, stripchart=False):
@@ -442,7 +442,7 @@ class GrDataPlotterValueTable:
                 units = str(knobprops[itemKey].units)
                 descr = str(knobprops[itemKey].description)
 
-                if(type(v) == GNURadio.complex):
+                if(type(v) == ControlPort.complex):
                     v = v.re + v.im*1j
                 # If it's a byte stream, Python thinks it's a string.
                 # Unpack and convert to floats for plotting.
@@ -468,7 +468,7 @@ class GrDataPlotterValueTable:
         for k in knobs.keys():
             if k not in foundKeys:
                 v = knobs[k].value
-                if(type(v) == GNURadio.complex):
+                if(type(v) == ControlPort.complex):
                     v = v.re + v.im*1j
                 # If it's a byte stream, Python thinks it's a string.
                 # Unpack and convert to floats for plotting.

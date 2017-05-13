@@ -7,9 +7,7 @@
 <block>
 	<name>Pad Source</name>
 	<key>pad_source</key>
-    <make>#if str($type) == "message"
-None;self.message_port_register_hier_out($label)
-#end if</make>
+	<make></make>
 	<param>
 		<name>Label</name>
 		<key>label</key>
@@ -46,6 +44,11 @@ None;self.message_port_register_hier_out($label)
 			<opt>size:gr.sizeof_char</opt>
 		</option>
 		<option>
+			<name>Bits</name>
+			<key>bit</key>
+			<opt>size:gr.sizeof_char</opt>
+		</option>
+		<option>
 			<name>Message</name>
 			<key>message</key>
 			<opt>size:0</opt>
@@ -62,7 +65,7 @@ None;self.message_port_register_hier_out($label)
 		<value>1</value>
 		<type>int</type>
 	</param>
-	
+
 	<param>
 		<name>Num Streams</name>
 		<key>num_streams</key>

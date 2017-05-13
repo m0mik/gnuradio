@@ -26,18 +26,19 @@
 
 namespace gr {
   namespace analog {
-    
+
     /*!
      * \brief Perform continuous phase 2-level frequency shift keying modulation
      * on an input stream of unpacked bits.
      * \ingroup modulators_blk
+     * \ingroup deprecated_blk
      */
     class ANALOG_API cpfsk_bc : virtual public sync_interpolator
     {
     public:
       // gr::analog::cpfsk_bc::sptr
       typedef boost::shared_ptr<cpfsk_bc> sptr;
-            
+
       /*!
        * \brief Make a CPFSK block.
        *

@@ -37,6 +37,7 @@
 #include <qwt_plot_magnifier.h>
 #include <qwt_plot_marker.h>
 #include <qwt_symbol.h>
+#include <qwt_legend.h>
 #include <gnuradio/qtgui/utils.h>
 
 #if QWT_VERSION >= 0x060000
@@ -46,11 +47,19 @@
 typedef QList<QColor> QColorList;
 Q_DECLARE_METATYPE ( QColorList )
 
+#if QWT_VERSION < 0x060100
+#include <qwt_legend_item.h>
+#else /* QWT_VERSION < 0x060100 */
+#include <qwt_legend_data.h>
+#include <qwt_legend_label.h>
+#endif /* QWT_VERSION < 0x060100 */
+
 /*!
  * \brief QWidget base plot to build QTGUI plotting tools.
  * \ingroup qtgui_blk
  */
-class DisplayPlot:public QwtPlot{
+class DisplayPlot:public QwtPlot
+{
   Q_OBJECT
 
   Q_PROPERTY ( QColor line_color1 READ getLineColor1 WRITE setLineColor1 )
@@ -180,6 +189,8 @@ public:
   // void PlotNewData(...);
 
 public slots:
+  virtual void disableLegend();
+  virtual void setAxisLabels(bool en);
   virtual void setYaxis(double min, double max);
   virtual void setXaxis(double min, double max);
   virtual void setLineLabel(int which, QString label);
@@ -268,25 +279,26 @@ signals:
   void plotPointSelected(const QPointF p);
 
 protected slots:
-  void legendEntryChecked(QwtPlotItem *plotItem, bool on);
+  virtual void legendEntryChecked(QwtPlotItem *plotItem, bool on);
+  virtual void legendEntryChecked(const QVariant &plotItem, bool on, int index);
 
 protected:
-  int _nplots;
-  std::vector<QwtPlotCurve*> _plot_curve;
+  int d_nplots;
+  std::vector<QwtPlotCurve*> d_plot_curve;
 
-  QwtPlotPanner* _panner;
-  QwtPlotZoomer* _zoomer;
+  QwtPlotPanner* d_panner;
+  QwtPlotZoomer* d_zoomer;
 
-  QwtDblClickPlotPicker *_picker;
-  QwtPlotMagnifier *_magnifier;
+  QwtDblClickPlotPicker *d_picker;
+  QwtPlotMagnifier *d_magnifier;
 
-  int64_t _numPoints;
+  int64_t d_numPoints;
 
-  bool _stop;
+  bool d_stop;
 
-  QList<QColor> _trace_colors;
+  QList<QColor> d_trace_colors;
 
-  bool _autoscale_state;
+  bool d_autoscale_state;
 };
 
 #endif /* DOMAIN_DISPLAY_PLOT_H */

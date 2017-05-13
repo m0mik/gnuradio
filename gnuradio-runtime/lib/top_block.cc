@@ -59,6 +59,17 @@ namespace gr {
   void
   top_block::start(int max_noutput_items)
   {
+#ifdef GNURADIO_HRT_USE_CLOCK_GETTIME
+    std::string initial_clock = prefs::singleton()->get_string("PerfCounters", "clock", "thread");
+    if(initial_clock.compare("thread") == 0){
+        gr::high_res_timer_source = CLOCK_THREAD_CPUTIME_ID;
+    } else if(initial_clock.compare("monotonic") == 0){
+        gr::high_res_timer_source = CLOCK_MONOTONIC;
+    } else {
+        throw std::runtime_error("bad argument for PerfCounters.clock!");
+    }
+#endif
+
     d_impl->start(max_noutput_items);
 
     if(prefs::singleton()->get_bool("ControlPort", "on", false)) {
@@ -140,6 +151,22 @@ namespace gr {
     if(is_rpc_set())
       return;
 
+    // Triggers
+    d_rpc_vars.push_back(
+      rpcbasic_sptr(new rpcbasic_register_trigger<top_block>(
+        alias(), "stop", &top_block::stop,
+        "Stop the flowgraph", RPC_PRIVLVL_MIN)));
+
+    d_rpc_vars.push_back(
+      rpcbasic_sptr(new rpcbasic_register_trigger<top_block>(
+        alias(), "lock", &top_block::lock,
+        "Lock the flowgraph", RPC_PRIVLVL_MIN)));
+
+    d_rpc_vars.push_back(
+      rpcbasic_sptr(new rpcbasic_register_trigger<top_block>(
+        alias(), "unlock", &top_block::unlock,
+        "Unock the flowgraph", RPC_PRIVLVL_MIN)));
+
     // Getters
     add_rpc_variable(
       rpcbasic_sptr(new rpcbasic_register_get<top_block, int>(
@@ -170,14 +197,6 @@ namespace gr {
     }
 
 #ifdef GNURADIO_HRT_USE_CLOCK_GETTIME
-    std::string initial_clock = prefs::singleton()->get_string("PerfCounters", "clock", "thread");
-    if(initial_clock.compare("thread") == 0){
-        gr::high_res_timer_source = CLOCK_THREAD_CPUTIME_ID;
-    } else if(initial_clock.compare("monotonic") == 0){
-        gr::high_res_timer_source = CLOCK_MONOTONIC;
-    } else {
-        throw std::runtime_error("bad argument for PerfCounters.clock!");
-    }
     add_rpc_variable(
         rpcbasic_sptr(new rpcbasic_register_variable_rw<int>(
         alias(), "perfcounter_clock",

@@ -20,6 +20,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 from Constants import LINE_SELECT_SENSITIVITY
 from Constants import POSSIBLE_ROTATIONS
 
+import gtk
+
+
 class Element(object):
     """
     GraphicalElement is the base class for all graphical elements.
@@ -35,15 +38,18 @@ class Element(object):
         self.set_coordinate((0, 0))
         self.clear()
         self.set_highlighted(False)
+        self.line_attributes = [
+            0, gtk.gdk.LINE_SOLID, gtk.gdk.CAP_BUTT, gtk.gdk.JOIN_MITER
+        ]
 
     def is_horizontal(self, rotation=None):
         """
         Is this element horizontal?
         If rotation is None, use this element's rotation.
-        
+
         Args:
             rotation: the optional rotation
-        
+
         Returns:
             true if rotation is horizontal
         """
@@ -54,10 +60,10 @@ class Element(object):
         """
         Is this element vertical?
         If rotation is None, use this element's rotation.
-        
+
         Args:
             rotation: the optional rotation
-        
+
         Returns:
             true if rotation is vertical
         """
@@ -82,29 +88,31 @@ class Element(object):
     def draw(self, gc, window, border_color, bg_color):
         """
         Draw in the given window.
-        
+
         Args:
             gc: the graphics context
             window: the gtk window to draw on
             border_color: the color for lines and rectangle borders
             bg_color: the color for the inside of the rectangle
         """
-        X,Y = self.get_coordinate()
-        for (rX,rY),(W,H) in self._areas_list:
+        X, Y = self.get_coordinate()
+        gc.set_line_attributes(*self.line_attributes)
+        for (rX, rY), (W, H) in self._areas_list:
             aX = X + rX
             aY = Y + rY
             gc.set_foreground(bg_color)
             window.draw_rectangle(gc, True, aX, aY, W, H)
             gc.set_foreground(border_color)
             window.draw_rectangle(gc, False, aX, aY, W, H)
-        for (x1, y1),(x2, y2) in self._lines_list:
+        for (x1, y1), (x2, y2) in self._lines_list:
             gc.set_foreground(border_color)
+            gc.set_background(bg_color)
             window.draw_line(gc, X+x1, Y+y1, X+x2, Y+y2)
 
     def rotate(self, rotation):
         """
         Rotate all of the areas by 90 degrees.
-        
+
         Args:
             rotation: multiple of 90 degrees
         """
@@ -118,25 +126,25 @@ class Element(object):
     def set_coordinate(self, coor):
         """
         Set the reference coordinate.
-        
+
         Args:
             coor: the coordinate tuple (x,y)
         """
         self.coor = coor
 
-    def get_parent(self):
-        """
-        Get the parent of this element.
-        
-        Returns:
-            the parent
-        """
-        return self.parent
+    # def get_parent(self):
+    #     """
+    #     Get the parent of this element.
+    #
+    #     Returns:
+    #         the parent
+    #     """
+    #     return self.parent
 
     def set_highlighted(self, highlighted):
         """
         Set the highlight status.
-        
+
         Args:
             highlighted: true to enable highlighting
         """
@@ -145,7 +153,7 @@ class Element(object):
     def is_highlighted(self):
         """
         Get the highlight status.
-        
+
         Returns:
             true if highlighted
         """
@@ -153,7 +161,7 @@ class Element(object):
 
     def get_coordinate(self):
         """Get the coordinate.
-        
+
         Returns:
             the coordinate tuple (x,y)
         """
@@ -162,7 +170,7 @@ class Element(object):
     def move(self, delta_coor):
         """
         Move the element by adding the delta_coor to the current coordinate.
-        
+
         Args:
             delta_coor: (delta_x,delta_y) tuple
         """
@@ -178,7 +186,7 @@ class Element(object):
         A positive width is to the right of the coordinate.
         A positive height is above the coordinate.
         The area is associated with a rotation.
-        
+
         Args:
             rel_coor: (x,y) offset from this element's coordinate
             area: (width,height) tuple
@@ -191,7 +199,7 @@ class Element(object):
         A line is defined by 2 relative coordinates.
         Lines must be horizontal or vertical.
         The line is associated with a rotation.
-        
+
         Args:
             rel_coor1: relative (x1,y1) tuple
             rel_coor2: relative (x2,y2) tuple
@@ -206,11 +214,11 @@ class Element(object):
         Both coordinates specified:
             Is this element within the rectangular region defined by both coordinates?
             ie: do any area corners or line endpoints fall within the region?
-        
+
         Args:
             coor: the selection coordinate, tuple x, y
             coor_m: an additional selection coordinate.
-        
+
         Returns:
             self if one of the areas/lines encompasses coor, else None.
         """
@@ -247,7 +255,7 @@ class Element(object):
     def get_rotation(self):
         """
         Get the rotation in degrees.
-        
+
         Returns:
             the rotation
         """
@@ -256,9 +264,15 @@ class Element(object):
     def set_rotation(self, rotation):
         """
         Set the rotation in degrees.
-        
+
         Args:
             rotation: the rotation"""
         if rotation not in POSSIBLE_ROTATIONS:
             raise Exception('"%s" is not one of the possible rotations: (%s)'%(rotation, POSSIBLE_ROTATIONS))
         self.rotation = rotation
+
+    def mouse_over(self):
+        pass
+
+    def mouse_out(self):
+        pass

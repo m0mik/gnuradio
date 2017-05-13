@@ -28,6 +28,43 @@
 //load generated python docstrings
 %include "qtgui_swig_doc.i"
 
+namespace gr {
+  namespace qtgui {
+
+    enum graph_t {
+      NUM_GRAPH_NONE = 0,
+      NUM_GRAPH_HORIZ,
+      NUM_GRAPH_VERT,
+    };
+
+    enum data_type_t {
+      INT = 0,
+      FLOAT,
+      DOUBLE,
+      COMPLEX,
+      STRING,
+      INT_VEC,
+      FLOAT_VEC,
+      DOUBLE_VEC,
+      COMPLEX_VEC,
+    };
+
+  } /* namespace qtgui */
+} /* namespace gr */
+
+
+enum{
+  INTENSITY_COLOR_MAP_TYPE_MULTI_COLOR = 0,
+  INTENSITY_COLOR_MAP_TYPE_WHITE_HOT = 1,
+  INTENSITY_COLOR_MAP_TYPE_BLACK_HOT = 2,
+  INTENSITY_COLOR_MAP_TYPE_INCANDESCENT = 3,
+  INTENSITY_COLOR_MAP_TYPE_USER_DEFINED = 4,
+  INTENSITY_COLOR_MAP_TYPE_SUNSET = 5,
+  INTENSITY_COLOR_MAP_TYPE_COOL = 6,
+};
+
+%include "gnuradio/qtgui/trigger_mode.h"
+
 // So we understand the firdes window types
 %import "gnuradio/filter/firdes.h"
 
@@ -47,6 +84,10 @@
 #include "gnuradio/qtgui/waterfall_sink_c.h"
 #include "gnuradio/qtgui/waterfall_sink_f.h"
 #include "gnuradio/qtgui/histogram_sink_f.h"
+#include "gnuradio/qtgui/number_sink.h"
+#include "gnuradio/qtgui/ber_sink_b.h"
+#include "gnuradio/qtgui/vector_sink_f.h"
+#include "gnuradio/qtgui/edit_box_msg.h"
 %}
 
 %include "gnuradio/qtgui/sink_c.h"
@@ -61,6 +102,10 @@
 %include "gnuradio/qtgui/waterfall_sink_c.h"
 %include "gnuradio/qtgui/waterfall_sink_f.h"
 %include "gnuradio/qtgui/histogram_sink_f.h"
+%include "gnuradio/qtgui/number_sink.h"
+%include "gnuradio/qtgui/ber_sink_b.h"
+%include "gnuradio/qtgui/vector_sink_f.h"
+%include "gnuradio/qtgui/edit_box_msg.h"
 
 GR_SWIG_BLOCK_MAGIC2(qtgui, sink_c);
 GR_SWIG_BLOCK_MAGIC2(qtgui, sink_f);
@@ -74,3 +119,7 @@ GR_SWIG_BLOCK_MAGIC2(qtgui, const_sink_c);
 GR_SWIG_BLOCK_MAGIC2(qtgui, waterfall_sink_c);
 GR_SWIG_BLOCK_MAGIC2(qtgui, waterfall_sink_f);
 GR_SWIG_BLOCK_MAGIC2(qtgui, histogram_sink_f);
+GR_SWIG_BLOCK_MAGIC2(qtgui, number_sink);
+GR_SWIG_BLOCK_MAGIC2(qtgui, ber_sink_b);
+GR_SWIG_BLOCK_MAGIC2(qtgui, vector_sink_f);
+GR_SWIG_BLOCK_MAGIC2(qtgui, edit_box_msg);

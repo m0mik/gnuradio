@@ -80,11 +80,15 @@ namespace pmt{
     swig_int_ptr.__repr__ = lambda self: write_string(self)
   %}
 
+  pmt_t get_PMT_NIL();
+  pmt_t get_PMT_T();
+  pmt_t get_PMT_F();
+  pmt_t get_PMT_EOF();
 
-  extern const pmt_t PMT_T;
-  extern const pmt_t PMT_F;
-  extern const pmt_t PMT_NIL;
-  extern const pmt_t PMT_EOF;
+  #define PMT_NIL get_PMT_NIL()
+  #define PMT_T get_PMT_T()
+  #define PMT_F get_PMT_F()
+  #define PMT_EOF get_PMT_EOF()
 
   bool is_bool(pmt_t obj);
   bool is_true(pmt_t obj);
@@ -109,6 +113,8 @@ namespace pmt{
   bool is_real(pmt_t obj);
   pmt_t from_double(double x);
   double to_double(pmt_t x);
+  pmt_t from_float(double x);
+  double to_float(pmt_t x);
 
   bool is_complex(pmt_t obj);
   pmt_t make_rectangular(double re, double im);
@@ -170,6 +176,7 @@ namespace pmt{
   bool is_f64vector(pmt_t x);
   bool is_c32vector(pmt_t x);
   bool is_c64vector(pmt_t x);
+  size_t uniform_vector_itemsize(pmt_t x);
   pmt_t make_u8vector(size_t k, uint8_t fill);
   pmt_t make_s8vector(size_t k, int8_t fill);
   pmt_t make_u16vector(size_t k, uint16_t fill);
@@ -218,7 +225,7 @@ namespace pmt{
   void c64vector_set(pmt_t v, size_t k, std::complex<double> x);
 
   %apply size_t & INOUT { size_t &len };
-  const void *uniform_vector_elements(pmt_t v, size_t &len);  
+  const void *uniform_vector_elements(pmt_t v, size_t &len);
 
   const std::vector<uint8_t>  u8vector_elements(pmt_t v);
   const std::vector<int8_t>   s8vector_elements(pmt_t v);
@@ -239,6 +246,7 @@ namespace pmt{
   pmt_t dict_ref(const pmt_t &dict, const pmt_t &key, const pmt_t &not_found);
   pmt_t dict_items(pmt_t dict);
   pmt_t dict_keys(pmt_t dict);
+  pmt_t dict_update(const pmt_t &dict1, const pmt_t &dict2);
   pmt_t dict_values(pmt_t dict);
 
   bool is_any(pmt_t obj);

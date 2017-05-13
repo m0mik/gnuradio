@@ -31,21 +31,17 @@ message(STATUS "Loading build date ${BUILD_DATE} into constants...")
 message(STATUS "Loading version ${VERSION} into constants...")
 
 #double escape for windows backslash path separators
-string(REPLACE "\\" "\\\\" prefix ${prefix})
-string(REPLACE "\\" "\\\\" SYSCONFDIR ${SYSCONFDIR})
-string(REPLACE "\\" "\\\\" GR_PREFSDIR ${GR_PREFSDIR})
+string(REPLACE "\\" "\\\\" prefix "${prefix}")
+string(REPLACE "\\" "\\\\" SYSCONFDIR "${SYSCONFDIR}")
+string(REPLACE "\\" "\\\\" GR_PREFSDIR "${GR_PREFSDIR}")
 
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/constants.cc.in
     ${CMAKE_CURRENT_BINARY_DIR}/constants.cc
+    ESCAPE_QUOTES
 @ONLY)
 
 list(APPEND gnuradio_runtime_sources ${CMAKE_CURRENT_BINARY_DIR}/constants.cc)
-
-########################################################################
-# Include subdirs rather to populate to the sources lists.
-########################################################################
-#GR_INCLUDE_SUBDIRECTORY(foo)
 
 ########################################################################
 # Setup the include and linker paths
@@ -57,6 +53,12 @@ include_directories(${GNURADIO_RUNTIME_INCLUDE_DIRS}
                     ${Boost_INCLUDE_DIRS}
 )
 
+if(ENABLE_CTRLPORT_THRIFT)
+    list(APPEND include_directories
+        ${THRIFT_INCLUDE_DIRS}
+    )
+endif(ENABLE_CTRLPORT_THRIFT)
+
 ########################################################################
 # Include subdirs rather to populate to the sources lists.
 ########################################################################
@@ -64,6 +66,7 @@ add_subdirectory(pmt)
 GR_INCLUDE_SUBDIRECTORY(messages)
 GR_INCLUDE_SUBDIRECTORY(thread)
 GR_INCLUDE_SUBDIRECTORY(math)
+GR_INCLUDE_SUBDIRECTORY(controlport)
 
 ########################################################################
 # Setup library
@@ -118,6 +121,7 @@ list(APPEND gnuradio_runtime_sources
   vmcircbuf_mmap_tmpfile.cc
   vmcircbuf_prefs.cc
   vmcircbuf_sysv_shm.cc
+  ${gnuradio_ctrlport_sources}
 )
 
 # PowerPC workaround for posix_memalign
@@ -129,8 +133,8 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(powerpc|ppc)")
 endif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(powerpc|ppc)")
 
 list(APPEND gnuradio_runtime_libs
-    volk
     gnuradio-pmt
+    ${VOLK_LIBRARIES}
     ${Boost_LIBRARIES}
     ${LOG4CPP_LIBRARIES}
 )
@@ -140,15 +144,13 @@ CHECK_INCLUDE_FILE_CXX(windows.h HAVE_WINDOWS_H)
 IF(HAVE_WINDOWS_H)
     ADD_DEFINITIONS(-DHAVE_WINDOWS_H -DUSING_WINSOCK -DWIN32_LEAN_AND_MEAN)
     MESSAGE(STATUS "Adding windows libs to gnuradio runtime libs...")
-    LIST(APPEND gnuradio_runtime_libs WS2_32.lib WSock32.lib)
+    LIST(APPEND gnuradio_runtime_libs ws2_32 wsock32)
 ENDIF(HAVE_WINDOWS_H)
 
 #need to link with librt on ubuntu 11.10 for shm_*
 if(LINUX)
     list(APPEND gnuradio_runtime_libs rt)
 endif()
-
-GR_INCLUDE_SUBDIRECTORY(controlport)
 
 ########################################################################
 # Add DLL resource file when using MSVC
@@ -190,6 +192,10 @@ if(TRY_SHM_VMCIRCBUF)
     add_definitions( -DTRY_SHM_VMCIRCBUF )
 endif(TRY_SHM_VMCIRCBUF)
 
+
+#######################################################
+# SHARED LIB BUILD
+#######################################################
 add_library(gnuradio-runtime SHARED ${gnuradio_runtime_sources})
 target_link_libraries(gnuradio-runtime ${gnuradio_runtime_libs})
 GR_LIBRARY_FOO(gnuradio-runtime RUNTIME_COMPONENT "runtime_runtime" DEVEL_COMPONENT "runtime_devel")
@@ -197,6 +203,42 @@ GR_LIBRARY_FOO(gnuradio-runtime RUNTIME_COMPONENT "runtime_runtime" DEVEL_COMPON
 add_dependencies(gnuradio-runtime
   pmt_generated runtime_generated_includes
 )
+
+
+#######################################################
+# STATIC LIB BUILD
+#######################################################
+if(ENABLE_STATIC_LIBS)
+  # Remove controlport-specific source files from staticlibs build if
+  # ICE is the backend since it does not build statically.
+  if(ENABLE_GR_CTRLPORT)
+    if(ICE_FOUND)
+      list(REMOVE_ITEM gnuradio_runtime_sources
+        ${gnuradio_ctrlport_sources}
+        )
+
+      # Remove GR_CTRLPORT set this target's definitions.
+      # Makes sure we don't try to use ControlPort stuff in source files
+      GET_DIRECTORY_PROPERTY(STATIC_DEFS COMPILE_DEFINITIONS)
+      list(REMOVE_ITEM STATIC_DEFS "GR_CTRLPORT")
+      SET_PROPERTY(DIRECTORY PROPERTY COMPILE_DEFINITIONS "${STATIC_DEFS}")
+
+      # readd it to the target since we removed it from the directory-wide list.
+      SET_PROPERTY(TARGET gnuradio-runtime APPEND PROPERTY COMPILE_DEFINITIONS "GR_CTRLPORT")
+    endif(ICE_FOUND)
+  endif(ENABLE_GR_CTRLPORT)
+
+  add_library(gnuradio-runtime_static STATIC ${gnuradio_runtime_sources})
+
+  if(NOT WIN32)
+    set_target_properties(gnuradio-runtime_static
+      PROPERTIES OUTPUT_NAME gnuradio-runtime)
+  endif(NOT WIN32)
+
+  install(TARGETS gnuradio-runtime_static
+    ARCHIVE DESTINATION lib${LIB_SUFFIX} COMPONENT "runtime_devel"   # .lib file
+    )
+endif(ENABLE_STATIC_LIBS)
 
 ########################################################################
 # Setup tests
@@ -213,6 +255,7 @@ list(APPEND test_gnuradio_runtime_sources
   math/qa_fxpt_vco.cc
   math/qa_math.cc
   math/qa_sincos.cc
+  math/qa_fast_atan2f.cc
   qa_buffer.cc
   qa_io_signature.cc
   qa_circular_file.cc
@@ -238,4 +281,3 @@ target_link_libraries(gr_runtime_test test-gnuradio-runtime)
 GR_ADD_TEST(gr-runtime-test gr_runtime_test)
 
 endif(ENABLE_TESTING)
-

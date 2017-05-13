@@ -32,7 +32,6 @@ set(GR_SWIG_INCLUDE_DIRS
 
 if(ENABLE_GR_CTRLPORT)
   list(APPEND GR_SWIG_FLAGS "-DGR_CTRLPORT")
-  list(APPEND GR_SWIG_INCLUDE_DIRS ${ICE_INCLUDE_DIR})
 endif(ENABLE_GR_CTRLPORT)
 
 configure_file(
@@ -53,13 +52,18 @@ set(GR_SWIG_BLOCK_IFILES
   blocks_swig3
   blocks_swig4
   blocks_swig5
+  blocks_swig6
+  blocks_swig7
+  blocks_swig8
+  blocks_swig9
+  blocks_swig10
 )
 
 foreach(swigfile ${GR_SWIG_BLOCK_IFILES})
   set(GR_SWIG_DOC_FILE ${CMAKE_CURRENT_BINARY_DIR}/${swigfile}_doc.i)
   set(GR_SWIG_DOC_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/../include/gnuradio/blocks
-    ${CMAKE_CURRENT_BINARY_DIR}/../include/gnuradio/blocks    
+    ${CMAKE_CURRENT_BINARY_DIR}/../include/gnuradio/blocks
   )
   set(GR_SWIG_DOCS_TARGET_DEPS runtime_swig_swig_doc)
   set(GR_SWIG_TARGET_DEPS blocks_generated_includes)

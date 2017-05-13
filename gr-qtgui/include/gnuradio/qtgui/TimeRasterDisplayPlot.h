@@ -46,6 +46,9 @@ class TimeRasterDisplayPlot: public DisplayPlot
 {
   Q_OBJECT
 
+  Q_PROPERTY(int intensity_color_map_type1 READ getIntensityColorMapType1 WRITE setIntensityColorMapType1)
+  Q_PROPERTY(int color_map_title_font_size READ getColorMapTitleFontSize WRITE setColorMapTitleFontSize)
+
 public:
   TimeRasterDisplayPlot(int nplots,
 			double samp_rate,
@@ -67,7 +70,7 @@ public:
 
   void setPlotDimensions(const double rows, const double cols,
 			 const double units, const std::string &strunits);
-  
+
   void plotNewData(const std::vector<double*> dataPoints,
 		   const int64_t numDataPoints);
 
@@ -80,7 +83,11 @@ public:
   void replot(void);
 
   int getIntensityColorMapType(int) const;
+  int getIntensityColorMapType1() const;
   void setIntensityColorMapType(const int, const int, const QColor, const QColor);
+  void setIntensityColorMapType1(int);
+  int getColorMapTitleFontSize() const;
+  void setColorMapTitleFontSize(int tfs);
   const QColor getUserDefinedLowIntensityColor() const;
   const QColor getUserDefinedHighIntensityColor() const;
 
@@ -103,6 +110,8 @@ private:
   std::vector<int> d_color_map_type;
   QColor d_low_intensity;
   QColor d_high_intensity;
+
+  int d_color_bar_title_font_size;
 };
 
 #endif /* TIMERASTER_DISPLAY_PLOT_H */

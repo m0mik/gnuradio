@@ -56,7 +56,7 @@ CHECK_INCLUDE_FILE_CXX(windows.h HAVE_WINDOWS_H)
 IF(HAVE_WINDOWS_H)
     ADD_DEFINITIONS(-DHAVE_WINDOWS_H -DUSING_WINSOCK)
     MESSAGE(STATUS "Adding windows libs to gr blocks libs...")
-    LIST(APPEND blocks_libs WS2_32.lib WSock32.lib)
+    LIST(APPEND blocks_libs ws2_32 wsock32)
 ENDIF(HAVE_WINDOWS_H)
 
 ########################################################################
@@ -89,3 +89,10 @@ CHECK_CXX_SOURCE_COMPILES("
     " HAVE_COSF
 )
 GR_ADD_COND_DEF(HAVE_COSF)
+
+CHECK_CXX_SOURCE_COMPILES("
+    #include <stdlib.h>
+	int main(){srand48(0); drand48(); lrand48(); return 0;}
+	" HAVE_RAND48
+)
+GR_ADD_COND_DEF(HAVE_RAND48)

@@ -34,6 +34,10 @@ configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in
     ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
 @ONLY)
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/other/build_guide.dox.in
+    ${CMAKE_CURRENT_BINARY_DIR}/other/build_guide.dox
+@ONLY)
 
 set(BUILT_DIRS ${CMAKE_CURRENT_BINARY_DIR}/xml ${CMAKE_CURRENT_BINARY_DIR}/html)
 
@@ -52,10 +56,6 @@ endif(ENABLE_GR_ANALOG)
 if(ENABLE_GR_DIGITAL)
   list(APPEND GENERATED_DEPS digital_generated_includes)
 endif(ENABLE_GR_DIGITAL)
-
-if(ENABLE_GR_FEC)
-  list(APPEND GENERATED_DEPS fec_generated_includes)
-endif(ENABLE_GR_FEC)
 
 if(ENABLE_GR_FILTER)
   list(APPEND GENERATED_DEPS filter_generated_includes)

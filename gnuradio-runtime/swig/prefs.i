@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2006,2013 Free Software Foundation, Inc.
+ * Copyright 2006,2015 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -24,7 +24,8 @@ class gr::prefs
 {
 public:
   static gr::prefs *singleton();
-  static void set_singleton(gr::prefs *p);
+
+  void add_config_file(const std::string &configfile);
 
   virtual ~prefs();
 
@@ -60,4 +61,3 @@ public:
                           const std::string &option,
                           double val);
 };
-

@@ -27,7 +27,7 @@
 #include <pmt/pmt.h>
 
 namespace gr {
-  
+
   struct GR_RUNTIME_API tag_t
   {
     //! the item \p tag occurred at (as a uint64_t)
@@ -59,6 +59,36 @@ namespace gr {
     {
       return (t.key == key) && (t.value == value) && \
       (t.srcid == srcid) && (t.offset == offset);
+    }
+
+    tag_t()
+      : offset(0),
+        key(pmt::PMT_NIL),
+        value(pmt::PMT_NIL),
+        srcid(pmt::PMT_F)    // consistent with default srcid value in block::add_item_tag
+    {
+    }
+
+    tag_t(const tag_t &rhs)
+      : offset(rhs.offset),
+        key(rhs.key),
+        value(rhs.value),
+        srcid(rhs.srcid)
+    {
+    }
+    tag_t& operator=(const tag_t &rhs)
+    {
+      if (this != &rhs) {
+        offset = rhs.offset;
+        key = rhs.key;
+        value = rhs.value;
+        srcid = rhs.srcid;
+      }
+      return (*this);
+    }
+
+    ~tag_t()
+    {
     }
   };
 

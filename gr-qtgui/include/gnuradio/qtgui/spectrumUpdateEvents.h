@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2008-2013 Free Software Foundation, Inc.
+ * Copyright 2008-2014 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -30,6 +30,7 @@
 #include <vector>
 #include <gnuradio/high_res_timer.h>
 #include <gnuradio/qtgui/api.h>
+#include <gnuradio/tags.h>
 
 static const int SpectrumUpdateEventType = 10005;
 static const int SpectrumWindowCaptionEventType = 10008;
@@ -122,7 +123,8 @@ class TimeUpdateEvent: public QEvent
 {
 public:
   TimeUpdateEvent(const std::vector<double*> timeDomainPoints,
-		  const uint64_t numTimeDomainDataPoints);
+		  const uint64_t numTimeDomainDataPoints,
+                  const std::vector< std::vector<gr::tag_t> > tags);
 
   ~TimeUpdateEvent();
 
@@ -130,6 +132,8 @@ public:
   const std::vector<double*> getTimeDomainPoints() const;
   uint64_t getNumTimeDomainDataPoints() const;
   bool getRepeatDataFlag() const;
+
+  const std::vector< std::vector<gr::tag_t> > getTags() const;
 
   static QEvent::Type Type()
       { return QEvent::Type(SpectrumUpdateEventType); }
@@ -140,6 +144,7 @@ private:
   size_t _nplots;
   std::vector<double*> _dataTimeDomainPoints;
   uint64_t _numTimeDomainDataPoints;
+  std::vector< std::vector<gr::tag_t> > _tags;
 };
 
 
@@ -168,6 +173,20 @@ private:
   size_t _nplots;
   std::vector<double*> _dataPoints;
   uint64_t _numDataPoints;
+};
+
+
+class SetFreqEvent:public QEvent
+{
+public:
+  SetFreqEvent(const double, const double);
+  ~SetFreqEvent();
+  double getCenterFrequency() const;
+  double getBandwidth() const;
+
+private:
+  double _centerFrequency;
+  double _bandwidth;
 };
 
 
@@ -262,6 +281,25 @@ private:
 };
 
 
+class TimeRasterSetSize: public QEvent
+{
+public:
+  TimeRasterSetSize(const double nrows,
+                    const double ncols);
+  ~TimeRasterSetSize();
+
+  double nRows() const;
+  double nCols() const;
+
+  static QEvent::Type Type()
+  { return QEvent::Type(SpectrumUpdateEventType+1); }
+
+private:
+  double _nrows;
+  double _ncols;
+};
+
+
 /********************************************************************/
 
 
@@ -288,6 +326,59 @@ private:
   std::vector<double*> _points;
   uint64_t _npoints;
 };
+
+
+class HistogramSetAccumulator: public QEvent
+{
+public:
+  HistogramSetAccumulator(const bool en);
+  ~HistogramSetAccumulator();
+
+  bool getAccumulator() const;
+
+  static QEvent::Type Type()
+  { return QEvent::Type(SpectrumUpdateEventType+1); }
+
+private:
+  bool _en;
+};
+
+class HistogramClearEvent: public QEvent
+{
+public:
+  HistogramClearEvent()
+    : QEvent(QEvent::Type(SpectrumUpdateEventType+2))
+  {}
+
+  ~HistogramClearEvent() {}
+
+  static QEvent::Type Type()
+  { return QEvent::Type(SpectrumUpdateEventType+2); }
+};
+
+
+/********************************************************************/
+
+
+class NumberUpdateEvent: public QEvent
+{
+public:
+  NumberUpdateEvent(const std::vector<float> samples);
+  ~NumberUpdateEvent();
+
+  int which() const;
+  const std::vector<float> getSamples() const;
+
+  static QEvent::Type Type()
+      { return QEvent::Type(SpectrumUpdateEventType); }
+
+protected:
+
+private:
+  size_t _nplots;
+  std::vector<float> _samples;
+};
+
 
 
 #endif /* SPECTRUM_UPDATE_EVENTS_H */

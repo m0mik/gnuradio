@@ -17,6 +17,8 @@
 # the Free Software Foundation, Inc., 51 Franklin Street,
 # Boston, MA 02110-1301, USA.
 
+include(GrComponent)
+
 ########################################################################
 # Setup the include and linker paths
 ########################################################################
@@ -24,20 +26,17 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${GR_AUDIO_INCLUDE_DIRS}
     ${GNURADIO_RUNTIME_INCLUDE_DIRS}
-    ${LOG4CPP_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
 )
 
 link_directories(${Boost_LIBRARY_DIRS})
-link_directories(${LOG4CPP_LIBRARY_DIRS})
 
-list(APPEND gr_audio_libs gnuradio-runtime ${Boost_LIBRARIES} ${LOG4CPP_LIBRARIES})
+list(APPEND gr_audio_libs gnuradio-runtime ${Boost_LIBRARIES})
 list(APPEND gr_audio_sources audio_registry.cc)
 list(APPEND gr_audio_confs ${CMAKE_CURRENT_SOURCE_DIR}/gr-audio.conf)
 
 if(ENABLE_GR_CTRLPORT)
   ADD_DEFINITIONS(-DGR_CTRLPORT)
-  include_directories(${ICE_INCLUDE_DIR})
 endif(ENABLE_GR_CTRLPORT)
 
 ########################################################################
@@ -46,6 +45,9 @@ endif(ENABLE_GR_CTRLPORT)
 find_package(ALSA)
 
 if(ALSA_FOUND)
+
+    add_definitions(-DALSA_FOUND)
+    GR_APPEND_SUBCOMPONENT("alsa")
 
     include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/alsa)
     include_directories(${ALSA_INCLUDE_DIRS})
@@ -66,6 +68,9 @@ find_package(OSS)
 
 if(OSS_FOUND)
 
+    add_definitions(-DOSS_FOUND)
+    GR_APPEND_SUBCOMPONENT("oss")
+
     include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/oss)
     include_directories(${OSS_INCLUDE_DIRS})
     list(APPEND gr_audio_sources
@@ -83,6 +88,9 @@ endif(OSS_FOUND)
 find_package(Jack)
 
 if(JACK_FOUND)
+
+    add_definitions(-DJACK_FOUND)
+    GR_APPEND_SUBCOMPONENT("jack")
 
     include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/jack)
     include_directories(${JACK_INCLUDE_DIRS})
@@ -106,6 +114,11 @@ CHECK_INCLUDE_FILE_CXX(AudioToolbox/AudioToolbox.h AUDIO_TOOLBOX_H)
 
 if(AUDIO_UNIT_H AND AUDIO_TOOLBOX_H)
 
+    add_definitions(-DOSX_FOUND)
+    GR_APPEND_SUBCOMPONENT("osx")
+
+    set(OSX_AUDIO_VALID 1 CACHE INTERNAL "OSX Audio is valid")
+
     include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/osx)
     list(APPEND gr_audio_libs
         "-framework AudioUnit"
@@ -114,9 +127,16 @@ if(AUDIO_UNIT_H AND AUDIO_TOOLBOX_H)
         "-framework Carbon"
     )
     list(APPEND gr_audio_sources
+        ${CMAKE_CURRENT_SOURCE_DIR}/osx/osx_impl.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/osx/osx_source.cc
         ${CMAKE_CURRENT_SOURCE_DIR}/osx/osx_sink.cc
     )
+
+    list(APPEND gr_audio_confs ${CMAKE_CURRENT_SOURCE_DIR}/osx/gr-audio-osx.conf)
+
+else(AUDIO_UNIT_H AND AUDIO_TOOLBOX_H)
+
+    set(OSX_AUDIO_VALID 0 CACHE INTERNAL "OSX Audio is not valid")
 
 endif(AUDIO_UNIT_H AND AUDIO_TOOLBOX_H)
 
@@ -125,7 +145,10 @@ endif(AUDIO_UNIT_H AND AUDIO_TOOLBOX_H)
 ########################################################################
 find_package(Portaudio)
 
-if(PORTAUDIO_FOUND)
+if(PORTAUDIO2_FOUND)
+
+    add_definitions(-DPORTAUDIO_FOUND)
+    GR_APPEND_SUBCOMPONENT("portaudio")
 
     include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/portaudio)
     include_directories(${PORTAUDIO_INCLUDE_DIRS})
@@ -138,12 +161,15 @@ if(PORTAUDIO_FOUND)
     )
     list(APPEND gr_audio_confs ${CMAKE_CURRENT_SOURCE_DIR}/portaudio/gr-audio-portaudio.conf)
 
-endif(PORTAUDIO_FOUND)
+endif(PORTAUDIO2_FOUND)
 
 ########################################################################
 ## Windows Support
 ########################################################################
 if(WIN32)
+
+    add_definitions(-DWIN32_FOUND)
+    GR_APPEND_SUBCOMPONENT("windows")
 
     include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/windows)
     list(APPEND gr_audio_libs winmm.lib)
@@ -176,3 +202,27 @@ target_link_libraries(gnuradio-audio ${gr_audio_libs})
 GR_LIBRARY_FOO(gnuradio-audio RUNTIME_COMPONENT "audio_runtime" DEVEL_COMPONENT "audio_devel")
 
 install(FILES ${gr_audio_confs} DESTINATION ${GR_PREFSDIR} COMPONENT "audio_runtime")
+
+if(ENABLE_STATIC_LIBS)
+  if(ENABLE_GR_CTRLPORT)
+    # Remove GR_CTRLPORT set this target's definitions.
+    # Makes sure we don't try to use ControlPort stuff in source files
+    GET_DIRECTORY_PROPERTY(STATIC_DEFS COMPILE_DEFINITIONS)
+    list(REMOVE_ITEM STATIC_DEFS "GR_CTRLPORT")
+    SET_PROPERTY(DIRECTORY PROPERTY COMPILE_DEFINITIONS "${STATIC_DEFS}")
+
+    # readd it to the target since we removed it from the directory-wide list.
+    SET_PROPERTY(TARGET gnuradio-audio APPEND PROPERTY COMPILE_DEFINITIONS "GR_CTRLPORT")
+  endif(ENABLE_GR_CTRLPORT)
+
+  add_library(gnuradio-audio_static STATIC ${gr_audio_sources})
+
+  if(NOT WIN32)
+    set_target_properties(gnuradio-audio_static
+      PROPERTIES OUTPUT_NAME gnuradio-audio)
+  endif(NOT WIN32)
+
+  install(TARGETS gnuradio-audio_static
+    ARCHIVE DESTINATION lib${LIB_SUFFIX} COMPONENT "audio_devel"   # .lib file
+    )
+endif(ENABLE_STATIC_LIBS)

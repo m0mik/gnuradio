@@ -15,15 +15,15 @@
 	  $osr,
 	  $atten)
 self.$(id).set_channel_map($ch_map)
+self.$(id).declare_sample_delay($samp_delay)
 	</make>
-	<!-- Set taps not implemented yet
-           <callback>set_taps($taps)</callback>
-         -->
+        <callback>set_taps($taps)</callback>
         <callback>set_channel_map($ch_map)</callback>
 
 	<param>
 		<name>Channels</name>
 		<key>nchans</key>
+                <value>1</value>
 		<type>int</type>
 	</param>
 	<param>
@@ -45,10 +45,24 @@ self.$(id).set_channel_map($ch_map)
 		<type>real</type>
 	</param>
 	<param>
+		<name>Sample Delay</name>
+		<key>samp_delay</key>
+		<value>0</value>
+		<type>int</type>
+		<hide>part</hide>
+	</param>
+	<param>
 		<name>Channel Map</name>
 		<key>ch_map</key>
 		<value>[]</value>
 		<type>int_vector</type>
+	</param>
+	<param>
+		<name>Bus Connections</name>
+		<key>bus_conns</key>
+                <value>[[0,],]</value>
+		<type>raw</type>
+                <hide>part</hide>
 	</param>
 	<sink>
 		<name>in</name>
@@ -59,4 +73,5 @@ self.$(id).set_channel_map($ch_map)
 		<type>complex</type>
 		<nports>$nchans</nports>
 	</source>
+        <bus_structure_source>$bus_conns</bus_structure_source>
 </block>

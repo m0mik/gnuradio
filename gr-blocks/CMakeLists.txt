@@ -28,6 +28,7 @@ include(GrBoost)
 include(GrComponent)
 GR_REGISTER_COMPONENT("gr-blocks" ENABLE_GR_BLOCKS
     Boost_FOUND
+    ENABLE_VOLK
     ENABLE_GNURADIO_RUNTIME
 )
 
@@ -36,6 +37,7 @@ GR_SET_GLOBAL(GR_BLOCKS_INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_BINARY_DIR}/lib
     ${CMAKE_CURRENT_BINARY_DIR}/include
+    ${VOLK_INCLUDE_DIRS}
 )
 
 ########################################################################
@@ -87,6 +89,7 @@ add_subdirectory(lib)
 #endif(ENABLE_TESTING)
 if(ENABLE_PYTHON)
      add_subdirectory(python/blocks)
+     add_subdirectory(python/grc_gnuradio)
      add_subdirectory(swig)
      add_subdirectory(grc)
      add_subdirectory(doc)

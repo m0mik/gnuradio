@@ -87,9 +87,6 @@ namespace gr {
 	}
       }
       for (unsigned i = 0; i < d_pilot_carriers.size(); i++) {
-	if (d_pilot_carriers[i].size() != pilot_symbols[i].size()) {
-	  throw std::invalid_argument("pilot_carriers do not match pilot_symbols");
-	}
 	for (unsigned j = 0; j < d_pilot_carriers[i].size(); j++) {
 	  if (d_pilot_carriers[i][j] < 0) {
 	    d_pilot_carriers[i][j] += d_fft_len;
@@ -100,6 +97,11 @@ namespace gr {
 	  if (d_output_is_shifted) {
 	    d_pilot_carriers[i][j] = (d_pilot_carriers[i][j] + fft_len/2) % fft_len;
 	  }
+	}
+      }
+      for (unsigned i = 0; i < std::max(d_pilot_carriers.size(), d_pilot_symbols.size()); i++) {
+	if (d_pilot_carriers[i % d_pilot_carriers.size()].size() != d_pilot_symbols[i % d_pilot_symbols.size()].size()) {
+	  throw std::invalid_argument("pilot_carriers do not match pilot_symbols");
 	}
       }
       for (unsigned i = 0; i < d_sync_words.size(); i++) {
@@ -150,7 +152,7 @@ namespace gr {
       }
 
       // Copy data symbols
-      long n_ofdm_symbols = 0;
+      long n_ofdm_symbols = 0; // Number of output items
       int curr_set = 0;
       int symbols_to_allocate = d_occupied_carriers[0].size();
       int symbols_allocated = 0;
@@ -162,9 +164,12 @@ namespace gr {
 	      nitems_read(0)+std::min(i+symbols_to_allocate, (int) ninput_items[0])
 	  );
 	  for (unsigned t = 0; t < tags.size(); t++) {
-	    add_item_tag(0, nitems_written(0)+n_ofdm_symbols,
+	    add_item_tag(
+		0,
+		nitems_written(0) + n_ofdm_symbols + (n_ofdm_symbols == 0 ? 0 : d_sync_words.size()),
 		tags[t].key,
-		tags[t].value);
+		tags[t].value
+	    );
 	  }
 	  n_ofdm_symbols++;
 	}
@@ -177,12 +182,10 @@ namespace gr {
 	}
       }
       // Copy pilot symbols
-      curr_set = 0;
       for (int i = 0; i < n_ofdm_symbols; i++) {
-	for (unsigned k = 0; k < d_pilot_carriers[curr_set].size(); k++) {
-	  out[i * d_fft_len + d_pilot_carriers[curr_set][k]] = d_pilot_symbols[curr_set][k];
+	for (unsigned k = 0; k < d_pilot_carriers[i % d_pilot_carriers.size()].size(); k++) {
+	  out[i * d_fft_len + d_pilot_carriers[i % d_pilot_carriers.size()][k]] = d_pilot_symbols[i % d_pilot_symbols.size()][k];
 	}
-	curr_set = (curr_set + 1) % d_pilot_carriers.size();
       }
 
       return n_ofdm_symbols + d_sync_words.size();

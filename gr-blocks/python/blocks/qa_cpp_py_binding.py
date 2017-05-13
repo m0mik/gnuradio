@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2012,2013 Free Software Foundation, Inc.
+# Copyright 2012,2013,2015 Free Software Foundation, Inc.
 #
 # This file is part of GNU Radio
 #
@@ -20,12 +20,11 @@
 # Boston, MA 02110-1301, USA.
 #
 
-# 
+#
 # This program tests mixed python and c++ ctrlport exports in a single app
 #
 
-import Ice
-import sys, time, random, numpy
+import sys, time, random, numpy, re
 from gnuradio import gr, gr_unittest, blocks
 
 from gnuradio.ctrlport import GNURadio
@@ -126,7 +125,7 @@ class test_cpp_py_binding(gr_unittest.TestCase):
         val = get5()
         rval = v5.get()
         self.assertComplexTuplesAlmostEqual(val, rval, 5)
-        
+
         val = get6()
         rval = v6.get()
         self.assertComplexTuplesAlmostEqual(val, rval, 5)
@@ -145,22 +144,25 @@ class test_cpp_py_binding(gr_unittest.TestCase):
 
         # Probes return complex values as list of floats with re, im
         # Imaginary parts of this data set are 0.
-        expected_result = [1, 0, 2, 0, 3, 0, 4, 0,
-                           5, 0, 6, 0, 7, 0, 8, 0]
+        expected_result = [1, 2, 3, 4,
+                           5, 6, 7, 8]
 
         # Make sure we have time for flowgraph to run
         time.sleep(0.1)
 
         # Get available endpoint
         ep = gr.rpcmanager_get().endpoints()[0]
+        hostname = re.search("-h (\S+|\d+\.\d+\.\d+\.\d+)", ep).group(1)
+        portnum = re.search("-p (\d+)", ep).group(1)
+        argv = [None, hostname, portnum]
 
-        # Initialize a simple Ice client from endpoint
-        ic = Ice.initialize(sys.argv)
-        base = ic.stringToProxy(ep)
-        radio = GNURadio.ControlPortPrx.checkedCast(base)
+        # Initialize a simple ControlPort client from endpoint
+        from gnuradio.ctrlport.GNURadioControlPortClient import GNURadioControlPortClient
+        radiosys = GNURadioControlPortClient(argv=argv, rpcmethod='thrift')
+        radio = radiosys.client
 
         # Get all exported knobs
-        ret = radio.get([probe_name + "::bbb"])
+        ret = radio.getKnobs([probe_name + "::bbb"])
         for name in ret.keys():
             result = ret[name].value
             self.assertEqual(result, expected_result)
@@ -169,4 +171,3 @@ class test_cpp_py_binding(gr_unittest.TestCase):
 
 if __name__ == '__main__':
     gr_unittest.run(test_cpp_py_binding, "test_cpp_py_binding.xml")
-

@@ -21,8 +21,7 @@ pmt_@TAG@vector::pmt_@TAG@vector(size_t k, @TYPE@ fill)
 pmt_@TAG@vector::pmt_@TAG@vector(size_t k, const @TYPE@ *data)
   : d_v(k)
 {
-  for (size_t i = 0; i < k; i++)
-    d_v[i] = data[i];
+  memcpy( &d_v[0], data, k * sizeof(@TYPE@) );
 }
 
 @TYPE@
@@ -90,7 +89,7 @@ init_@TAG@vector(size_t k, const @TYPE@ *data)
 pmt_t
 init_@TAG@vector(size_t k, const std::vector< @TYPE@ > &data)
 {
-  
+
   return pmt_t(new pmt_@TAG@vector(k, &data[0]));
 }
 
@@ -136,6 +135,12 @@ const std::vector< @TYPE@ >
   if (!vector->is_@TAG@vector())
     throw wrong_type("pmt_@TAG@vector_writable_elements", vector);
   return _@TAG@vector(vector)->writable_elements(len);
+}
+
+const std::string
+pmt_@TAG@vector::string_ref(size_t k) const
+{
+  return boost::lexical_cast< std::string, @TYPE@ > (ref(k));
 }
 
 } /* namespace pmt */

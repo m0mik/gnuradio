@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2013 Free Software Foundation, Inc.
+# Copyright 2013,2015 Free Software Foundation, Inc.
 #
 # This file is part of GNU Radio
 #
@@ -20,19 +20,17 @@
 # Boston, MA 02110-1301, USA.
 #
 
-import Ice
 import sys, time, random, numpy
 from gnuradio import gr, gr_unittest, blocks
+import os, struct, re
 
-from gnuradio.ctrlport import GNURadio
-from gnuradio import ctrlport
-import os, struct
+from gnuradio.ctrlport.GNURadioControlPortClient import GNURadioControlPortClient
 
 class test_ctrlport_probes(gr_unittest.TestCase):
 
     def setUp(self):
-        self.tb = gr.top_block()
         os.environ['GR_CONF_CONTROLPORT_ON'] = 'True'
+        self.tb = gr.top_block()
 
     def tearDown(self):
         self.tb = None
@@ -48,33 +46,38 @@ class test_ctrlport_probes(gr_unittest.TestCase):
         self.tb.connect(self.src, self.probe)
         self.tb.start()
 
+
         # Probes return complex values as list of floats with re, im
         # Imaginary parts of this data set are 0.
-        expected_result = [1, 0, 2, 0, 3, 0, 4, 0,
-                           5, 0, 6, 0, 7, 0, 8, 0]
+        expected_result = [1, 2, 3, 4,
+                           5, 6, 7, 8]
 
         # Make sure we have time for flowgraph to run
         time.sleep(0.1)
 
         # Get available endpoint
         ep = gr.rpcmanager_get().endpoints()[0]
+        hostname = re.search("-h (\S+|\d+\.\d+\.\d+\.\d+)", ep).group(1)
+        portnum = re.search("-p (\d+)", ep).group(1)
+        argv = [None, hostname, portnum]
 
-        # Initialize a simple Ice client from endpoint
-        ic = Ice.initialize(sys.argv)
-        base = ic.stringToProxy(ep)
-        radio = GNURadio.ControlPortPrx.checkedCast(base)
+        # Initialize a simple ControlPort client from endpoint
+        from gnuradio.ctrlport.GNURadioControlPortClient import GNURadioControlPortClient
+        radiosys = GNURadioControlPortClient(argv=argv, rpcmethod='thrift')
+        radio = radiosys.client
 
         # Get all exported knobs
-        ret = radio.get([probe_name + "::samples"])
+        ret = radio.getKnobs([probe_name + "::samples"])
         for name in ret.keys():
             # Get data in probe, which might be offset; find the
             # beginning and unwrap.
             result = ret[name].value
-            i = result.index(1.0)
+            i = result.index(complex(1.0, 0.0))
             result = result[i:] + result[0:i]
-            self.assertEqual(expected_result, result)
+            self.assertComplexTuplesAlmostEqual(expected_result, result, 4)
 
         self.tb.stop()
+        self.tb.wait()
 
 
     def test_002(self):
@@ -95,14 +98,17 @@ class test_ctrlport_probes(gr_unittest.TestCase):
 
         # Get available endpoint
         ep = gr.rpcmanager_get().endpoints()[0]
+        hostname = re.search("-h (\S+|\d+\.\d+\.\d+\.\d+)", ep).group(1)
+        portnum = re.search("-p (\d+)", ep).group(1)
+        argv = [None, hostname, portnum]
 
-        # Initialize a simple Ice client from endpoint
-        ic = Ice.initialize(sys.argv)
-        base = ic.stringToProxy(ep)
-        radio = GNURadio.ControlPortPrx.checkedCast(base)
+        # Initialize a simple ControlPort client from endpoint
+        from gnuradio.ctrlport.GNURadioControlPortClient import GNURadioControlPortClient
+        radiosys = GNURadioControlPortClient(argv=argv, rpcmethod='thrift')
+        radio = radiosys.client
 
         # Get all exported knobs
-        ret = radio.get([probe_name + "::samples"])
+        ret = radio.getKnobs([probe_name + "::samples"])
         for name in ret.keys():
             # Get data in probe, which might be offset; find the
             # beginning and unwrap.
@@ -112,7 +118,7 @@ class test_ctrlport_probes(gr_unittest.TestCase):
             self.assertEqual(expected_result, result)
 
         self.tb.stop()
-
+        self.tb.wait()
 
     def test_003(self):
         data = range(1,9)
@@ -132,14 +138,17 @@ class test_ctrlport_probes(gr_unittest.TestCase):
 
         # Get available endpoint
         ep = gr.rpcmanager_get().endpoints()[0]
+        hostname = re.search("-h (\S+|\d+\.\d+\.\d+\.\d+)", ep).group(1)
+        portnum = re.search("-p (\d+)", ep).group(1)
+        argv = [None, hostname, portnum]
 
-        # Initialize a simple Ice client from endpoint
-        ic = Ice.initialize(sys.argv)
-        base = ic.stringToProxy(ep)
-        radio = GNURadio.ControlPortPrx.checkedCast(base)
+        # Initialize a simple ControlPort client from endpoint
+        from gnuradio.ctrlport.GNURadioControlPortClient import GNURadioControlPortClient
+        radiosys = GNURadioControlPortClient(argv=argv, rpcmethod='thrift')
+        radio = radiosys.client
 
         # Get all exported knobs
-        ret = radio.get([probe_name + "::samples"])
+        ret = radio.getKnobs([probe_name + "::samples"])
         for name in ret.keys():
             # Get data in probe, which might be offset; find the
             # beginning and unwrap.
@@ -149,6 +158,7 @@ class test_ctrlport_probes(gr_unittest.TestCase):
             self.assertEqual(expected_result, result)
 
         self.tb.stop()
+        self.tb.wait()
 
 
     def test_004(self):
@@ -169,14 +179,17 @@ class test_ctrlport_probes(gr_unittest.TestCase):
 
         # Get available endpoint
         ep = gr.rpcmanager_get().endpoints()[0]
+        hostname = re.search("-h (\S+|\d+\.\d+\.\d+\.\d+)", ep).group(1)
+        portnum = re.search("-p (\d+)", ep).group(1)
+        argv = [None, hostname, portnum]
 
-        # Initialize a simple Ice client from endpoint
-        ic = Ice.initialize(sys.argv)
-        base = ic.stringToProxy(ep)
-        radio = GNURadio.ControlPortPrx.checkedCast(base)
+        # Initialize a simple ControlPort client from endpoint
+        from gnuradio.ctrlport.GNURadioControlPortClient import GNURadioControlPortClient
+        radiosys = GNURadioControlPortClient(argv=argv, rpcmethod='thrift')
+        radio = radiosys.client
 
         # Get all exported knobs
-        ret = radio.get([probe_name + "::samples"])
+        ret = radio.getKnobs([probe_name + "::samples"])
         for name in ret.keys():
             # Get data in probe, which might be offset; find the
             # beginning and unwrap.
@@ -186,6 +199,7 @@ class test_ctrlport_probes(gr_unittest.TestCase):
             self.assertEqual(expected_result, result)
 
         self.tb.stop()
+        self.tb.wait()
 
     def test_005(self):
         data = range(1,9)
@@ -205,14 +219,17 @@ class test_ctrlport_probes(gr_unittest.TestCase):
 
         # Get available endpoint
         ep = gr.rpcmanager_get().endpoints()[0]
+        hostname = re.search("-h (\S+|\d+\.\d+\.\d+\.\d+)", ep).group(1)
+        portnum = re.search("-p (\d+)", ep).group(1)
+        argv = [None, hostname, portnum]
 
-        # Initialize a simple Ice client from endpoint
-        ic = Ice.initialize(sys.argv)
-        base = ic.stringToProxy(ep)
-        radio = GNURadio.ControlPortPrx.checkedCast(base)
+        # Initialize a simple ControlPort client from endpoint
+        from gnuradio.ctrlport.GNURadioControlPortClient import GNURadioControlPortClient
+        radiosys = GNURadioControlPortClient(argv=argv, rpcmethod='thrift')
+        radio = radiosys.client
 
         # Get all exported knobs
-        ret = radio.get([probe_name + "::samples"])
+        ret = radio.getKnobs([probe_name + "::samples"])
         for name in ret.keys():
             # Get data in probe, which might be offset; find the
             # beginning and unwrap.
@@ -223,7 +240,7 @@ class test_ctrlport_probes(gr_unittest.TestCase):
             self.assertEqual(expected_result, result)
 
         self.tb.stop()
+        self.tb.wait()
 
 if __name__ == '__main__':
     gr_unittest.run(test_ctrlport_probes, "test_ctrlport_probes.xml")
-

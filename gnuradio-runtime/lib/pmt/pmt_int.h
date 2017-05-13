@@ -24,7 +24,14 @@
 
 #include <pmt/pmt.h>
 #include <boost/utility.hpp>
-#include <boost/detail/atomic_count.hpp>
+#include <boost/version.hpp>
+#if ((BOOST_VERSION / 100000 >= 1) && (BOOST_VERSION / 100 % 1000 >= 53)) 
+  #include <boost/atomic.hpp>
+#else
+  // boost::atomic not available before 1.53
+  // This section will be removed when support for boost 1.48 ceases
+  #include <boost/detail/atomic_count.hpp>
+#endif
 
 /*
  * EVERYTHING IN THIS FILE IS PRIVATE TO THE IMPLEMENTATION!
@@ -36,10 +43,23 @@
 namespace pmt {
 
 class PMT_API pmt_base : boost::noncopyable {
+
+#if ((BOOST_VERSION / 100000 >= 1) && (BOOST_VERSION / 100 % 1000 >= 53)) 
+  mutable boost::atomic<int> refcount_;
+#else
+  // boost::atomic not available before 1.53
+  // This section will be removed when support for boost 1.48 ceases
   mutable boost::detail::atomic_count count_;
+#endif
 
 protected:
+#if ((BOOST_VERSION / 100000 >= 1) && (BOOST_VERSION / 100 % 1000 >= 53)) 
+  pmt_base() : refcount_(0) {};
+#else
+  // boost::atomic not available before 1.53
+  // This section will be removed when support for boost 1.48 ceases
   pmt_base() : count_(0) {};
+#endif
   virtual ~pmt_base();
 
 public:
@@ -238,6 +258,8 @@ public:
   virtual const void *uniform_elements(size_t &len) = 0;
   virtual void *uniform_writable_elements(size_t &len) = 0;
   virtual size_t length() const = 0;
+  virtual size_t itemsize() const = 0;
+  virtual const std::string string_ref(size_t k) const { return std::string("not implemented"); }
 };
 
 #include "pmt_unv_int.h"

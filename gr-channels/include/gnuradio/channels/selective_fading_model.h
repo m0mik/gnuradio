@@ -29,7 +29,7 @@
 
 namespace gr {
   namespace channels {
-    
+
     const float default_delays[] =  {0.0,0.1,0.5};
     const float default_mags[] =    {1.0,0.8,0.3};
 
@@ -40,7 +40,7 @@ namespace gr {
      * \details
      * This block implements a basic fading model simulator that can
      * be used to help evaluate, design, and test various signals,
-     * waveforms, and algorithms. 
+     * waveforms, and algorithms.
      */
     class CHANNELS_API selective_fading_model : virtual public sync_block
     {
@@ -50,14 +50,14 @@ namespace gr {
 
       /*! \brief Build the channel simulator.
        *
-       * \param N      The number of sinusiods to use in simulating the channel; 8 is a good value 
+       * \param N      the number of sinusoids to use in simulating the channel; 8 is a good value
        * \param fDTs   normalized maximum Doppler frequency, fD * Ts
        * \param LOS    include Line-of-Site path? selects between Rayleigh (NLOS) and Rician (LOS) models
        * \param K      Rician factor (ratio of the specular power to the scattered power)
        * \param seed   a random number to seed the noise generators
-       * \param delays A vector of values the specify the time delay of each impulse
-       * \param mags   A vector of values that specifies the magnitude of each impulse
-       * \param ntaps  The number of filter taps.
+       * \param delays a vector of values that specify the time delay of each impulse
+       * \param mags   a vector of values that specify the magnitude of each impulse
+       * \param ntaps  the number of filter taps
        */
       static sptr make(unsigned int N,
                 float fDTs,
@@ -68,7 +68,7 @@ namespace gr {
                 std::vector<float> mags,
                 int ntaps
                 );
-      
+
       virtual float fDTs() = 0;
       virtual float K() = 0;
       virtual float step() = 0;

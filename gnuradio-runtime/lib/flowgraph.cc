@@ -71,7 +71,7 @@ namespace gr {
     check_dst_not_used(dst);
     check_type_match(src, dst);
 
-    // All ist klar, Herr Kommisar
+    // Alles klar, Herr Kommissar
     d_edges.push_back(edge(src,dst));
   }
 
@@ -149,14 +149,20 @@ namespace gr {
     }
   }
 
-  void 
+  void
   flowgraph::check_valid_port(const msg_endpoint &e)
   {
     if(FLOWGRAPH_DEBUG)
       std::cout << "check_valid_port( " << e.block() << ", " << e.port() << ")\n";
 
-    if(!e.block()->has_msg_port(e.port()))
+    if(!e.block()->has_msg_port(e.port())) {
+      const gr::basic_block::msg_queue_map_t& msg_map = e.block()->get_msg_map();
+      std::cout << "Could not find port: " << e.port() << " in:" << std::endl;
+      for (gr::basic_block::msg_queue_map_t::const_iterator it = msg_map.begin(); it != msg_map.end(); ++it)
+        std::cout << it->first << std::endl;
+      std::cout << std::endl;
       throw std::invalid_argument("invalid msg port in connect() or disconnect()");
+    }
   }
 
   void
@@ -192,8 +198,9 @@ namespace gr {
 
     // make sure free standing message blocks are included
     for(msg_edge_viter_t p = d_msg_edges.begin(); p != d_msg_edges.end(); p++) {
-      //for now only blocks receiving messages get a thread context - uncomment to allow senders to also obtain one
-      //  tmp.push_back(p->src().block());
+      // all msg blocks need a thread context - otherwise start() will never be called!
+      // even if it is a sender that never does anything
+      tmp.push_back(p->src().block());
       tmp.push_back(p->dst().block());
     }
 
@@ -495,7 +502,7 @@ namespace gr {
     check_valid_port(src);
     check_valid_port(dst);
     for(msg_edge_viter_t p = d_msg_edges.begin(); p != d_msg_edges.end(); p++) {
-      if(p->src() == src && p->dst() == dst){ 
+      if(p->src() == src && p->dst() == dst){
         throw std::runtime_error("connect called on already connected edge!");
       }
     }
@@ -514,6 +521,35 @@ namespace gr {
       }
     }
     throw std::runtime_error("disconnect called on non-connected edge!");
+  }
+
+  std::string
+  dot_graph_fg(flowgraph_sptr fg)
+  {
+    basic_block_vector_t blocks = fg->calc_used_blocks();
+    edge_vector_t edges = fg->edges();
+
+    std::stringstream out;
+
+    out << "digraph flowgraph {" << std::endl;
+
+    // Define nodes and set labels
+    for(basic_block_viter_t block = blocks.begin(); block != blocks.end(); ++block) {
+      out << (*block)->unique_id()
+          << " [ label=\"" << (*block)->name() << "\" ]"
+          << std::endl;
+    }
+
+    // Define edges
+    for(edge_viter_t edge = edges.begin(); edge != edges.end(); ++edge) {
+      out << edge->src().block()->unique_id()
+          << " -> "
+          << edge->dst().block()->unique_id() << std::endl;
+    }
+
+    out << "}" << std::endl;
+
+    return out.str();
   }
 
 } /* namespace gr */

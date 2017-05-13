@@ -26,22 +26,24 @@
 #include "scheduler_tpb.h"
 #include "tpb_thread_body.h"
 #include <gnuradio/thread/thread_body_wrapper.h>
+#include <boost/make_shared.hpp>
 #include <sstream>
 
 namespace gr {
-  
+
   class tpb_container
   {
     block_sptr d_block;
     int d_max_noutput_items;
+    thread::barrier_sptr d_start_sync;
 
   public:
-    tpb_container(block_sptr block, int max_noutput_items)
-      : d_block(block), d_max_noutput_items(max_noutput_items) {}
+    tpb_container(block_sptr block, int max_noutput_items, thread::barrier_sptr start_sync)
+      : d_block(block), d_max_noutput_items(max_noutput_items), d_start_sync(start_sync) {}
 
     void operator()()
     {
-      tpb_thread_body body(d_block, d_max_noutput_items);
+      tpb_thread_body body(d_block, d_start_sync, d_max_noutput_items);
     }
   };
 
@@ -55,6 +57,8 @@ namespace gr {
                                int max_noutput_items)
     : scheduler(ffg, max_noutput_items)
   {
+    int block_max_noutput_items;
+
     // Get a topologically sorted vector of all the blocks in use.
     // Being topologically sorted probably isn't going to matter, but
     // there's a non-zero chance it might help...
@@ -69,6 +73,9 @@ namespace gr {
       blocks[i]->detail()->set_done(false);
     }
 
+    thread::barrier_sptr start_sync =
+      boost::make_shared<thread::barrier>(blocks.size()+1);
+
     // Fire off a thead for each block
 
     for(size_t i = 0; i < blocks.size(); i++) {
@@ -76,14 +83,17 @@ namespace gr {
       name << "thread-per-block[" << i << "]: " << blocks[i];
 
       // If set, use internal value instead of global value
-      if(blocks[i]->is_set_max_noutput_items())
-        max_noutput_items = blocks[i]->max_noutput_items();
-    
-      d_threads.create_thread(
-	    gr::thread::thread_body_wrapper<tpb_container>
-            (tpb_container(blocks[i], max_noutput_items),
-             name.str()));
+      if(blocks[i]->is_set_max_noutput_items()) {
+        block_max_noutput_items = blocks[i]->max_noutput_items();
+      }
+      else {
+        block_max_noutput_items = max_noutput_items;
+      }
+      d_threads.create_thread(thread::thread_body_wrapper<tpb_container>(
+          tpb_container(blocks[i], block_max_noutput_items, start_sync),
+          name.str()));
     }
+    start_sync->wait();
   }
 
   scheduler_tpb::~scheduler_tpb()

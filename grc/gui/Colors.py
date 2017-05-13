@@ -25,18 +25,26 @@ try:
     def get_color(color_code): return _COLORMAP.alloc_color(color_code, True, True)
 
     HIGHLIGHT_COLOR = get_color('#00FFFF')
-    BORDER_COLOR = get_color('black')
+    BORDER_COLOR = get_color('#444444')
+    # missing blocks stuff
+    MISSING_BLOCK_BACKGROUND_COLOR = get_color('#FFF2F2')
+    MISSING_BLOCK_BORDER_COLOR = get_color('red')
     #param entry boxes
     PARAM_ENTRY_TEXT_COLOR = get_color('black')
     ENTRYENUM_CUSTOM_COLOR = get_color('#EEEEEE')
     #flow graph color constants
-    FLOWGRAPH_BACKGROUND_COLOR = get_color('#FFF9FF')
+    FLOWGRAPH_BACKGROUND_COLOR = get_color('#FFFFFF')
+    COMMENT_BACKGROUND_COLOR = get_color('#F3F3F3')
+    FLOWGRAPH_EDGE_COLOR = COMMENT_BACKGROUND_COLOR
     #block color constants
     BLOCK_ENABLED_COLOR = get_color('#F1ECFF')
     BLOCK_DISABLED_COLOR = get_color('#CCCCCC')
+    BLOCK_BYPASSED_COLOR = get_color('#F4FF81')
     #connection color constants
     CONNECTION_ENABLED_COLOR = get_color('black')
-    CONNECTION_DISABLED_COLOR = get_color('#999999')
+    CONNECTION_DISABLED_COLOR = get_color('#BBBBBB')
     CONNECTION_ERROR_COLOR = get_color('red')
 except:
     print 'Unable to import Colors'
+
+DEFAULT_DOMAIN_COLOR_CODE = '#777777'

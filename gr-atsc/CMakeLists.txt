@@ -26,6 +26,7 @@ include(GrBoost)
 # Register component
 ########################################################################
 include(GrComponent)
+
 GR_REGISTER_COMPONENT("gr-atsc" ENABLE_GR_ATSC
     Boost_FOUND
     ENABLE_GNURADIO_RUNTIME

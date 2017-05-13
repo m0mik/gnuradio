@@ -121,7 +121,7 @@ namespace gr {
         else {
           for(t = rtags.begin(); t != rtags.end(); t++) {
             tag_t new_tag = *t;
-            new_tag.offset *= rrate;
+            new_tag.offset = ((double)new_tag.offset * rrate) + 0.5;
             for(int o = 0; o < d->noutputs(); o++)
               d->output(o)->add_item_tag(new_tag);
           }
@@ -140,7 +140,7 @@ namespace gr {
           std::vector<tag_t>::iterator t;
           for(t = rtags.begin(); t != rtags.end(); t++) {
             tag_t new_tag = *t;
-            new_tag.offset *= rrate;
+            new_tag.offset = ((double)new_tag.offset * rrate) + 0.5;
             d->output(i)->add_item_tag(new_tag);
           }
         }
@@ -192,14 +192,15 @@ namespace gr {
     int max_noutput_items;
     int new_alignment = 0;
     int alignment_state = -1;
-    
+    double rrate;
+
     block        *m = d_block.get();
     block_detail *d = m->detail().get();
 
     LOG(*d_log << std::endl << m);
 
     max_noutput_items = round_down(d_max_noutput_items, m->output_multiple());
-    
+
     if(d->done()){
       assert(0);
       return DONE;
@@ -236,7 +237,7 @@ namespace gr {
       d_output_items.resize (0);
       d_start_nitems_read.resize(d->ninputs());
       LOG(*d_log << " sink\n");
-      
+
       max_items_avail = 0;
       for(int i = 0; i < d->ninputs (); i++) {
         {
@@ -369,11 +370,24 @@ namespace gr {
       // ask the block how much input they need to produce noutput_items
       m->forecast (noutput_items, d_ninput_items_required);
 
-      // See if we've got sufficient input available
+      // See if we've got sufficient input available and make sure we
+      // didn't overflow on the input.
       int i;
-      for(i = 0; i < d->ninputs (); i++)
+      for(i = 0; i < d->ninputs (); i++) {
         if(d_ninput_items_required[i] > d_ninput_items[i])	// not enough
           break;
+
+        if(d_ninput_items_required[i] < 0) {
+          std::cerr << "\nsched: <block " << m->name()
+                    << " (" << m->unique_id() << ")>"
+                    << " thinks its ninput_items required is "
+                    << d_ninput_items_required[i]
+                    << " and cannot be negative.\n"
+                    << "Some parameterization is wrong. "
+                    << "Too large a decimation value?\n\n";
+          goto were_done;
+        }
+      }
 
       if(i < d->ninputs()) {			// not enough input on input[i]
         // if we can, try reducing the size of our output request
@@ -431,7 +445,7 @@ namespace gr {
       if(d_use_pc)
         d->start_perf_counters();
 #endif /* GR_PERFORMANCE_COUNTERS */
-    
+
       // Do the actual work of the block
       int n = m->general_work(noutput_items, d_ninput_items,
                               d_input_items, d_output_items);
@@ -450,6 +464,7 @@ namespace gr {
         m->set_is_unaligned(m->unaligned() != 0);
       }
 
+      // Now propagate the tags based on the new relative rate
       if(!propagate_tags(m->tag_propagation_policy(), d,
                          d_start_nitems_read, m->relative_rate(),
                          d_returned_tags, m->unique_id()))
@@ -459,9 +474,20 @@ namespace gr {
         goto were_done;
 
       if(n != block::WORK_CALLED_PRODUCE)
-        d->produce_each (n);	// advance write pointers
+        d->produce_each(n);     // advance write pointers
 
-      if(d->d_produce_or > 0)	// block produced something
+      // For some blocks that can change their produce/consume ratio
+      // (the relative_rate), we might want to automatically update
+      // based on the amount of items written/read.
+      // In the block constructor, use enable_update_rate(true).
+      if(m->update_rate()) {
+        //rrate = ((double)(m->nitems_written(0))) / ((double)m->nitems_read(0));
+        rrate = (double)n / (double)d->consumed();
+        if(rrate > 0)
+          m->set_relative_rate(rrate);
+      }
+
+      if(d->d_produce_or > 0)   // block produced something
         return READY;
 
       // We didn't produce any output even though we called general_work.

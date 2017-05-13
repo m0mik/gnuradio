@@ -29,7 +29,7 @@
 
 namespace gr {
   namespace filter {
-    
+
     iir_filter_ffd::sptr
     iir_filter_ffd::make(const std::vector<double> &fftaps,
 			 const std::vector<double> &fbtaps,
@@ -48,7 +48,7 @@ namespace gr {
 		      io_signature::make(1, 1, sizeof (float))),
 	d_updated(false)
     {
-      d_iir = new kernel::iir_filter<float,float,double>(fftaps, fbtaps, oldstyle);
+      d_iir = new kernel::iir_filter<float,float,double,double>(fftaps, fbtaps, oldstyle);
     }
 
     iir_filter_ffd_impl::~iir_filter_ffd_impl()

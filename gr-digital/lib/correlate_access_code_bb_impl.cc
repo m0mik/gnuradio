@@ -1,19 +1,19 @@
 /* -*- c++ -*- */
 /*
  * Copyright 2004,2006,2010-2012 Free Software Foundation, Inc.
- * 
+ *
  * This file is part of GNU Radio
- * 
+ *
  * GNU Radio is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3, or (at your option)
  * any later version.
- * 
+ *
  * GNU Radio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with GNU Radio; see the file COPYING.  If not, write to
  * the Free Software Foundation, Inc., 51 Franklin Street,
@@ -27,13 +27,12 @@
 #include "correlate_access_code_bb_impl.h"
 #include <gnuradio/io_signature.h>
 #include <gnuradio/blocks/count_bits.h>
+#include <boost/format.hpp>
 #include <stdexcept>
 #include <cstdio>
 
 namespace gr {
   namespace digital {
-
-#define VERBOSE 0
 
     correlate_access_code_bb::sptr
     correlate_access_code_bb::make(const std::string &access_code, int threshold)
@@ -51,6 +50,7 @@ namespace gr {
 	d_threshold(threshold)
     {
       if(!set_access_code(access_code)) {
+	GR_LOG_ERROR(d_logger, "access_code is > 64 bits");
 	throw std::out_of_range ("access_code is > 64 bits");
       }
     }
@@ -97,7 +97,7 @@ namespace gr {
 	t |= ((d_data_reg >> 63) & 0x1) << 0;
 	t |= ((d_flag_reg >> 63) & 0x1) << 1;	// flag bit
 	out[i] = t;
-    
+
 	// compute hamming distance between desired access code and current data
 	unsigned long long wrong_bits = 0;
 	unsigned int nwrong = d_threshold+1;
@@ -109,14 +109,12 @@ namespace gr {
 	// test for access code with up to threshold errors
 	new_flag = (nwrong <= d_threshold);
 
-#if VERBOSE
 	if(new_flag) {
-	  fprintf(stderr, "access code found: %llx\n", d_access_code);
+	  GR_LOG_DEBUG(d_logger, boost::format("access code found: %llx") % d_access_code);
 	}
 	else {
-	  fprintf(stderr, "%llx  ==>  %llx\n", d_access_code, d_data_reg);
+	  GR_LOG_DEBUG(d_logger, boost::format("%llx  ==>  %llx") % d_access_code % d_data_reg);
 	}
-#endif
 
 	// shift in new data and new flag
 	d_data_reg = (d_data_reg << 1) | (in[i] & 0x1);
@@ -128,6 +126,6 @@ namespace gr {
 
       return noutput_items;
     }
-  
+
   } /* namespace digital */
 } /* namespace gr */

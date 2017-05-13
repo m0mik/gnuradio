@@ -81,7 +81,7 @@ namespace gr {
      *     Available: http://grouper.ieee.org/groups/802/15/Bluetooth/core_10_b.pdf.
      *
      * 3.  McGarrity, S., Bluetooth Full Duplex Voice and Data Transmission. 2002.
-     *     Bluetooth Voice Simulink® Model, Available:
+     *     Bluetooth Voice Simulink Model, Available:
      *     http://www.mathworks.com/company/newsletters/digest/nov01/bluetooth.html
      */
     class VOCODER_API cvsd_encode_sb : virtual public sync_decimator
@@ -89,7 +89,7 @@ namespace gr {
     public:
       // gr::vocoder::cvsd_encode_sb::sptr
       typedef boost::shared_ptr<cvsd_encode_sb> sptr;
-      
+
       /*!
        * \brief Constructor parameters to initialize the CVSD encoder.
        * The default values are modeled after the Bluetooth standard and
@@ -101,9 +101,9 @@ namespace gr {
        *                      Default: "0.9990234375"  (i.e. 1-1/1024)
        * \param accum_decay   Decay factor applied to the internal reference during every interation of the codec.
        *                      Default: "0.96875"  (i.e. 1-1/32)
-       * \param K;            Size of shift register; the number of output bits remembered by codec (must be <= to 32).
+       * \param K             Size of shift register; the number of output bits remembered by codec (must be <= to 32).
        *                      Default: "32"
-       * \param J;            Number of bits in the shift register that are equal; i.e. the size of a run of 1s, 0s.
+       * \param J             Number of bits in the shift register that are equal; i.e. the size of a run of 1s, 0s.
        *                      Default: "4"
        * \param pos_accum_max Maximum integer value allowed for the internal reference.
        *                      Default: "32767" (2^15 - 1 or MAXSHORT)
@@ -116,7 +116,7 @@ namespace gr {
 		       short pos_accum_max=32767, short neg_accum_max=-32767);
 
       virtual short min_step() = 0;
-      virtual short max_step() = 0; 
+      virtual short max_step() = 0;
       virtual double step_decay() = 0;
       virtual double accum_decay() = 0;
       virtual int K() = 0;

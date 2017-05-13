@@ -1,9 +1,9 @@
 /* -*- c++ -*- */
-/* 
+/*
  * Copyright 2012 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
- * 
+ *
  * GNU Radio is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3, or (at your option)
@@ -22,8 +22,6 @@
 
 #include <iostream>
 #include <gnuradio/rpcregisterhelpers.h>
-#include <gnuradio/ice_application_base.h>
-#include <gnuradio/IcePy_Communicator.h>
 #include <pythread.h>
 #include <boost/format.hpp>
 
@@ -32,27 +30,14 @@ enum pyport_t {
   PYPORT_FLOAT
 };
 
-class Instance 
-{
-public:
-  static boost::shared_ptr<ice_application_common> get_application()
-  {
-    return ice_application_common::Instance();
-  }
-  static Ice::CommunicatorPtr get_swig_communicator()
-  {
-    return get_application()->communicator();
-  }
-};
-
 int pycallback_object_count = 500;
 
 // a simple to-PMT converter template class-function
 template <class myType> class pmt_assist
 {
 public:
-  static pmt::pmt_t make(myType _val) 
-  { 
+  static pmt::pmt_t make(myType _val)
+  {
     return pmt::mp(_val);
   }
 };
@@ -67,16 +52,16 @@ pmt::pmt_t pmt_assist<std::vector<float> >::make(std::vector<float> _val)
 template<>
 pmt::pmt_t pmt_assist<std::vector<gr_complex> >::make(std::vector<gr_complex> _val)
 {
-  return pmt::init_c32vector(_val.size(), &_val[0]); 
+  return pmt::init_c32vector(_val.size(), &_val[0]);
 }
 
 template <class myType> class pycallback_object
 {
 public:
   pycallback_object(std::string name, std::string functionbase,
-		    std::string units, std::string desc,
-		    myType min, myType max, myType deflt,
-		    DisplayType dtype) :
+            std::string units, std::string desc,
+            myType min, myType max, myType deflt,
+            DisplayType dtype) :
     d_callback(NULL),
     d_functionbase(functionbase), d_units(units), d_desc(desc),
     d_min(min), d_max(max), d_deflt(deflt), d_dtype(dtype),
@@ -92,7 +77,7 @@ public:
   }
 
   myType get() {
-    myType rVal;
+    myType rVal = d_deflt;
     if(d_callback == NULL) {
       printf("WARNING: pycallback_object get() called without py callback set!\n");
       return rVal;
@@ -104,14 +89,14 @@ public:
       PyObject *func;
       //PyObject *arglist;
       PyObject *result;
-   
+
       func = (PyObject *) d_callback;               // Get Python function
       //arglist = Py_BuildValue("");             // Build argument list
       result = PyEval_CallObject(func,NULL);     // Call Python
       //result = PyEval_CallObject(func,arglist);     // Call Python
       //Py_DECREF(arglist);                           // Trash arglist
       if(result) {                                 // If no errors, return double
-	rVal = pyCast(result);
+        rVal = pyCast(result);
       }
       Py_XDECREF(result);
 
@@ -120,21 +105,21 @@ public:
       return rVal;
     }
   }
-  
+
   void set_callback(PyObject *cb)
   {
     d_callback = cb;
   }
-  
+
   void setup_rpc()
   {
 #ifdef GR_CTRLPORT
     add_rpc_variable(
       rpcbasic_sptr(new rpcbasic_register_get<pycallback_object, myType>(
         (boost::format("%s%d") % d_name % d_id).str() , d_functionbase.c_str(),
-    this, &pycallback_object::get, pmt_assist<myType>::make(d_min),
-	pmt_assist<myType>::make(d_max), pmt_assist<myType>::make(d_deflt),
-	d_units.c_str(), d_desc.c_str(), RPC_PRIVLVL_MIN, d_dtype)));
+        this, &pycallback_object::get, pmt_assist<myType>::make(d_min),
+        pmt_assist<myType>::make(d_max), pmt_assist<myType>::make(d_deflt),
+        d_units.c_str(), d_desc.c_str(), RPC_PRIVLVL_MIN, d_dtype)));
 #endif /* GR_CTRLPORT */
   }
 
@@ -144,44 +129,52 @@ private:
   myType d_min, d_max, d_deflt;
   DisplayType d_dtype;
 
+  /* This is a fall-through converter in case someone tries to call pyCast on an
+   * object type for which there isn't a template specialization (located below
+   * this class) function. This function should never get called, and it is
+   * unknown if changing the return type from myType to 'void' will break
+   * something. */
   myType pyCast(PyObject* obj) {
     printf("TYPE NOT IMPLEMENTED!\n");
     assert(0);
+    // the following is to make compilers happy only.
+    myType dummy;
+    return(dummy);
   };
+
   std::vector<boost::any> d_rpc_vars; // container for all RPC variables
   std::string d_name;
   int d_id;
-
 };
 
 
 // template specialization conversion functions
 // get data out of the PyObject and into the real world
-template<> 
+template<>
 std::string pycallback_object<std::string>::pyCast(PyObject* obj)
 {
   return std::string(PyString_AsString(obj));
 }
 
-template<> 
+template<>
 double pycallback_object<double>::pyCast(PyObject* obj)
 {
   return PyFloat_AsDouble(obj);
 }
 
-template<> 
+template<>
 float pycallback_object<float>::pyCast(PyObject* obj)
 {
   return (float)PyFloat_AsDouble(obj);
 }
 
-template<> 
+template<>
 int pycallback_object<int>::pyCast(PyObject* obj)
 {
   return PyInt_AsLong(obj);
 }
 
-template<> 
+template<>
 std::vector<float> pycallback_object<std::vector<float> >::pyCast(PyObject* obj)
 {
   int size = PyObject_Size(obj);
@@ -192,14 +185,14 @@ std::vector<float> pycallback_object<std::vector<float> >::pyCast(PyObject* obj)
   return rval;
 }
 
-template<> 
+template<>
 std::vector<gr_complex> pycallback_object<std::vector<gr_complex> >::pyCast(PyObject* obj)
 {
   int size = PyObject_Size(obj);
   std::vector<gr_complex> rval(size);
   for(int i=0; i<size; i++){ rval[i] = \
       gr_complex((float)PyComplex_RealAsDouble(PyList_GetItem(obj, i)),
-		 (float)PyComplex_ImagAsDouble(PyList_GetItem(obj, i))); 
+		 (float)PyComplex_ImagAsDouble(PyList_GetItem(obj, i)));
   }
   return rval;
 }

@@ -76,12 +76,12 @@ namespace gr {
       std::string s_port = (boost::format("%d")%port).str();
       if(host.size() > 0) {
         boost::asio::ip::udp::resolver resolver(d_io_service);
-        boost::asio::ip::udp::resolver::query query(boost::asio::ip::udp::v4(),
-                                                    host, s_port);
+        boost::asio::ip::udp::resolver::query query(host, s_port,
+                                                    boost::asio::ip::resolver_query_base::passive);
         d_endpoint = *resolver.resolve(query);
 
         d_socket = new boost::asio::ip::udp::socket(d_io_service);
-        d_socket->open(boost::asio::ip::udp::v4());
+        d_socket->open(d_endpoint.protocol());
 
         boost::asio::socket_base::reuse_address roption(true);
         d_socket->set_option(roption);
@@ -99,7 +99,7 @@ namespace gr {
       gr::thread::scoped_lock guard(d_mutex);  // protect d_socket from work()
 
       // Send a few zero-length packets to signal receiver we are done
-      boost::array<char, 1> send_buf = {{ 0 }};
+      boost::array<char, 0> send_buf;
       if(d_eof) {
         int i;
         for(i = 0; i < 3; i++)

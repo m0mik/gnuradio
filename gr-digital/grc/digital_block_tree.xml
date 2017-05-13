@@ -1,19 +1,19 @@
 <?xml version="1.0"?>
 <!--
- Copyright 2011-2013 Free Software Foundation, Inc.
- 
+ Copyright 2011-2016 Free Software Foundation, Inc.
+
  This file is part of GNU Radio
- 
+
  GNU Radio is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
  the Free Software Foundation; either version 3, or (at your option)
  any later version.
- 
+
  GNU Radio is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
- 
+
  You should have received a copy of the GNU General Public License
  along with GNU Radio; see the file COPYING.  If not, write to
  the Free Software Foundation, Inc., 51 Franklin Street,
@@ -26,7 +26,7 @@
 ###################################################
  -->
 <cat>
-  <name></name> <!-- Blank for Root Name -->
+  <name>[Core]</name>
   <cat>
     <name>Coding</name>
     <block>digital_additive_scrambler_bb</block>
@@ -48,37 +48,42 @@
   <cat>
     <name>Modulators</name>
     <block>digital_cpmmod_bc</block>
-    <block>digital_dxpsk_mod</block>
-    <block>digital_dxpsk_demod</block>
     <block>digital_gfsk_mod</block>
     <block>digital_gfsk_demod</block>
     <block>digital_gmskmod_bc</block>
     <block>digital_gmsk_mod</block>
     <block>digital_gmsk_demod</block>
-    <block>digital_psk_mod</block>
-    <block>digital_psk_demod</block>
-    <block>digital_qam_mod</block>
-    <block>digital_qam_demod</block>
+    <block>digital_constellation_modulator</block>
     <block>digital_constellation_receiver_cb</block>
+    <block>variable_constellation</block>
+    <block>variable_constellation_rect</block>
+    <block>variable_modulate_vector</block>
   </cat>
   <cat>
     <name>Packet Operators</name>
-    <block>digital_correlate_access_code_bb</block>
+    <block>digital_correlate_access_code_tag_bb</block>
+    <block>digital_correlate_access_code_xx_ts</block>
     <block>digital_crc32_bb</block>
+    <block>digital_crc32_async_bb</block>
     <block>digital_framer_sink_1</block>
+    <block>variable_header_format_default</block>
+    <block>digital_protocol_formatter_async</block>
+    <block>digital_protocol_formatter_bb</block>
+    <block>digital_protocol_parser_b</block>
     <block>digital_header_payload_demux</block>
     <block>digital_packet_headergenerator_bb</block>
     <block>digital_packet_headergenerator_bb_default</block>
     <block>digital_packet_headerparser_b</block>
     <block>digital_packet_headerparser_b_default</block>
     <block>digital_packet_sink</block>
+    <block>digital_hdlc_framer_pb</block>
+    <block>digital_hdlc_deframer_bp</block>
     <block>digital_simple_framer</block>
     <block>digital_simple_correlator</block>
   </cat>
   <cat>
     <name>OFDM</name>
     <block>digital_ofdm_mod</block>
-    <block>digital_ofdm_mod2</block>
     <block>digital_ofdm_demod</block>
     <block>digital_ofdm_carrier_allocator_cvc</block>
     <block>digital_ofdm_chanest_vcvc</block>
@@ -97,10 +102,10 @@
   <cat>
     <name>Symbol Coding</name>
     <block>digital_binary_slicer_fb</block>
-    <block>digital_bytes_to_syms</block>
     <block>digital_chunks_to_symbols_xx</block>
     <block>digital_constellation_decoder_cb</block>
     <block>digital_constellation_receiver_cb</block>
+    <block>digital_constellation_soft_decoder_cf</block>
     <block>digital_diff_decoder_bb</block>
     <block>digital_diff_encoder_bb</block>
     <block>digital_diff_phasor_cc</block>
@@ -114,6 +119,7 @@
     <block>digital_mpsk_receiver_cc</block>
     <block>digital_pfb_clock_sync_xxx</block>
     <block>digital_pn_correlator_cc</block>
+    <block>digital_corr_est_cc</block>
   </cat>
   <cat>
     <name>Waveform Generators</name>
@@ -122,7 +128,6 @@
   <cat>
     <name>Deprecated</name>
     <block>digital_correlate_access_code_bb</block>
-    <block>digital_correlate_access_code_tag_bb</block>
     <block>digital_simple_framer</block>
     <block>digital_simple_correlator</block>
   </cat>

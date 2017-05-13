@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2010-2013 Free Software Foundation, Inc.
+ * Copyright 2010-2014 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -40,6 +40,12 @@
 %include "uhd_swig_doc.i"
 
 ////////////////////////////////////////////////////////////////////////
+// SWIG should not see the uhd::usrp::multi_usrp class
+////////////////////////////////////////////////////////////////////////
+%ignore gr::uhd::usrp_sink::get_device;
+%ignore gr::uhd::usrp_source::get_device;
+
+////////////////////////////////////////////////////////////////////////
 // block headers
 ////////////////////////////////////////////////////////////////////////
 %{
@@ -47,6 +53,8 @@
 #include <gnuradio/uhd/usrp_sink.h>
 #include <gnuradio/uhd/amsg_source.h>
 %}
+
+%include "gnuradio/uhd/usrp_block.h"
 
 ////////////////////////////////////////////////////////////////////////
 // used types
@@ -64,6 +72,11 @@
 %include <uhd/types/dict.hpp>
 %template(string_string_dict_t) uhd::dict<std::string, std::string>; //define after dict
 
+%extend uhd::dict<std::string, std::string>{
+    std::string __getitem__(std::string key) {return (*self)[key];}
+    void __setitem__(std::string key, std::string val) {(*self)[key] = val;}
+};
+
 %include <uhd/types/device_addr.hpp>
 
 %include <uhd/types/io_type.hpp>
@@ -78,6 +91,25 @@
 %include <uhd/types/io_type.hpp>
 
 %include <uhd/types/time_spec.hpp>
+
+%extend uhd::time_spec_t{
+    uhd::time_spec_t __add__(const uhd::time_spec_t &what)
+    {
+        uhd::time_spec_t temp = *self;
+        temp += what;
+        return temp;
+    }
+    uhd::time_spec_t __sub__(const uhd::time_spec_t &what)
+    {
+        uhd::time_spec_t temp = *self;
+        temp -= what;
+        return temp;
+    }
+    bool __eq__(const uhd::time_spec_t &what)
+    {
+      return (what == *self);
+    }
+};
 
 %include <uhd/types/stream_cmd.hpp>
 
@@ -127,8 +159,20 @@ static uhd::device_addrs_t find_devices_raw(const uhd::device_addr_t &dev_addr =
 ////////////////////////////////////////////////////////////////////////
 %{
 static const size_t ALL_MBOARDS = uhd::usrp::multi_usrp::ALL_MBOARDS;
+static const size_t ALL_CHANS = uhd::usrp::multi_usrp::ALL_CHANS;
+static const std::string ALL_GAINS = uhd::usrp::multi_usrp::ALL_GAINS;
+
+#ifdef UHD_USRP_MULTI_USRP_LO_CONFIG_API
+static const std::string ALL_LOS = uhd::usrp::multi_usrp::ALL_LOS;
+#else
+static const std::string ALL_LOS;
+#endif
 %}
+
 static const size_t ALL_MBOARDS;
+static const size_t ALL_CHANS;
+static const std::string ALL_GAINS;
+static const std::string ALL_LOS;
 
 %{
 #include <uhd/version.hpp>

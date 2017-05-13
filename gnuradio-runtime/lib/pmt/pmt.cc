@@ -34,11 +34,16 @@
 
 namespace pmt {
 
-static const int CACHE_LINE_SIZE = 64;		// good guess
-
 # if (PMT_LOCAL_ALLOCATOR)
 
-static pmt_pool global_pmt_pool(sizeof(pmt_pair), CACHE_LINE_SIZE);
+static const int
+get_cache_line_size()
+{
+  static const int CACHE_LINE_SIZE = 64;		// good guess
+  return CACHE_LINE_SIZE;
+}
+
+static pmt_pool global_pmt_pool(sizeof(pmt_pair), get_cache_line_size());
 
 void *
 pmt_base::operator new(size_t size)
@@ -46,7 +51,7 @@ pmt_base::operator new(size_t size)
   void *p = global_pmt_pool.malloc();
 
   // fprintf(stderr, "pmt_base::new p = %p\n", p);
-  assert((reinterpret_cast<intptr_t>(p) & (CACHE_LINE_SIZE - 1)) == 0);
+  assert((reinterpret_cast<intptr_t>(p) & (get_cache_line_size() - 1)) == 0);
   return p;
 }
 
@@ -58,9 +63,26 @@ pmt_base::operator delete(void *p, size_t size)
 
 #endif
 
+#if ((BOOST_VERSION / 100000 >= 1) && (BOOST_VERSION / 100 % 1000 >= 53)) 
+void intrusive_ptr_add_ref(pmt_base* p)
+{
+  p->refcount_.fetch_add(1, boost::memory_order_relaxed);
+}
+
+void intrusive_ptr_release(pmt_base* p) {
+  if (p->refcount_.fetch_sub(1, boost::memory_order_release) == 1) {
+    boost::atomic_thread_fence(boost::memory_order_acquire);
+    delete p;
+  }
+}
+#else
+// boost::atomic not available before 1.53
+// This section will be removed when support for boost 1.48 ceases
+// NB: This code is prone to segfault on non-Intel architectures.
 void intrusive_ptr_add_ref(pmt_base* p) { ++(p->count_); }
 void intrusive_ptr_release(pmt_base* p) { if (--(p->count_) == 0 ) delete p; }
-
+#endif
+ 
 pmt_base::~pmt_base()
 {
   // nop -- out of line virtual destructor
@@ -158,10 +180,29 @@ _any(pmt_t x)
 //                           Globals
 ////////////////////////////////////////////////////////////////////////////
 
-const pmt_t PMT_T = pmt_t(new pmt_bool());	// singleton
-const pmt_t PMT_F = pmt_t(new pmt_bool());	// singleton
-const pmt_t PMT_NIL = pmt_t(new pmt_null());	// singleton
-const pmt_t PMT_EOF = cons(PMT_NIL, PMT_NIL);           // singleton
+pmt_t get_PMT_NIL()
+{
+  static pmt_t _NIL = pmt_t(new pmt_null());
+  return _NIL;
+}
+
+pmt_t get_PMT_T()
+{
+  static const pmt_t _T = pmt_t(new pmt_bool());
+  return _T;
+}
+
+pmt_t get_PMT_F()
+{
+  static const pmt_t _F = pmt_t(new pmt_bool());
+  return _F;
+}
+
+pmt_t get_PMT_EOF()
+{
+  static const pmt_t _EOF = cons(get_PMT_NIL(), get_PMT_NIL());
+  return _EOF;
+}
 
 ////////////////////////////////////////////////////////////////////////////
 //                           Booleans
@@ -207,8 +248,19 @@ to_bool(pmt_t val)
 //                             Symbols
 ////////////////////////////////////////////////////////////////////////////
 
-static const unsigned int SYMBOL_HASH_TABLE_SIZE = 701;
-static std::vector<pmt_t> s_symbol_hash_table(SYMBOL_HASH_TABLE_SIZE);
+static const unsigned int
+get_symbol_hash_table_size()
+{
+  static const unsigned int SYMBOL_HASH_TABLE_SIZE = 701;
+  return SYMBOL_HASH_TABLE_SIZE;
+}
+
+static std::vector<pmt_t>*
+get_symbol_hash_table()
+{
+  static std::vector<pmt_t> s_symbol_hash_table(get_symbol_hash_table_size());
+  return &s_symbol_hash_table;
+}
 
 pmt_symbol::pmt_symbol(const std::string &name) : d_name(name){}
 
@@ -239,18 +291,28 @@ is_symbol(const pmt_t& obj)
 pmt_t
 string_to_symbol(const std::string &name)
 {
-  unsigned hash = hash_string(name) % SYMBOL_HASH_TABLE_SIZE;
+  unsigned hash = hash_string(name) % get_symbol_hash_table_size();
 
   // Does a symbol with this name already exist?
-  for (pmt_t sym = s_symbol_hash_table[hash]; sym; sym = _symbol(sym)->next()){
+  for (pmt_t sym = (*get_symbol_hash_table())[hash]; sym; sym = _symbol(sym)->next()){
     if (name == _symbol(sym)->name())
       return sym;		// Yes.  Return it
   }
-
+  
+  // Lock the table on insert for thread safety:
+  static boost::mutex thread_safety;
+  boost::mutex::scoped_lock lock(thread_safety);
+  // Re-do the search in case another thread inserted this symbol into the table
+  // before we got the lock
+  for (pmt_t sym = (*get_symbol_hash_table())[hash]; sym; sym = _symbol(sym)->next()){
+    if (name == _symbol(sym)->name())
+      return sym;		// Yes.  Return it
+  }
+  
   // Nope.  Make a new one.
   pmt_t sym = pmt_t(new pmt_symbol(name));
-  _symbol(sym)->set_next(s_symbol_hash_table[hash]);
-  s_symbol_hash_table[hash] = sym;
+  _symbol(sym)->set_next((*get_symbol_hash_table())[hash]);
+  (*get_symbol_hash_table())[hash] = sym;
   return sym;
 }
 
@@ -363,6 +425,12 @@ from_double(double x)
   return pmt_t(new pmt_real(x));
 }
 
+pmt_t
+from_float(float x)
+{
+  return pmt_t(new pmt_real(x));
+}
+
 double
 to_double(pmt_t x)
 {
@@ -372,6 +440,12 @@ to_double(pmt_t x)
     return _integer(x)->value();
 
   throw wrong_type("pmt_to_double", x);
+}
+
+float
+to_float(pmt_t x)
+{
+  return float(to_double(x));
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -760,6 +834,14 @@ is_uniform_vector(pmt_t x)
   return x->is_uniform_vector();
 }
 
+size_t
+uniform_vector_itemsize(pmt_t vector)
+{
+  if (!vector->is_uniform_vector())
+    throw wrong_type("pmt_uniform_vector_itemsize", vector);
+  return _uniform_vector(vector)->itemsize();
+}
+
 const void *
 uniform_vector_elements(pmt_t vector, size_t &len)
 {
@@ -775,6 +857,8 @@ uniform_vector_writable_elements(pmt_t vector, size_t &len)
     throw wrong_type("pmt_uniform_vector_writable_elements", vector);
   return _uniform_vector(vector)->uniform_writable_elements(len);
 }
+
+
 
 ////////////////////////////////////////////////////////////////////////////
 //                            Dictionaries
@@ -811,6 +895,19 @@ dict_add(const pmt_t &dict, const pmt_t &key, const pmt_t &value)
 
   return acons(key, value, dict);
 }
+
+pmt_t
+dict_update(const pmt_t &dict1, const pmt_t &dict2)
+{
+  pmt_t d(dict1);
+  pmt_t k(dict_keys(dict2));
+  while(is_pair(k)){
+    d = dict_add(d, car(k), dict_ref(dict2, car(k), PMT_NIL));
+    k = cdr(k);
+    }
+  return d;
+}
+
 
 pmt_t
 dict_delete(const pmt_t &dict, const pmt_t &key)
@@ -942,8 +1039,7 @@ msg_accepter_ref(const pmt_t &obj)
 bool
 is_blob(pmt_t x)
 {
-  // return is_u8vector(x);
-  return is_uniform_vector(x);
+  return is_u8vector(x);
 }
 
 pmt_t
@@ -1366,7 +1462,7 @@ list_has(pmt_t list, const pmt_t& item)
     pmt_t right = cdr(list);
     if(equal(left,item))
         return true;
-    return list_has(right, item);   
+    return list_has(right, item);
   } else {
     if(is_null(list))
         return false;

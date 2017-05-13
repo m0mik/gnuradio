@@ -17,6 +17,7 @@
           taps=None,
 #end if
 	  flt_size=$nfilts)
+self.$(id).declare_sample_delay($samp_delay)
 	</make>
         <callback>set_taps($taps)</callback>
         <callback>set_rate($rrate)</callback>
@@ -37,6 +38,13 @@
 			<opt>input:float</opt>
 			<opt>output:float</opt>
 			<opt>taps:real_vector</opt>
+		</option>
+		<option>
+			<name>Complex->Complex (Complex Taps)</name>
+			<key>ccc</key>
+			<opt>input:complex</opt>
+			<opt>output:complex</opt>
+			<opt>taps:complex_vector</opt>
 		</option>
 	</param>
 	<param>
@@ -60,6 +68,13 @@
 		<key>atten</key>
 		<value>100</value>
 		<type>real</type>
+	</param>
+	<param>
+		<name>Sample Delay</name>
+		<key>samp_delay</key>
+        <value>0</value>
+		<type>int</type>
+        <hide>part</hide>
 	</param>
 	<sink>
 		<name>in</name>

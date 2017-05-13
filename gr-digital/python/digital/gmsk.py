@@ -59,14 +59,14 @@ class gmsk_mod(gr.hier_block2):
     Hierarchical block for Gaussian Minimum Shift Key (GMSK)
     modulation.
     
-    The input is a byte stream (unsigned char) and the
-    output is the complex modulated signal at baseband.
+    The input is a byte stream (unsigned char with packed bits)
+    and the output is the complex modulated signal at baseband.
     
     Args:
         samples_per_symbol: samples per baud >= 2 (integer)
         bt: Gaussian filter bandwidth * symbol time (float)
         verbose: Print information about modulator? (boolean)
-        debug: Print modulation data to files? (boolean)
+        log: Print modulation data to files? (boolean)
     """
 
     def __init__(self,
@@ -123,10 +123,9 @@ class gmsk_mod(gr.hier_block2):
     def samples_per_symbol(self):
         return self._samples_per_symbol
 
+    @staticmethod
     def bits_per_symbol(self=None):     # staticmethod that's also callable on an instance
         return 1
-    bits_per_symbol = staticmethod(bits_per_symbol)      # make it a static method.
-
 
     def _print_verbage(self):
         print "bits per symbol = %d" % self.bits_per_symbol()
@@ -142,24 +141,21 @@ class gmsk_mod(gr.hier_block2):
         self.connect(self.fmmod,
                      blocks.file_sink(gr.sizeof_gr_complex, "fmmod.dat"))
 
-
+    @staticmethod
     def add_options(parser):
         """
         Adds GMSK modulation-specific options to the standard parser
         """
         parser.add_option("", "--bt", type="float", default=_def_bt,
                           help="set bandwidth-time product [default=%default] (GMSK)")
-    add_options=staticmethod(add_options)
 
-
+    @staticmethod
     def extract_kwargs_from_options(options):
         """
         Given command line options, create dictionary suitable for passing to __init__
         """
         return modulation_utils.extract_kwargs_from_options(gmsk_mod.__init__,
                                                             ('self',), options)
-    extract_kwargs_from_options=staticmethod(extract_kwargs_from_options)
-
 
 
 # /////////////////////////////////////////////////////////////////////////////
@@ -176,12 +172,12 @@ class gmsk_demod(gr.hier_block2):
     
     Args:
         samples_per_symbol: samples per baud (integer)
-        verbose: Print information about modulator? (boolean)
-        log: Print modualtion data to files? (boolean)
         gain_mu: controls rate of mu adjustment (float)
         mu: fractional delay [0.0, 1.0] (float)
         omega_relative_limit: sets max variation in omega (float)
         freq_error: bit rate error as a fraction (float)
+        verbose: Print information about modulator? (boolean)
+        log: Print modualtion data to files? (boolean)
     """
     
     def __init__(self,
@@ -239,10 +235,9 @@ class gmsk_demod(gr.hier_block2):
     def samples_per_symbol(self):
         return self._samples_per_symbol
 
+    @staticmethod
     def bits_per_symbol(self=None):   # staticmethod that's also callable on an instance
         return 1
-    bits_per_symbol = staticmethod(bits_per_symbol)      # make it a static method.
-
 
     def _print_verbage(self):
         print "bits per symbol = %d" % self.bits_per_symbol()
@@ -262,6 +257,7 @@ class gmsk_demod(gr.hier_block2):
         self.connect(self.slicer,
                     blocks.file_sink(gr.sizeof_char, "slicer.dat"))
 
+    @staticmethod
     def add_options(parser):
         """
         Adds GMSK demodulation-specific options to the standard parser
@@ -274,15 +270,14 @@ class gmsk_demod(gr.hier_block2):
                           help="M&M clock recovery omega relative limit [default=%default] (GMSK/PSK)")
         parser.add_option("", "--freq-error", type="float", default=_def_freq_error,
                           help="M&M clock recovery frequency error [default=%default] (GMSK)")
-    add_options=staticmethod(add_options)
 
+    @staticmethod
     def extract_kwargs_from_options(options):
         """
         Given command line options, create dictionary suitable for passing to __init__
         """
         return modulation_utils.extract_kwargs_from_options(gmsk_demod.__init__,
                                                             ('self',), options)
-    extract_kwargs_from_options=staticmethod(extract_kwargs_from_options)
 
 
 #

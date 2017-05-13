@@ -56,6 +56,9 @@ namespace gr {
 
     d_inputs = std::vector<endpoint_vector_t>(max_inputs);
     d_outputs = endpoint_vector_t(max_outputs);
+
+    d_max_output_buffer = std::vector<size_t>(std::max(max_outputs,1), 0);
+    d_min_output_buffer = std::vector<size_t>(std::max(max_outputs,1), 0);
   }
 
   hier_block2_detail::~hier_block2_detail()
@@ -154,10 +157,6 @@ namespace gr {
   {
     if(HIER_BLOCK2_DETAIL_DEBUG)
       std::cout << "connecting message port..." << std::endl;
-    
-    // register the subscription
-    // this is done later...
-    //  src->message_port_sub(srcport, pmt::cons(dst->alias_pmt(), dstport));
 
     // add block uniquely to list to internal blocks
     if(std::find(d_blocks.begin(), d_blocks.end(), dst) == d_blocks.end()){
@@ -165,27 +164,35 @@ namespace gr {
       d_blocks.push_back(dst);
     }
 
-    bool hier_out = (d_owner == src.get()) && src->message_port_is_hier_out(srcport);;
-    bool hier_in = (d_owner == dst.get()) && dst->message_port_is_hier_in(dstport);
+
+    bool hier_in=false, hier_out=false;
+    if(d_owner == src.get()){
+        hier_out = src->message_port_is_hier_in(srcport);
+    } else if (d_owner == dst.get()){
+        hier_in = dst->message_port_is_hier_out(dstport);;
+    } else {
+        hier_out = src->message_port_is_hier_out(srcport);
+        hier_in = dst->message_port_is_hier_in(dstport);
+    }
 
     hier_block2_sptr src_block(cast_to_hier_block2_sptr(src));
     hier_block2_sptr dst_block(cast_to_hier_block2_sptr(dst));
 
     if(src_block && src.get() != d_owner) {
       if(HIER_BLOCK2_DETAIL_DEBUG)
-        std::cout << "connect: src is hierarchical, setting parent to " << this << std::endl;
+        std::cout << "msg_connect: src is hierarchical, setting parent to " << this << std::endl;
       src_block->d_detail->d_parent_detail = this;
     }
 
     if(dst_block && dst.get() != d_owner) {
       if(HIER_BLOCK2_DETAIL_DEBUG)
-        std::cout << "connect: dst is hierarchical, setting parent to " << this << std::endl;
+        std::cout << "msg_connect: dst is hierarchical, setting parent to " << this << std::endl;
       dst_block->d_detail->d_parent_detail = this;
     }
 
     // add edge for this message connection
     if(HIER_BLOCK2_DETAIL_DEBUG)
-      std::cout << boost::format("connect( (%s, %s, %d), (%s, %s, %d) )\n") % \
+      std::cout << boost::format("msg_connect( (%s, %s, %d), (%s, %s, %d) )\n") % \
         src % srcport % hier_out %
         dst % dstport % hier_in;
     d_fg->connect(msg_endpoint(src, srcport, hier_out), msg_endpoint(dst, dstport, hier_in));
@@ -197,14 +204,48 @@ namespace gr {
   {
     if(HIER_BLOCK2_DETAIL_DEBUG)
       std::cout << "disconnecting message port..." << std::endl;
-    
+
+    // remove edge for this message connection
+    bool hier_in=false, hier_out=false;
+    if(d_owner == src.get()){
+        hier_out = src->message_port_is_hier_in(srcport);
+    } else if (d_owner == dst.get()){
+        hier_in = dst->message_port_is_hier_out(dstport);;
+    } else {
+        hier_out = src->message_port_is_hier_out(srcport);
+        hier_in = dst->message_port_is_hier_in(dstport);
+    }
+
+    d_fg->disconnect(msg_endpoint(src, srcport, hier_out), msg_endpoint(dst, dstport, hier_in));
+
+    hier_block2_sptr src_block(cast_to_hier_block2_sptr(src));
+    hier_block2_sptr dst_block(cast_to_hier_block2_sptr(dst));
+
+    if (src_block && src.get() != d_owner) {
+        // if the source is hier, we need to resolve the endpoint before calling unsub
+        msg_edge_vector_t edges = src_block->d_detail->d_fg->msg_edges();
+        for (msg_edge_viter_t it = edges.begin(); it != edges.end(); ++it) {
+            if ((*it).dst().block() == src) {
+                src = (*it).src().block();
+                srcport = (*it).src().port();
+            }
+        }
+    }
+
+    if (dst_block && dst.get() != d_owner) {
+        // if the destination is hier, we need to resolve the endpoint before calling unsub
+        msg_edge_vector_t edges = dst_block->d_detail->d_fg->msg_edges();
+        for (msg_edge_viter_t it = edges.begin(); it != edges.end(); ++it) {
+            if ((*it).src().block() == dst) {
+                dst = (*it).dst().block();
+                dstport = (*it).dst().port();
+            }
+        }
+    }
+
     // unregister the subscription - if already subscribed
     src->message_port_unsub(srcport, pmt::cons(dst->alias_pmt(), dstport));
 
-    // remove edge for this message connection
-    bool hier_out = (d_owner == src.get()) && src->message_port_is_hier_out(srcport);;
-    bool hier_in = (d_owner == dst.get()) && dst->message_port_is_hier_in(dstport);
-    d_fg->disconnect(msg_endpoint(src, srcport, hier_out), msg_endpoint(dst, dstport, hier_in));
   }
 
   void
@@ -287,10 +328,44 @@ namespace gr {
   }
 
   void
+  hier_block2_detail::refresh_io_signature()
+  {
+    int min_inputs  = d_owner->input_signature()->min_streams();
+    int max_inputs  = d_owner->input_signature()->max_streams();
+    int min_outputs = d_owner->output_signature()->min_streams();
+    int max_outputs = d_owner->output_signature()->max_streams();
+
+    if(max_inputs == io_signature::IO_INFINITE ||
+       max_outputs == io_signature::IO_INFINITE ||
+       (min_inputs != max_inputs) ||(min_outputs != max_outputs) ) {
+      std::stringstream msg;
+      msg << "Hierarchical blocks do not yet support arbitrary or"
+        << " variable numbers of inputs or outputs (" << d_owner->name() << ")";
+      throw std::runtime_error(msg.str());
+    }
+
+    // Check for # input change
+    if ((signed)d_inputs.size() != max_inputs)
+    {
+      d_inputs.resize(max_inputs);
+    }
+
+    // Check for # output change
+    if ((signed)d_outputs.size() != max_outputs)
+    {
+      d_outputs.resize(max_outputs);
+      d_min_output_buffer.resize(max_outputs, 0);
+      d_max_output_buffer.resize(max_outputs, 0);
+    }
+  }
+
+  void
   hier_block2_detail::connect_input(int my_port, int port,
                                     basic_block_sptr block)
   {
     std::stringstream msg;
+
+    refresh_io_signature();
 
     if(my_port < 0 || my_port >= (signed)d_inputs.size()) {
       msg << "input port " << my_port << " out of range for " << block;
@@ -315,6 +390,8 @@ namespace gr {
   {
     std::stringstream msg;
 
+    refresh_io_signature();
+
     if(my_port < 0 || my_port >= (signed)d_outputs.size()) {
       msg << "output port " << my_port << " out of range for " << block;
       throw std::invalid_argument(msg.str());
@@ -334,6 +411,8 @@ namespace gr {
                                        basic_block_sptr block)
   {
     std::stringstream msg;
+
+    refresh_io_signature();
 
     if(my_port < 0 || my_port >= (signed)d_inputs.size()) {
       msg << "input port number " << my_port << " out of range for " << block;
@@ -357,6 +436,8 @@ namespace gr {
                                         basic_block_sptr block)
   {
     std::stringstream msg;
+
+    refresh_io_signature();
 
     if(my_port < 0 || my_port >= (signed)d_outputs.size()) {
       msg << "output port number " << my_port << " out of range for " << block;
@@ -476,7 +557,8 @@ namespace gr {
   hier_block2_detail::flatten_aux(flat_flowgraph_sptr sfg) const
   {
     if(HIER_BLOCK2_DETAIL_DEBUG)
-      std::cout << " ** Flattening " << d_owner->name() << std::endl;
+      std::cout << " ** Flattening " << d_owner->name() << " parent: " << d_parent_detail << std::endl;
+    bool is_top_block = (d_parent_detail == NULL);
 
     // Add my edges to the flow graph, resolving references to actual endpoints
     edge_vector_t edges = d_fg->edges();
@@ -487,24 +569,139 @@ namespace gr {
     // Only run setup_rpc if ControlPort config param is enabled.
     bool ctrlport_on = prefs::singleton()->get_bool("ControlPort", "on", false);
 
+    int min_buff = 0;
+    int max_buff = 0;
+    // Determine how the buffers should be set
+    bool set_all_min_buff = d_owner->all_min_output_buffer_p();
+    bool set_all_max_buff = d_owner->all_max_output_buffer_p();
+    // Get the min and max buffer length
+    if(set_all_min_buff){
+      if(HIER_BLOCK2_DETAIL_DEBUG)
+        std::cout << "Getting (" << (d_owner->alias()).c_str()
+                  << ") min buffer" << std::endl;
+      min_buff = d_owner->min_output_buffer();
+    }
+    if(set_all_max_buff){
+      if(HIER_BLOCK2_DETAIL_DEBUG)
+        std::cout << "Getting (" << (d_owner->alias()).c_str()
+                  << ") max buffer" << std::endl;
+      max_buff = d_owner->max_output_buffer();
+    }
+
     // For every block (gr::block and gr::hier_block2), set up the RPC
     // interface.
     for(p = edges.begin(); p != edges.end(); p++) {
       basic_block_sptr b;
       b = p->src().block();
 
-      if(ctrlport_on) {
-        if(!b->is_rpc_set()) {
-          b->setup_rpc();
-          b->rpc_set();
+      if(set_all_min_buff){
+        //sets the min buff for every block within hier_block2
+        if(min_buff != 0){
+          block_sptr bb = boost::dynamic_pointer_cast<block>(b);
+          if(bb != 0){
+            if(bb->min_output_buffer(0) != min_buff){
+              if(HIER_BLOCK2_DETAIL_DEBUG)
+                std::cout << "Block (" << (bb->alias()).c_str()
+                          << ") min_buff (" << min_buff
+                          << ")" << std::endl;
+              bb->set_min_output_buffer(min_buff);
+            }
+          }
+          else{
+            hier_block2_sptr hh = boost::dynamic_pointer_cast<hier_block2>(b);
+            if(hh != 0){
+              if(hh->min_output_buffer(0) != min_buff){
+                if(HIER_BLOCK2_DETAIL_DEBUG)
+                  std::cout << "HBlock (" << (hh->alias()).c_str()
+                            << ") min_buff (" << min_buff
+                            << ")" << std::endl;
+                hh->set_min_output_buffer(min_buff);
+              }
+            }
+          }
+        }
+      }
+      if(set_all_max_buff){
+        //sets the max buff for every block within hier_block2
+        if(max_buff != 0){
+          block_sptr bb = boost::dynamic_pointer_cast<block>(b);
+          if(bb != 0){
+            if(bb->max_output_buffer(0) != max_buff){
+              if(HIER_BLOCK2_DETAIL_DEBUG)
+                std::cout << "Block (" << (bb->alias()).c_str()
+                          << ") max_buff (" << max_buff
+                          << ")" << std::endl;
+              bb->set_max_output_buffer(max_buff);
+            }
+          }
+          else{
+            hier_block2_sptr hh = boost::dynamic_pointer_cast<hier_block2>(b);
+            if(hh != 0){
+              if(hh->max_output_buffer(0) != max_buff){
+                if(HIER_BLOCK2_DETAIL_DEBUG)
+                  std::cout << "HBlock (" << (hh->alias()).c_str()
+                            << ") max_buff (" << max_buff
+                            << ")" << std::endl;
+                hh->set_max_output_buffer(max_buff);
+              }
+            }
+          }
         }
       }
 
       b = p->dst().block();
-      if(ctrlport_on) {
-        if(!b->is_rpc_set()) {
-          b->setup_rpc();
-          b->rpc_set();
+      if(set_all_min_buff){
+        //sets the min buff for every block within hier_block2
+        if(min_buff != 0){
+          block_sptr bb = boost::dynamic_pointer_cast<block>(b);
+          if(bb != 0){
+            if(bb->min_output_buffer(0) != min_buff){
+              if(HIER_BLOCK2_DETAIL_DEBUG)
+                std::cout << "Block (" << (bb->alias()).c_str()
+                          << ") min_buff (" << min_buff
+                          << ")" << std::endl;
+              bb->set_min_output_buffer(min_buff);
+            }
+          }
+          else{
+            hier_block2_sptr hh = boost::dynamic_pointer_cast<hier_block2>(b);
+            if(hh != 0){
+              if(hh->min_output_buffer(0) != min_buff){
+                if(HIER_BLOCK2_DETAIL_DEBUG)
+                  std::cout << "HBlock (" << (hh->alias()).c_str()
+                            << ") min_buff (" << min_buff
+                            << ")" << std::endl;
+                hh->set_min_output_buffer(min_buff);
+              }
+            }
+          }
+        }
+      }
+      if(set_all_max_buff){
+        //sets the max buff for every block within hier_block2
+        if(max_buff != 0){
+          block_sptr bb = boost::dynamic_pointer_cast<block>(b);
+          if(bb != 0){
+            if(bb->max_output_buffer(0) != max_buff){
+              if(HIER_BLOCK2_DETAIL_DEBUG)
+                std::cout << "Block (" << (bb->alias()).c_str()
+                          << ") max_buff (" << max_buff
+                          << ")" << std::endl;
+              bb->set_max_output_buffer(max_buff);
+            }
+          }
+          else{
+            hier_block2_sptr hh = boost::dynamic_pointer_cast<hier_block2>(b);
+            if(hh != 0){
+              if(hh->max_output_buffer(0) != max_buff){
+                if(HIER_BLOCK2_DETAIL_DEBUG)
+                  std::cout << "HBlock (" << (hh->alias()).c_str()
+                            << ") max_buff (" << max_buff
+                            << ")" << std::endl;
+                hh->set_max_output_buffer(max_buff);
+              }
+            }
+          }
         }
       }
     }
@@ -540,35 +737,32 @@ namespace gr {
           q->src().block() % q->src().port() % q->src().is_hier() % q->dst().block() % \
           q->dst().port() % q->dst().is_hier();
 
-      bool normal_connection = true;
 
-      // resolve existing connections to hier ports
-      if(q->dst().is_hier()) {
+      if(q->src().is_hier() && q->src().block().get() == d_owner){
+        // connection into this block ..
         if(HIER_BLOCK2_DETAIL_DEBUG)
-          std::cout << boost::format("  resolve hier output (%s, %s)") % \
-            q->dst().block() % q->dst().port() << std::endl;
-        sfg->replace_endpoint( q->dst(), q->src(), true );
-        resolved_endpoints.push_back(std::pair<msg_endpoint, bool>(q->dst(),true));
-        normal_connection = false;
-      }
-
-      if(q->src().is_hier()) {
+          std::cout << "hier incoming port: " << q->src() << std::endl;
+        sfg->replace_endpoint(q->src(), q->dst(), false);
+        resolved_endpoints.push_back( std::pair<msg_endpoint,bool>( q->src(), false));
+      } else
+      if(q->dst().is_hier() && q->dst().block().get() == d_owner){
+        // connection out of this block
         if(HIER_BLOCK2_DETAIL_DEBUG)
-          std::cout << boost::format("  resolve hier input (%s, %s)") % \
-            q->src().block() % q->src().port() << std::endl;
-        sfg->replace_endpoint( q->src(), q->dst(), false );
-        resolved_endpoints.push_back(std::pair<msg_endpoint, bool>(q->src(),false));
-        normal_connection = false;
-      }
-
-      // propogate non hier connections through
-      if(normal_connection){
+          std::cout << "hier outgoing port: " << q->dst() << std::endl;
+        sfg->replace_endpoint(q->dst(), q->src(), true);
+        resolved_endpoints.push_back( std::pair<msg_endpoint,bool>(q->dst(), true));
+      } else {
+        // internal connection only
+        if(HIER_BLOCK2_DETAIL_DEBUG)
+          std::cout << "internal msg connection: " << q->src() << "-->" << q->dst() << std::endl;
         sfg->connect( q->src(), q->dst() );
-      } 
+      }
     }
 
     for(std::vector<std::pair<msg_endpoint, bool> >::iterator it = resolved_endpoints.begin();
         it != resolved_endpoints.end(); it++) {
+      if(HIER_BLOCK2_DETAIL_DEBUG)
+        std::cout << "sfg->clear_endpoint(" << (*it).first << ", " << (*it).second << ") " << std::endl;
       sfg->clear_endpoint((*it).first, (*it).second);
     }
 
@@ -583,7 +777,7 @@ namespace gr {
       }
     }
     */
-    
+
     // Construct unique list of blocks used either in edges, inputs,
     // outputs, or by themselves.  I still hate STL.
     basic_block_vector_t blocks; // unique list of used blocks
@@ -591,8 +785,16 @@ namespace gr {
 
     // First add the list of singleton blocks
     std::vector<basic_block_sptr>::const_iterator b;   // Because flatten_aux is const
-    for(b = d_blocks.begin(); b != d_blocks.end(); b++)
+    for(b = d_blocks.begin(); b != d_blocks.end(); b++) {
       tmp.push_back(*b);
+      // for every block, attempt to setup RPC
+      if(ctrlport_on) {
+        if(!(*b)->is_rpc_set()) {
+          (*b)->setup_rpc();
+          (*b)->rpc_set();
+        }
+      }
+    }
 
     // Now add the list of connected input blocks
     std::stringstream msg;
@@ -614,6 +816,61 @@ namespace gr {
             << " is not connected internally";
         throw std::runtime_error(msg.str());
       }
+      // Set the buffers of only the blocks connected to the hier output
+      if(!set_all_min_buff){
+        min_buff = d_owner->min_output_buffer(i);
+        if(min_buff != 0){
+          block_sptr bb = boost::dynamic_pointer_cast<block>(blk);
+          if(bb != 0){
+            int bb_src_port = d_outputs[i].port();
+            if(HIER_BLOCK2_DETAIL_DEBUG)
+              std::cout << "Block (" << (bb->alias()).c_str()
+                        << ") Port (" << bb_src_port
+                        << ") min_buff (" << min_buff
+                        << ")" << std::endl;
+            bb->set_min_output_buffer(bb_src_port, min_buff);
+          }
+          else{
+            hier_block2_sptr hh = boost::dynamic_pointer_cast<hier_block2>(blk);
+            if(hh != 0){
+              int hh_src_port = d_outputs[i].port();
+              if(HIER_BLOCK2_DETAIL_DEBUG)
+                std::cout << "HBlock (" << (hh->alias()).c_str()
+                          << ") Port (" << hh_src_port
+                          << ") min_buff ("<< min_buff
+                          << ")" << std::endl;
+              hh->set_min_output_buffer(hh_src_port, min_buff);
+            }
+          }
+        }
+      }
+      if(!set_all_max_buff){
+        max_buff = d_owner->max_output_buffer(i);
+        if(max_buff != 0){
+          block_sptr bb = boost::dynamic_pointer_cast<block>(blk);
+          if(bb != 0){
+            int bb_src_port = d_outputs[i].port();
+            if(HIER_BLOCK2_DETAIL_DEBUG)
+              std::cout << "Block (" << (bb->alias()).c_str()
+                        << ") Port (" << bb_src_port
+                        << ") max_buff (" << max_buff
+                        << ")" << std::endl;
+            bb->set_max_output_buffer(bb_src_port, max_buff);
+          }
+          else{
+            hier_block2_sptr hh = boost::dynamic_pointer_cast<hier_block2>(blk);
+            if(hh != 0){
+              int hh_src_port = d_outputs[i].port();
+              if(HIER_BLOCK2_DETAIL_DEBUG)
+                std::cout << "HBlock (" << (hh->alias()).c_str()
+                          << ") Port (" << hh_src_port
+                          << ") max_buff (" << max_buff
+                          << ")" << std::endl;
+              hh->set_max_output_buffer(hh_src_port, max_buff);
+            }
+          }
+        }
+      }
       tmp.push_back(blk);
     }
     sort(tmp.begin(), tmp.end());
@@ -627,9 +884,22 @@ namespace gr {
       if(hier_block2 && (hier_block2.get() != d_owner)) {
         if(HIER_BLOCK2_DETAIL_DEBUG)
           std::cout << "flatten_aux: recursing into hierarchical block "
-                    << hier_block2 << std::endl;
+                    << hier_block2->alias() << std::endl;
         hier_block2->d_detail->flatten_aux(sfg);
       }
+    }
+
+    // prune any remaining hier connections
+    //   if they were not replaced with hier internal connections while in sub-calls
+    //   they must remain unconnected and can be deleted...
+    if(is_top_block){
+      sfg->clear_hier();
+    }
+
+    // print all primitive connections at exit
+    if(HIER_BLOCK2_DETAIL_DEBUG && is_top_block){
+      std::cout << "flatten_aux finished in top_block" << std::endl;
+      sfg->dump();
     }
   }
 

@@ -44,6 +44,10 @@ class gr::block : public gr::basic_block
 
   unsigned history () const;
 
+  void declare_sample_delay(int which, int delay);
+  void declare_sample_delay(unsigned int delay);
+  unsigned sample_delay(int which) const;
+
   int  output_multiple () const;
   double relative_rate () const;
 
@@ -58,6 +62,8 @@ class gr::block : public gr::basic_block
   void set_max_noutput_items(int m);
   void unset_max_noutput_items();
   bool is_set_max_noutput_items();
+  void set_min_noutput_items(int m);
+  int min_noutput_items() const;
 
   // Methods to manage block's min/max buffer sizes.
   long max_output_buffer(int i);
@@ -69,20 +75,29 @@ class gr::block : public gr::basic_block
 
   // Methods to access performance counters
   float pc_noutput_items();
+  float pc_noutput_items_avg();
   float pc_noutput_items_var();
   float pc_nproduced();
+  float pc_nproduced_avg();
   float pc_nproduced_var();
   float pc_input_buffers_full(int which);
+  float pc_input_buffers_full_avg(int which);
   float pc_input_buffers_full_var(int which);
   std::vector<float> pc_input_buffers_full();
+  std::vector<float> pc_input_buffers_full_avg();
   std::vector<float> pc_input_buffers_full_var();
   float pc_output_buffers_full(int which);
+  float pc_output_buffers_full_avg(int which);
   float pc_output_buffers_full_var(int which);
   std::vector<float> pc_output_buffers_full();
+  std::vector<float> pc_output_buffers_full_avg();
   std::vector<float> pc_output_buffers_full_var();
   float pc_work_time();
+  float pc_work_time_avg();
   float pc_work_time_var();
-  
+  float pc_work_time_total();
+  float pc_throughput_avg();
+
   // Methods to manage processor affinity.
   void set_processor_affinity(const std::vector<int> &mask);
   void unset_processor_affinity();

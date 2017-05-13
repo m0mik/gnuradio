@@ -50,7 +50,7 @@ namespace gr {
      * filter has the same number of taps.
      *
      * Each filter operates using the gr::blocks::fir_filter_XXX
-     * classs of GNU Radio, which takes the input stream at <EM>i</EM>
+     * class of GNU Radio, which takes the input stream at <EM>i</EM>
      * and performs the inner product calculation to <EM>i+(n-1)</EM>
      * where <EM>n</EM> is the number of filter taps. To efficiently
      * handle this in the GNU Radio structure, each filter input must
@@ -101,8 +101,14 @@ namespace gr {
      *    <B><EM>f. harris, "Multirate Signal Processing for Communication
      *       Systems," Upper Saddle River, NJ: Prentice Hall, Inc. 2004.</EM></B>
      *
+     * When dealing with oversampling, the above book is still a good
+     * reference along with this paper:
+     *
+     *    <B><EM>E. Venosa, X. Chen, and fred harris, “Polyphase analysis
+     *       filter bank down-converts unequal channel bandwidths with
+     *       arbitrary center frequencies - design I,” in SDR’10-WinnComm,
+     *       2010.</EM></B>
      */
-    
     class FILTER_API pfb_channelizer_ccf : virtual public block
     {
     public:
@@ -151,7 +157,7 @@ namespace gr {
        * Print all of the filterbank taps to screen.
        */
       virtual void print_taps() = 0;
-      
+
       /*!
        * Return a vector<vector<>> of the filterbank taps
        */
@@ -159,10 +165,11 @@ namespace gr {
 
       /*!
        * Set the channel map. Channels are numbers as:
-       *
-       *     N/2+1 | ... | N-1 | 0 | 1 |  2 | ... | N/2
-       *    <------------------- 0 -------------------->
-       *                        freq
+       * <pre>
+       *  N/2+1 | ... | N-1 | 0 | 1 |  2 | ... | N/2
+       * <------------------- 0 -------------------->
+       *                     freq
+       * </pre>
        *
        * So output stream 0 comes from channel 0, etc. Setting a new
        * channel map allows the user to specify which channel in frequency
@@ -189,7 +196,7 @@ namespace gr {
        * the map is [0...M-1] with M = N.
        */
       virtual void set_channel_map(const std::vector<int> &map) = 0;
-      
+
       /*!
        * Gets the current channel map.
        */

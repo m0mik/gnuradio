@@ -93,7 +93,7 @@ SpectrumGUIClass::openSpectrumWindow(QWidget* parent,
       _realTimeDomainPoints = new double[_dataPoints];
       _imagTimeDomainPoints = new double[_dataPoints];
       _fftBuffersCreatedFlag = true;
-      
+
       memset(_fftPoints, 0x0, _dataPoints*sizeof(float));
       memset(_realTimeDomainPoints, 0x0, _dataPoints*sizeof(double));
       memset(_imagTimeDomainPoints, 0x0, _dataPoints*sizeof(double));
@@ -192,9 +192,10 @@ SpectrumGUIClass::setFrequencyRange(const double centerFreq,
   _startFrequency = startFreq;
   _stopFrequency = stopFreq;
 
-  _spectrumDisplayForm->setFrequencyRange(_centerFrequency,
-					  _startFrequency,
-					  _stopFrequency);
+  qApp->postEvent(_spectrumDisplayForm,
+                  new SpectrumFrequencyRangeEvent(_centerFrequency,
+                                                  _startFrequency,
+                                                  _stopFrequency));
 }
 
 double
@@ -265,10 +266,10 @@ SpectrumGUIClass::updateWindow(const bool updateDisplayFlag,
     }
 
     if((complexTimeDomainData != NULL) && (complexTimeDomainDataSize > 0)) {
-      volk_32fc_deinterleave_64f_x2_a(_realTimeDomainPoints,
-                                      _imagTimeDomainPoints,
-				      (const lv_32fc_t *)complexTimeDomainData,
-				      complexTimeDomainDataSize);
+      volk_32fc_deinterleave_64f_x2(_realTimeDomainPoints,
+                                    _imagTimeDomainPoints,
+                                    (const lv_32fc_t *)complexTimeDomainData,
+                                    complexTimeDomainDataSize);
       timeDomainBufferSize = complexTimeDomainDataSize;
     }
   }
@@ -358,15 +359,17 @@ SpectrumGUIClass::getFFTSizeIndex()
 {
   gr::thread::scoped_lock lock(d_mutex);
   int fftsize = getFFTSize();
+  int rv = 0;
   switch(fftsize) {
-  case(1024): return 0; break;
-  case(2048): return 1; break;
-  case(4096): return 2; break;
-  case(8192): return 3; break;
-  case(16384): return 3; break;
-  case(32768): return 3; break;
-  default: return 0;
+  case(1024): rv = 0; break;
+  case(2048): rv = 1; break;
+  case(4096): rv = 2; break;
+  case(8192): rv = 3; break;
+  case(16384): rv = 3; break;
+  case(32768): rv = 3; break;
+  default: rv = 0; break;
   }
+  return rv;
 }
 
 void
@@ -470,5 +473,25 @@ SpectrumGUIClass::setUpdateTime(double t)
   _spectrumDisplayForm->setUpdateTime(_updateTime);
 }
 
+void
+SpectrumGUIClass::enableRFFreq(bool en)
+{
+  gr::thread::scoped_lock lock(d_mutex);
+  _spectrumDisplayForm->toggleRFFrequencies(en);
+}
+
+bool
+SpectrumGUIClass::checkClicked()
+{
+  gr::thread::scoped_lock lock(d_mutex);
+  return _spectrumDisplayForm->checkClicked();
+}
+
+float
+SpectrumGUIClass::getClickedFreq()
+{
+  gr::thread::scoped_lock lock(d_mutex);
+  return _spectrumDisplayForm->getClickedFreq();
+}
 
 #endif /* SPECTRUM_GUI_CLASS_CPP */

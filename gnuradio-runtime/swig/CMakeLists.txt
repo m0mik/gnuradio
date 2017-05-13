@@ -27,7 +27,6 @@ set(GR_SWIG_INCLUDE_DIRS
     ${GNURADIO_RUNTIME_INCLUDE_DIRS}
     ${GNURADIO_RUNTIME_SWIG_INCLUDE_DIRS}
     ${CMAKE_CURRENT_BINARY_DIR}
-    ${LOG4CPP_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
 )
 
@@ -40,11 +39,11 @@ set(GR_SWIG_LIBRARIES
 )
 
 ###############################################################
-#    Build pmt swig 
+#    Build pmt swig
 ###############################################################
 
 set(GR_SWIG_DOC_FILE ${CMAKE_CURRENT_BINARY_DIR}/pmt_swig_doc.i)
-set(GR_SWIG_DOC_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../include/pmt 
+set(GR_SWIG_DOC_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../include/pmt
   ${CMAKE_CURRENT_BINARY_DIR}/../include/pmt)
 list(APPEND GR_SWIG_TARGET_DEPS pmt_generated)
 GR_SWIG_MAKE(pmt_swig pmt_swig.i)
@@ -58,7 +57,7 @@ GR_SWIG_INSTALL(
 add_custom_target(pmt_swig DEPENDS ${SWIG_MODULE_pmt_swig_REAL_NAME})
 
 ###############################################################
-#    Build gnuradio-runtime swig 
+#    Build gnuradio-runtime swig
 ###############################################################
 
 # Only use if log4cpp is installed
@@ -70,8 +69,6 @@ endif(ENABLE_GR_LOG)
 if(ENABLE_GR_CTRLPORT)
   ADD_DEFINITIONS(-DGR_CTRLPORT)
   list(APPEND GR_SWIG_FLAGS -DGR_CTRLPORT)
-  list(APPEND GR_SWIG_LIBRARIES ${ICE_LIBRARIES})
-  list(APPEND GR_SWIG_INCLUDE_DIRS ${ICE_INCLUDE_DIR})
 endif(ENABLE_GR_CTRLPORT)
 
 set(GR_SWIG_DOC_FILE ${CMAKE_CURRENT_BINARY_DIR}/runtime_swig_doc.i)

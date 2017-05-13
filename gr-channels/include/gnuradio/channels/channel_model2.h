@@ -29,9 +29,10 @@
 
 namespace gr {
   namespace channels {
-    
+
     /*!
-     * \brief channel model2
+     * \brief Basic channel simulator allowing time-varying frequency
+     * and timing inputs.
      * \ingroup channel_models_blk
      *
      * \details
@@ -40,11 +41,13 @@ namespace gr {
      * waveforms, and algorithms.
      *
      * This model allows the user to set the voltage of an AWGN noise
-     * source, an initial timing offset, and a noise seed to randomize
-     * the AWGN noise source.
+     * source (\p noise_voltage), an initial timing offset (\p
+     * epsilon), and a seed (\p noise_seed) to randomize the AWGN
+     * noise source.
      *
      * Multipath can be approximated in this model by using a FIR
-     * filter representation of a multipath delay profile.
+     * filter representation of a multipath delay profile with the
+     * parameter \p taps.
      *
      * Unlike gr::channels::channel_model, this block is designed to
      * enable time-varying frequency and timing offsets.
@@ -81,11 +84,13 @@ namespace gr {
        *                the transmitter and receiver. 1.0 is no difference.
        * \param taps Taps of a FIR filter to emulate a multipath delay profile.
        * \param noise_seed A random number generator seed for the noise source.
+       * \param block_tags If true, tags will not be able to propagate through this block.
        */
       static sptr make(double noise_voltage=0.0,
 		       double epsilon=1.0,
 		       const std::vector<gr_complex> &taps=std::vector<gr_complex>(1,1),
-		       double noise_seed=0);
+		       double noise_seed=0,
+		       bool block_tags=false);
 
       virtual void set_noise_voltage(double noise_voltage) = 0;
       virtual void set_taps(const std::vector<gr_complex> &taps) = 0;

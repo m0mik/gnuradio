@@ -29,6 +29,7 @@
 <block>
   <name>PSK Demod</name>
   <key>digital_psk_demod</key>
+  <category>[Core]/Deprecated</category>
   <import>from gnuradio import digital</import>
   <make>digital.psk.psk_demod(
   constellation_points=$constellation_points,
@@ -120,7 +121,7 @@
     </option>
   </param>
   <param>
-    <name>Logging</name>
+    <name>Log</name>
     <key>log</key>
     <value>False</value>
     <type>bool</type>

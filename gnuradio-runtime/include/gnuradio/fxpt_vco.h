@@ -34,7 +34,7 @@ namespace gr {
    * \ingroup misc
    */
   class /*GR_RUNTIME_API*/ fxpt_vco {
-    gr_int32 d_phase;
+    int32_t d_phase;
 
   public:
     fxpt_vco () : d_phase(0) {}
@@ -50,7 +50,7 @@ namespace gr {
       d_phase += fxpt::float_to_fixed(delta_phase);
     }
 
-    float get_phase() const { 
+    float get_phase() const {
       return fxpt::fixed_to_float(d_phase);
     }
 

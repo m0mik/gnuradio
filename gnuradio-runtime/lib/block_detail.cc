@@ -44,8 +44,9 @@ namespace gr {
       d_input(ninputs), d_output(noutputs),
       d_done(false),
       d_ins_noutput_items(0),
-      d_avg_noutput_items(0), 
+      d_avg_noutput_items(0),
       d_var_noutput_items(0),
+      d_total_noutput_items(0),
       d_ins_nproduced(0),
       d_avg_nproduced(0),
       d_var_nproduced(0),
@@ -58,9 +59,11 @@ namespace gr {
       d_ins_work_time(0),
       d_avg_work_time(0),
       d_var_work_time(0),
+      d_avg_throughput(0),
       d_pc_counter(0)
   {
     s_ncurrently_allocated++;
+    d_pc_start_time = gr::high_res_timer_now();
   }
 
   block_detail::~block_detail()
@@ -107,14 +110,22 @@ namespace gr {
   void
   block_detail::consume(int which_input, int how_many_items)
   {
+    d_consumed = how_many_items;
     if(how_many_items > 0) {
       input(which_input)->update_read_pointer(how_many_items);
     }
   }
 
+  int
+  block_detail::consumed() const
+  {
+    return d_consumed;
+  }
+
   void
   block_detail::consume_each(int how_many_items)
   {
+    d_consumed = how_many_items;
     if(how_many_items > 0) {
       for(int i = 0; i < ninputs (); i++) {
         d_input[i]->update_read_pointer(how_many_items);
@@ -159,6 +170,26 @@ namespace gr {
   }
 
   void
+  block_detail::reset_nitem_counters()
+  {
+    for(unsigned int i = 0; i < d_ninputs; i++) {
+      d_input[i]->reset_nitem_counter();
+    }
+    for(unsigned int o = 0; o < d_noutputs; o++) {
+      d_output[o]->reset_nitem_counter();
+    }
+  }
+
+  void
+  block_detail::clear_tags()
+  {
+    for(unsigned int i = 0; i < d_ninputs; i++) {
+      uint64_t max_time = 0xFFFFFFFFFFFFFFFF; // from now to the end of time
+      d_input[i]->buffer()->prune_tags(max_time);
+    }
+  }
+
+  void
   block_detail::add_item_tag(unsigned int which_output, const tag_t &tag)
   {
     if(!pmt::is_symbol(tag.key)) {
@@ -191,7 +222,7 @@ namespace gr {
   {
     // get from gr_buffer_reader's deque of tags
     d_input[which_input]->get_tags_in_range(v, abs_start, abs_end, id);
-  }
+   }
 
   void
   block_detail::get_tags_in_range(std::vector<tag_t> &v,
@@ -240,7 +271,7 @@ namespace gr {
     }
   }
 
-  int 
+  int
   block_detail::thread_priority(){
     if(threaded) {
       return gr::thread::thread_priority(thread);
@@ -248,7 +279,7 @@ namespace gr {
     return -1;
   }
 
-  int 
+  int
   block_detail::set_thread_priority(int priority){
     if(threaded) {
       return gr::thread::set_thread_priority(thread,priority);
@@ -272,12 +303,15 @@ namespace gr {
       d_ins_work_time = diff;
       d_avg_work_time = diff;
       d_var_work_time = 0;
+      d_total_work_time = diff;
       d_ins_nproduced = nproduced;
       d_avg_nproduced = nproduced;
       d_var_nproduced = 0;
       d_ins_noutput_items = noutput_items;
       d_avg_noutput_items = noutput_items;
       d_var_noutput_items = 0;
+      d_total_noutput_items = noutput_items;
+      d_pc_start_time = (float)gr::high_res_timer_now();
       for(size_t i=0; i < d_input.size(); i++) {
 	gr::thread::scoped_lock guard(*d_input[i]->mutex());
         float pfull = static_cast<float>(d_input[i]->items_available()) /
@@ -300,6 +334,7 @@ namespace gr {
       d_ins_work_time = diff;
       d_avg_work_time = d_avg_work_time + d/d_pc_counter;
       d_var_work_time = d_var_work_time + d*d;
+      d_total_work_time += diff;
 
       d = nproduced - d_avg_nproduced;
       d_ins_nproduced = nproduced;
@@ -310,12 +345,16 @@ namespace gr {
       d_ins_noutput_items = noutput_items;
       d_avg_noutput_items = d_avg_noutput_items + d/d_pc_counter;
       d_var_noutput_items = d_var_noutput_items + d*d;
+      d_total_noutput_items += noutput_items;
+      d_pc_last_work_time = gr::high_res_timer_now();
+      float monitor_time = (float)(d_pc_last_work_time - d_pc_start_time) / (float)gr::high_res_timer_tps();
+      d_avg_throughput = d_total_noutput_items / monitor_time;
 
       for(size_t i=0; i < d_input.size(); i++) {
 	gr::thread::scoped_lock guard(*d_input[i]->mutex());
         float pfull = static_cast<float>(d_input[i]->items_available()) /
           static_cast<float>(d_input[i]->max_possible_items_available());
-      
+
         d = pfull - d_avg_input_buffers_full[i];
         d_ins_input_buffers_full[i] = pfull;
         d_avg_input_buffers_full[i] = d_avg_input_buffers_full[i] + d/d_pc_counter;
@@ -493,4 +532,14 @@ namespace gr {
     return d_var_work_time/(d_pc_counter-1);
   }
 
+  float
+  block_detail::pc_work_time_total()
+  {
+    return d_total_work_time;
+  }
+
+  float
+  block_detail::pc_throughput_avg() {
+    return d_avg_throughput;
+  }
 } /* namespace gr */

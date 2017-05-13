@@ -1,6 +1,15 @@
+# Copyright (C) 2017 Free Software Foundation, Inc.
+#
+# Permission is granted to copy, distribute and/or modify this document
+# under the terms of the GNU Free Documentation License, Version 1.3
+# or any later version published by the Free Software Foundation;
+# with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+# A copy of the license is included in the section entitled "GNU
+# Free Documentation License".
+
 /*! \page page_msg_passing Message Passing
 
-\section intro Introduction
+\section msg_passing_introduction Introduction
 
 GNU Radio was originally a streaming system with no other mechanism to
 pass data between blocks. Streams of data are a model that work well
@@ -30,7 +39,7 @@ The message passing interface heavily relies on Polymorphic Types
 (PMTs) in GNU Radio. For further information about these data
 structures, see the page \ref page_pmt.
 
-\section api Message Passing API
+\section msg_passing_api Message Passing API
 
 The message passing interface is designed into the gr::basic_block,
 which is the parent class for all blocks in GNU Radio. Each block has
@@ -69,14 +78,14 @@ have subscribed and uses the gr::basic_block::_post method to send the
 message to that block's message queue.
 
 
-\subsection msg_handler Message Handler Functions
+\subsection msg_passing_msg_handler Message Handler Functions
 
 A subscriber block must declare a message handler function to process
 the messages that are posted to it. After using the
 gr::basic_block::message_port_register_in to declare a subscriber port, we
 must then bind this port to the message handler. For this, we use
 Boost's 'bind' function:
- 
+
 \code
   set_msg_handler(pmt::pmt_t port_id,
     boost::bind(&block_class::message_handler_function, this, _1));
@@ -98,7 +107,7 @@ is:
 We give an example of using this below.
 
 
-\subsection msg_fg_connect Connecting Messages through the Flowgraph
+\subsection msg_passing_fg_connect Connecting Messages through the Flowgraph
 
 From the flowgraph level, we have instrumented a gr::hier_block2::msg_connect
 method to make it easy to subscribe blocks to other blocks'
@@ -114,7 +123,7 @@ All messages published by the \b src block on port \a pdus will be
 received by \b dbg on port \a print. Note here how we are just using
 strings to define the ports, not PMT symbols. This is a convenience to
 the user to be able to more easily type in the port names (for
-reference, you can create a PMT symbol in Python using the 
+reference, you can create a PMT symbol in Python using the
 pmt::intern function as pmt.intern("string")).
 
 Users can also query blocks for the names of their input and output
@@ -145,7 +154,12 @@ function. When a new message is pushed onto a port's message queue,
 it is this function that is used to process the message.
 
 
-\section examples Code Examples
+\section msg_passing_python Message Passing in Python Blocks
+
+ADD STUFF HERE
+
+
+\section msg_passing_examples Code Examples
 
 The following is snippets of code from blocks current in GNU Radio
 that take advantage of message passing. We will be using
@@ -234,7 +248,7 @@ shown below.
 
 \code
 void
-tagged_stream_to_pdu_impl::send_meassage()
+tagged_stream_to_pdu_impl::send_message()
 {
   if(pmt::length(d_pdu_vector) != d_pdu_length) {
     throw std::runtime_error("msg length not correct");
@@ -267,7 +281,7 @@ them. The data is then converted into an output stream of items and
 passed along. The next section describes how PDUs can be passed into a
 flowgraph using the gr::blocks::pdu_to_tagged_stream block.
 
-\section posting Posting from External Sources
+\section msg_passing_posting Posting from External Sources
 
 The last feature of the message passing architecture to discuss here
 is how it can be used to take in messages from an external source. We
@@ -305,5 +319,45 @@ file qa_pdu.py.
 
 There are some examples of using the message passing infrastructure
 through GRC in gr-blocks/examples/msg_passing.
+
+\section msg_passing_commands Using messages as commands
+
+Messages can be used to send commands to blocks. Examples for this include:
+
+- gr::qtgui::freq_sink_c: The scaling of the frequency axis can be changed by messages
+- gr::uhd::usrp_source and gr::uhd::usrp_sink: Many transceiver-related settings can
+  be manipulated through command messages, such as frequency, gain and LO offset
+- gr::digital::header_payload_demux, which receives an acknowledgement from a header parser
+  block on how many payload items there are to process
+
+There is no special PMT type to encode commands, however, it is strongly recommended
+to use one of the following formats:
+
+- pmt::cons(KEY, VALUE): This format is useful for commands that take a single value.
+  Think of KEY and VALUE as the argument name and value, respectively. For the case of
+  the QT GUI Frequency Sink, KEY would be "freq" and VALUE would be the new center frequency
+  in Hz.
+- pmt::dict((KEY1: VALUE1), (KEY2: VALUE2), ...): This is basically the same as the
+  previous format, but you can provide multiple key/value pairs. This is particularly
+  useful when a single command takes multiple arguments which can't be broken into
+  multiple command messages (e.g., the USRP blocks might have both a timestamp and a
+  center frequency in a command message, which are closely associated).
+
+In both cases, all KEYs should be pmt::symbols (i.e. strings). VALUEs can be
+whatever the block requires.
+
+It might be tempting to deviate from this format, e.g. the QT Frequency sink could
+simply take a float value as a command message, and it would still work fine.
+However, there are some very good reasons to stick to this format:
+
+- Interoperability: The more people use the standard format, the more likely it
+  is that blocks from different sources can work together
+- Inspectability: A message debug block will display more useful information about
+  a message if its containing both a value and a key
+- Intuition: This format is pretty versatile and unlikely to create situations
+  where it is not sufficient (especially considering that values are PMTs themselves).
+  As a counterexample, using positional arguments (something like "the first argument
+  is the frequency, the second the gain") is easily forgotten, or changed in one place
+  and not another, etc.
 
 */

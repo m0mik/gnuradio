@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2012 Free Software Foundation, Inc.
+ * Copyright 2012,2014 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -30,11 +30,10 @@
 %{
 #include "gnuradio/filter/firdes.h"
 #include "gnuradio/filter/pm_remez.h"
-#include "gnuradio/filter/adaptive_fir_ccc.h"
-#include "gnuradio/filter/adaptive_fir_ccf.h"
 #include "gnuradio/filter/dc_blocker_cc.h"
 #include "gnuradio/filter/dc_blocker_ff.h"
 #include "gnuradio/filter/filter_delay_fc.h"
+#include "gnuradio/filter/filterbank_vcvcf.h"
 #include "gnuradio/filter/fir_filter_ccc.h"
 #include "gnuradio/filter/fir_filter_ccf.h"
 #include "gnuradio/filter/fir_filter_fcc.h"
@@ -42,6 +41,7 @@
 #include "gnuradio/filter/fir_filter_fsf.h"
 #include "gnuradio/filter/fir_filter_scc.h"
 #include "gnuradio/filter/fft_filter_ccc.h"
+#include "gnuradio/filter/fft_filter_ccf.h"
 #include "gnuradio/filter/fft_filter_fff.h"
 #include "gnuradio/filter/fractional_interpolator_cc.h"
 #include "gnuradio/filter/fractional_interpolator_ff.h"
@@ -55,6 +55,10 @@
 #include "gnuradio/filter/freq_xlating_fir_filter_scc.h"
 #include "gnuradio/filter/hilbert_fc.h"
 #include "gnuradio/filter/iir_filter_ffd.h"
+#include "gnuradio/filter/iir_filter_ccc.h"
+#include "gnuradio/filter/iir_filter_ccf.h"
+#include "gnuradio/filter/iir_filter_ccd.h"
+#include "gnuradio/filter/iir_filter_ccz.h"
 #include "gnuradio/filter/interp_fir_filter_ccc.h"
 #include "gnuradio/filter/interp_fir_filter_ccf.h"
 #include "gnuradio/filter/interp_fir_filter_fcc.h"
@@ -62,6 +66,7 @@
 #include "gnuradio/filter/interp_fir_filter_fsf.h"
 #include "gnuradio/filter/interp_fir_filter_scc.h"
 #include "gnuradio/filter/pfb_arb_resampler_ccf.h"
+#include "gnuradio/filter/pfb_arb_resampler_ccc.h"
 #include "gnuradio/filter/pfb_arb_resampler_fff.h"
 #include "gnuradio/filter/pfb_channelizer_ccf.h"
 #include "gnuradio/filter/pfb_decimator_ccf.h"
@@ -79,11 +84,10 @@
 
 %include "gnuradio/filter/firdes.h"
 %include "gnuradio/filter/pm_remez.h"
-%include "gnuradio/filter/adaptive_fir_ccc.h"
-%include "gnuradio/filter/adaptive_fir_ccf.h"
 %include "gnuradio/filter/dc_blocker_cc.h"
 %include "gnuradio/filter/dc_blocker_ff.h"
 %include "gnuradio/filter/filter_delay_fc.h"
+%include "gnuradio/filter/filterbank_vcvcf.h"
 %include "gnuradio/filter/fir_filter_ccc.h"
 %include "gnuradio/filter/fir_filter_ccf.h"
 %include "gnuradio/filter/fir_filter_fcc.h"
@@ -91,6 +95,7 @@
 %include "gnuradio/filter/fir_filter_fsf.h"
 %include "gnuradio/filter/fir_filter_scc.h"
 %include "gnuradio/filter/fft_filter_ccc.h"
+%include "gnuradio/filter/fft_filter_ccf.h"
 %include "gnuradio/filter/fft_filter_fff.h"
 %include "gnuradio/filter/fractional_interpolator_cc.h"
 %include "gnuradio/filter/fractional_interpolator_ff.h"
@@ -104,6 +109,10 @@
 %include "gnuradio/filter/freq_xlating_fir_filter_scc.h"
 %include "gnuradio/filter/hilbert_fc.h"
 %include "gnuradio/filter/iir_filter_ffd.h"
+%include "gnuradio/filter/iir_filter_ccc.h"
+%include "gnuradio/filter/iir_filter_ccf.h"
+%include "gnuradio/filter/iir_filter_ccd.h"
+%include "gnuradio/filter/iir_filter_ccz.h"
 %include "gnuradio/filter/interp_fir_filter_ccc.h"
 %include "gnuradio/filter/interp_fir_filter_ccf.h"
 %include "gnuradio/filter/interp_fir_filter_fcc.h"
@@ -111,6 +120,7 @@
 %include "gnuradio/filter/interp_fir_filter_fsf.h"
 %include "gnuradio/filter/interp_fir_filter_scc.h"
 %include "gnuradio/filter/pfb_arb_resampler_ccf.h"
+%include "gnuradio/filter/pfb_arb_resampler_ccc.h"
 %include "gnuradio/filter/pfb_arb_resampler_fff.h"
 %include "gnuradio/filter/pfb_channelizer_ccf.h"
 %include "gnuradio/filter/pfb_decimator_ccf.h"
@@ -125,11 +135,10 @@
 %include "gnuradio/filter/single_pole_iir_filter_cc.h"
 %include "gnuradio/filter/single_pole_iir_filter_ff.h"
 
-GR_SWIG_BLOCK_MAGIC2(filter, adaptive_fir_ccc);
-GR_SWIG_BLOCK_MAGIC2(filter, adaptive_fir_ccf);
 GR_SWIG_BLOCK_MAGIC2(filter, dc_blocker_cc);
 GR_SWIG_BLOCK_MAGIC2(filter, dc_blocker_ff);
 GR_SWIG_BLOCK_MAGIC2(filter, filter_delay_fc);
+GR_SWIG_BLOCK_MAGIC2(filter, filterbank_vcvcf);
 GR_SWIG_BLOCK_MAGIC2(filter, fir_filter_ccc);
 GR_SWIG_BLOCK_MAGIC2(filter, fir_filter_ccf);
 GR_SWIG_BLOCK_MAGIC2(filter, fir_filter_fcc);
@@ -137,6 +146,7 @@ GR_SWIG_BLOCK_MAGIC2(filter, fir_filter_fff);
 GR_SWIG_BLOCK_MAGIC2(filter, fir_filter_fsf);
 GR_SWIG_BLOCK_MAGIC2(filter, fir_filter_scc);
 GR_SWIG_BLOCK_MAGIC2(filter, fft_filter_ccc);
+GR_SWIG_BLOCK_MAGIC2(filter, fft_filter_ccf);
 GR_SWIG_BLOCK_MAGIC2(filter, fft_filter_fff);
 GR_SWIG_BLOCK_MAGIC2(filter, fractional_interpolator_cc);
 GR_SWIG_BLOCK_MAGIC2(filter, fractional_interpolator_ff);
@@ -150,6 +160,10 @@ GR_SWIG_BLOCK_MAGIC2(filter, freq_xlating_fir_filter_scf);
 GR_SWIG_BLOCK_MAGIC2(filter, freq_xlating_fir_filter_scc);
 GR_SWIG_BLOCK_MAGIC2(filter, hilbert_fc);
 GR_SWIG_BLOCK_MAGIC2(filter, iir_filter_ffd);
+GR_SWIG_BLOCK_MAGIC2(filter, iir_filter_ccc);
+GR_SWIG_BLOCK_MAGIC2(filter, iir_filter_ccf);
+GR_SWIG_BLOCK_MAGIC2(filter, iir_filter_ccd);
+GR_SWIG_BLOCK_MAGIC2(filter, iir_filter_ccz);
 GR_SWIG_BLOCK_MAGIC2(filter, interp_fir_filter_ccc);
 GR_SWIG_BLOCK_MAGIC2(filter, interp_fir_filter_ccf);
 GR_SWIG_BLOCK_MAGIC2(filter, interp_fir_filter_fcc);
@@ -157,6 +171,7 @@ GR_SWIG_BLOCK_MAGIC2(filter, interp_fir_filter_fff);
 GR_SWIG_BLOCK_MAGIC2(filter, interp_fir_filter_fsf);
 GR_SWIG_BLOCK_MAGIC2(filter, interp_fir_filter_scc);
 GR_SWIG_BLOCK_MAGIC2(filter, pfb_arb_resampler_ccf);
+GR_SWIG_BLOCK_MAGIC2(filter, pfb_arb_resampler_ccc);
 GR_SWIG_BLOCK_MAGIC2(filter, pfb_arb_resampler_fff);
 GR_SWIG_BLOCK_MAGIC2(filter, pfb_channelizer_ccf);
 GR_SWIG_BLOCK_MAGIC2(filter, pfb_decimator_ccf);

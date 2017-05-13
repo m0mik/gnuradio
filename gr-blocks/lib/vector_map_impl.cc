@@ -50,7 +50,7 @@ namespace gr {
         out_sizeofs.push_back(mapping[i].size()*item_size);
       }
       return out_sizeofs;
-    } 
+    }
 
     vector_map::sptr
     vector_map::make(size_t item_size, std::vector<size_t> in_vlens,
@@ -90,7 +90,7 @@ namespace gr {
           if(s >= d_in_vlens.size()) {
             throw std::runtime_error("Stream numbers in mapping must be less than the number of input streams.");
           }
-          if((index < 0) || (index >= d_in_vlens[s])) {
+          if(index >= d_in_vlens[s]) {
             throw std::runtime_error ("Indices in mapping must be greater than 0 and less than the input vector lengths.");
           }
         }

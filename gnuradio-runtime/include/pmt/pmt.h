@@ -88,6 +88,25 @@ public:
   notimplemented(const std::string &msg, pmt_t obj);
 };
 
+
+/*
+ * ------------------------------------------------------------------------
+ * Constants
+ * ------------------------------------------------------------------------
+ */
+
+PMT_API pmt_t get_PMT_NIL();
+PMT_API pmt_t get_PMT_T();
+PMT_API pmt_t get_PMT_F();
+PMT_API pmt_t get_PMT_EOF();
+
+#define PMT_NIL get_PMT_NIL()
+#define PMT_T get_PMT_T()
+#define PMT_F get_PMT_F()
+#define PMT_EOF get_PMT_EOF()
+
+
+
 /*
  * ------------------------------------------------------------------------
  * Booleans.  Two constants, #t and #f.
@@ -96,8 +115,6 @@ public:
  * I.e., there is a single false value, #f.
  * ------------------------------------------------------------------------
  */
-extern PMT_API const pmt_t PMT_T;	//< \#t : boolean true constant
-extern PMT_API const pmt_t PMT_F;	//< \#f : boolean false constant
 
 //! Return true if obj is \#t or \#f, else return false.
 PMT_API bool is_bool(pmt_t obj);
@@ -201,6 +218,7 @@ PMT_API bool is_real(pmt_t obj);
 
 //! Return the pmt value that represents double \p x.
 PMT_API pmt_t from_double(double x);
+PMT_API pmt_t from_float(float x);
 
 /*!
  * \brief Convert pmt to double if possible.
@@ -210,6 +228,15 @@ PMT_API pmt_t from_double(double x);
  * a wrong_type exception is raised.
  */
 PMT_API double to_double(pmt_t x);
+
+/*!
+ * \brief Convert pmt to float if possible.
+ *
+ * This basically is to_double() with a type-cast; the PMT stores
+ * the value as a double in any case. Use this when strict typing
+ * is required.
+ */
+PMT_API float to_float(pmt_t x);
 
 /*
  * ------------------------------------------------------------------------
@@ -249,12 +276,10 @@ PMT_API std::complex<double> to_complex(pmt_t z);
  * ------------------------------------------------------------------------
  */
 
-extern PMT_API const pmt_t PMT_NIL;	//< the empty list
-
 //! Return true if \p x is the empty list, otherwise return false.
 PMT_API bool is_null(const pmt_t& x);
 
-//! Return true if \p obj is a pair, else false.
+//! Return true if \p obj is a pair, else false (warning: also returns true for a dict)
 PMT_API bool is_pair(const pmt_t& obj);
 
 //! Return a newly allocated pair whose car is \p x and whose cdr is \p y.
@@ -370,7 +395,6 @@ PMT_API size_t blob_length(pmt_t blob);
 
 /*!
  * <pre>
- * ------------------------------------------------------------------------
  *		       Uniform Numeric Vectors
  *
  * A uniform numeric vector is a vector whose elements are all of single
@@ -393,7 +417,6 @@ PMT_API size_t blob_length(pmt_t blob);
  *   f64  the C++ type double
  *   c32  the C++ type complex<float>
  *   c64  the C++ type complex<double>
- * ------------------------------------------------------------------------
  * </pre>
  */
 
@@ -412,6 +435,9 @@ PMT_API bool is_f32vector(pmt_t x);
 PMT_API bool is_f64vector(pmt_t x);
 PMT_API bool is_c32vector(pmt_t x);
 PMT_API bool is_c64vector(pmt_t x);
+
+//! item size in bytes if \p x is any kind of uniform numeric vector
+PMT_API size_t uniform_vector_itemsize(pmt_t x);
 
 PMT_API pmt_t make_u8vector(size_t k, uint8_t fill);
 PMT_API pmt_t make_s8vector(size_t k, int8_t fill);
@@ -549,7 +575,7 @@ PMT_API std::complex<double> *c64vector_writable_elements(pmt_t v, size_t &len);
  * ------------------------------------------------------------------------
  */
 
-//! Return true if \p obj is a dictionary
+//! Return true if \p obj is a dictionary (warning: also returns true for a pair)
 PMT_API bool is_dict(const pmt_t &obj);
 
 //! Make an empty dictionary
@@ -572,6 +598,9 @@ PMT_API pmt_t dict_items(pmt_t dict);
 
 //! Return list of keys
 PMT_API pmt_t dict_keys(pmt_t dict);
+
+//! Return a new dictionary \p dict1 with k=>v pairs from \p dict2 added.
+PMT_API pmt_t dict_update(const pmt_t &dict1, const pmt_t &dict2);
 
 //! Return list of values
 PMT_API pmt_t dict_values(pmt_t dict);
@@ -800,7 +829,6 @@ PMT_API bool list_has(pmt_t list, const pmt_t& item);
  *			     read / write
  * ------------------------------------------------------------------------
  */
-extern PMT_API const pmt_t PMT_EOF;	//< The end of file object
 
 //! return true if obj is the EOF object, otherwise return false.
 PMT_API bool is_eof_object(pmt_t obj);
@@ -873,11 +901,18 @@ PMT_API pmt_t deserialize_str(std::string str);
 /*!
  * \brief Provide a comparator function object to allow pmt use in stl types
  */
+class comparator {
+    public:
+        bool operator()(pmt::pmt_t const& p1, pmt::pmt_t const& p2) const
+            { return pmt::eqv(p1,p2)?false:p1.get()>p2.get(); }
+};
+
+// FIXME: Remove in 3.8.
 class comperator {
     public:
         bool operator()(pmt::pmt_t const& p1, pmt::pmt_t const& p2) const
             { return pmt::eqv(p1,p2)?false:p1.get()>p2.get(); }
-    };
+};
 
 } /* namespace pmt */
 

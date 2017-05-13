@@ -26,7 +26,7 @@ Templates = {}
 
 # Default licence
 Templates['defaultlicense'] = '''
-Copyright %d <+YOU OR YOUR COMPANY+>.
+Copyright %d ${copyrightholder}.
 
 This is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -44,13 +44,34 @@ the Free Software Foundation, Inc., 51 Franklin Street,
 Boston, MA 02110-1301, USA.
 ''' % datetime.now().year
 
+Templates['grlicense'] = '''
+Copyright %d Free Software Foundation, Inc.
+
+This file is part of GNU Radio
+
+GNU Radio is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3, or (at your option)
+any later version.
+
+GNU Radio is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with GNU Radio; see the file COPYING.  If not, write to
+the Free Software Foundation, Inc., 51 Franklin Street,
+Boston, MA 02110-1301, USA.
+''' % datetime.now().year
+
 # Header file of a sync/decimator/interpolator block
 Templates['block_impl_h'] = '''/* -*- c++ -*- */
 ${str_to_fancyc_comment($license)}
 \#ifndef INCLUDED_${modname.upper()}_${blockname.upper()}_IMPL_H
 \#define INCLUDED_${modname.upper()}_${blockname.upper()}_IMPL_H
 
-\#include <${modname}/${blockname}.h>
+\#include <${include_dir_prefix}/${blockname}.h>
 
 namespace gr {
   namespace ${modname} {
@@ -74,20 +95,20 @@ namespace gr {
       void forecast (int noutput_items, gr_vector_int &ninput_items_required);
 
       int general_work(int noutput_items,
-		       gr_vector_int &ninput_items,
-		       gr_vector_const_void_star &input_items,
-		       gr_vector_void_star &output_items);
+           gr_vector_int &ninput_items,
+           gr_vector_const_void_star &input_items,
+           gr_vector_void_star &output_items);
 #else if $blocktype == 'tagged_stream'
       int work(int noutput_items,
-		       gr_vector_int &ninput_items,
-		       gr_vector_const_void_star &input_items,
-		       gr_vector_void_star &output_items);
+           gr_vector_int &ninput_items,
+           gr_vector_const_void_star &input_items,
+           gr_vector_void_star &output_items);
 #else if $blocktype == 'hier'
 #silent pass
 #else
       int work(int noutput_items,
-	       gr_vector_const_void_star &input_items,
-	       gr_vector_void_star &output_items);
+         gr_vector_const_void_star &input_items,
+         gr_vector_void_star &output_items);
 #end if
     };
 
@@ -107,7 +128,7 @@ ${str_to_fancyc_comment($license)}
 
 \#include <gnuradio/io_signature.h>
 #if $blocktype == 'noblock'
-\#include <${modname}/${blockname}.h>
+\#include <${include_dir_prefix}/${blockname}.h>
 #else
 \#include "${blockname}_impl.h"
 #end if
@@ -159,9 +180,9 @@ namespace gr {
               gr::io_signature::make($outputsig)$decimation)
 #if $blocktype == 'hier'
     {
-        connect(self(), 0, d_firstblock, 0);
-        // connect other blocks
-        connect(d_lastblock, 0, self(), 0);
+      connect(self(), 0, d_firstblock, 0);
+      // connect other blocks
+      connect(d_lastblock, 0, self(), 0);
     }
 #else
     {}
@@ -178,7 +199,7 @@ namespace gr {
     void
     ${blockname}_impl::forecast (int noutput_items, gr_vector_int &ninput_items_required)
     {
-        /* <+forecast+> e.g. ninput_items_required[0] = noutput_items */
+      /* <+forecast+> e.g. ninput_items_required[0] = noutput_items */
     }
 
     int
@@ -187,16 +208,16 @@ namespace gr {
                        gr_vector_const_void_star &input_items,
                        gr_vector_void_star &output_items)
     {
-        const <+ITYPE*> *in = (const <+ITYPE*> *) input_items[0];
-        <+OTYPE*> *out = (<+OTYPE*> *) output_items[0];
+      const <+ITYPE+> *in = (const <+ITYPE+> *) input_items[0];
+      <+OTYPE+> *out = (<+OTYPE+> *) output_items[0];
 
-        // Do <+signal processing+>
-        // Tell runtime system how many input items we consumed on
-        // each input stream.
-        consume_each (noutput_items);
+      // Do <+signal processing+>
+      // Tell runtime system how many input items we consumed on
+      // each input stream.
+      consume_each (noutput_items);
 
-        // Tell runtime system how many output items we produced.
-        return noutput_items;
+      // Tell runtime system how many output items we produced.
+      return noutput_items;
     }
 #else if $blocktype == 'tagged_stream'
     int
@@ -212,37 +233,37 @@ namespace gr {
                        gr_vector_const_void_star &input_items,
                        gr_vector_void_star &output_items)
     {
-        const <+ITYPE+> *in = (const <+ITYPE+> *) input_items[0];
-        <+OTYPE+> *out = (<+OTYPE+> *) output_items[0];
+      const <+ITYPE+> *in = (const <+ITYPE+> *) input_items[0];
+      <+OTYPE+> *out = (<+OTYPE+> *) output_items[0];
 
-        // Do <+signal processing+>
+      // Do <+signal processing+>
 
-        // Tell runtime system how many output items we produced.
-        return noutput_items;
+      // Tell runtime system how many output items we produced.
+      return noutput_items;
     }
 #else if $blocktype == 'hier'
 #silent pass
 #else
     int
     ${blockname}_impl::work(int noutput_items,
-			  gr_vector_const_void_star &input_items,
-			  gr_vector_void_star &output_items)
+        gr_vector_const_void_star &input_items,
+        gr_vector_void_star &output_items)
     {
 #if $blocktype == 'source'
 #silent pass
 #else
-        const <+ITYPE+> *in = (const <+ITYPE+> *) input_items[0];
+      const <+ITYPE+> *in = (const <+ITYPE+> *) input_items[0];
 #end if
 #if $blocktype == 'sink'
 #silent pass
 #else
-        <+OTYPE+> *out = (<+OTYPE+> *) output_items[0];
+      <+OTYPE+> *out = (<+OTYPE+> *) output_items[0];
 #end if
 
-        // Do <+signal processing+>
+      // Do <+signal processing+>
 
-        // Tell runtime system how many output items we produced.
-        return noutput_items;
+      // Tell runtime system how many output items we produced.
+      return noutput_items;
     }
 #end if
 #end if
@@ -259,7 +280,7 @@ ${str_to_fancyc_comment($license)}
 \#ifndef INCLUDED_${modname.upper()}_${blockname.upper()}_H
 \#define INCLUDED_${modname.upper()}_${blockname.upper()}_H
 
-\#include <${modname}/api.h>
+\#include <${include_dir_prefix}/api.h>
 #if $blocktype != 'noblock'
 \#include <gnuradio/${grblocktype}.h>
 #end if
@@ -414,10 +435,10 @@ class ${blockname}(${parenttype}):
 Templates['qa_cpp'] = '''/* -*- c++ -*- */
 ${str_to_fancyc_comment($license)}
 
-\#include "qa_${blockname}.h"
+\#include <gnuradio/attributes.h>
 \#include <cppunit/TestAssert.h>
-
-\#include <$modname/${blockname}.h>
+\#include "qa_${blockname}.h"
+\#include <${include_dir_prefix}/${blockname}.h>
 
 namespace gr {
   namespace ${modname} {
@@ -425,7 +446,7 @@ namespace gr {
     void
     qa_${blockname}::t1()
     {
-        // Put test here
+      // Put test here
     }
 
   } /* namespace ${modname} */
@@ -471,6 +492,7 @@ ${str_to_python_comment($license)}
 #
 
 from gnuradio import gr, gr_unittest
+from gnuradio import blocks
 #if $lang == 'cpp'
 import ${modname}_swig as ${modname}
 #else
@@ -499,7 +521,7 @@ Templates['grc_xml'] = '''<?xml version="1.0"?>
 <block>
   <name>$blockname</name>
   <key>${modname}_$blockname</key>
-  <category>$modname</category>
+  <category>[$modname]</category>
   <import>import $modname</import>
   <make>${modname}.${blockname}(${strip_arg_types_grc($arglist)})</make>
   <!-- Make one 'param' node for every Parameter you want settable from the GUI.
@@ -548,7 +570,7 @@ GR_SWIG_BLOCK_MAGIC($modname, $blockname);
 #end if
 %include "${modname}_${blockname}.h"
 #else
-%include "${modname}/${blockname}.h"
+%include "${include_dir_prefix}/${blockname}.h"
 #if $blocktype != 'noblock'
 GR_SWIG_BLOCK_MAGIC2($modname, $blockname);
 #end if
@@ -580,7 +602,7 @@ ${modname}_${blockname}::~${modname}_${blockname}()
 ${modname}_${blockname}_sptr
 ${modname}_make_${blockname} (${strip_default_values($arglist)})
 {
-	return gnuradio::get_initial_sptr (new ${modname}_${blockname}(${strip_arg_types($arglist)}));
+  return gnuradio::get_initial_sptr (new ${modname}_${blockname}(${strip_arg_types($arglist)}));
 }
 
 #if $blocktype == 'decimator'
@@ -606,15 +628,15 @@ ${modname}_make_${blockname} (${strip_default_values($arglist)})
  */
 ${modname}_${blockname}::${modname}_${blockname} (${strip_default_values($arglist)})
   : gr_${grblocktype} ("${blockname}",
-		   gr_make_io_signature($inputsig),
-		   gr_make_io_signature($outputsig)$decimation)
+       gr_make_io_signature($inputsig),
+       gr_make_io_signature($outputsig)$decimation)
 {
 #if $blocktype == 'hier'
-		connect(self(), 0, d_firstblock, 0);
-		// <+connect other blocks+>
-		connect(d_lastblock, 0, self(), 0);
+  connect(self(), 0, d_firstblock, 0);
+  // <+connect other blocks+>
+  connect(d_lastblock, 0, self(), 0);
 #else
-	// Put in <+constructor stuff+> here
+  // Put in <+constructor stuff+> here
 #end if
 }
 
@@ -624,7 +646,7 @@ ${modname}_${blockname}::${modname}_${blockname} (${strip_default_values($arglis
  */
 ${modname}_${blockname}::~${modname}_${blockname}()
 {
-	// Put in <+destructor stuff+> here
+  // Put in <+destructor stuff+> here
 }
 #end if
 
@@ -633,41 +655,41 @@ ${modname}_${blockname}::~${modname}_${blockname}()
 void
 ${modname}_${blockname}::forecast (int noutput_items, gr_vector_int &ninput_items_required)
 {
-	/* <+forecast+> e.g. ninput_items_required[0] = noutput_items */
+  /* <+forecast+> e.g. ninput_items_required[0] = noutput_items */
 }
 
 int
 ${modname}_${blockname}::general_work (int noutput_items,
-				   gr_vector_int &ninput_items,
-				   gr_vector_const_void_star &input_items,
-				   gr_vector_void_star &output_items)
+           gr_vector_int &ninput_items,
+           gr_vector_const_void_star &input_items,
+           gr_vector_void_star &output_items)
 {
-	const <+ITYPE+> *in = (const <+ITYPE+> *) input_items[0];
-	<+OTYPE+> *out = (<+OTYPE+> *) output_items[0];
+  const <+ITYPE+> *in = (const <+ITYPE+> *) input_items[0];
+  <+OTYPE+> *out = (<+OTYPE+> *) output_items[0];
 
-	// Do <+signal processing+>
-	// Tell runtime system how many input items we consumed on
-	// each input stream.
-	consume_each (noutput_items);
+  // Do <+signal processing+>
+  // Tell runtime system how many input items we consumed on
+  // each input stream.
+  consume_each (noutput_items);
 
-	// Tell runtime system how many output items we produced.
-	return noutput_items;
+  // Tell runtime system how many output items we produced.
+  return noutput_items;
 }
 #else if $blocktype == 'hier' or $blocktype == 'noblock'
 #pass
 #else
 int
 ${modname}_${blockname}::work(int noutput_items,
-		  gr_vector_const_void_star &input_items,
-		  gr_vector_void_star &output_items)
+      gr_vector_const_void_star &input_items,
+      gr_vector_void_star &output_items)
 {
-	const <+ITYPE+> *in = (const <+ITYPE+> *) input_items[0];
-	<+OTYPE+> *out = (<+OTYPE+> *) output_items[0];
+  const <+ITYPE+> *in = (const <+ITYPE+> *) input_items[0];
+  <+OTYPE+> *out = (<+OTYPE+> *) output_items[0];
 
-	// Do <+signal processing+>
+  // Do <+signal processing+>
 
-	// Tell runtime system how many output items we produced.
-	return noutput_items;
+  // Tell runtime system how many output items we produced.
+  return noutput_items;
 }
 #end if
 
@@ -684,8 +706,8 @@ ${str_to_fancyc_comment($license)}
 #if $blocktype == 'noblock'
 class ${modname.upper()}_API $blockname
 {
-	${blockname}(${arglist});
-	~${blockname}();
+  ${blockname}(${arglist});
+  ~${blockname}();
  private:
 };
 
@@ -706,28 +728,28 @@ ${modname.upper()}_API ${modname}_${blockname}_sptr ${modname}_make_${blockname}
 class ${modname.upper()}_API ${modname}_${blockname} : public gr_$grblocktype
 {
  private:
-	friend ${modname.upper()}_API ${modname}_${blockname}_sptr ${modname}_make_${blockname} (${strip_default_values($arglist)});
+  friend ${modname.upper()}_API ${modname}_${blockname}_sptr ${modname}_make_${blockname} (${strip_default_values($arglist)});
 
-	${modname}_${blockname}(${strip_default_values($arglist)});
+  ${modname}_${blockname}(${strip_default_values($arglist)});
 
  public:
   ~${modname}_${blockname}();
 
 #if $blocktype == 'general'
-	void forecast (int noutput_items, gr_vector_int &ninput_items_required);
+  void forecast (int noutput_items, gr_vector_int &ninput_items_required);
 
-	// Where all the action really happens
-	int general_work (int noutput_items,
-	    gr_vector_int &ninput_items,
-	    gr_vector_const_void_star &input_items,
-	    gr_vector_void_star &output_items);
+  // Where all the action really happens
+  int general_work (int noutput_items,
+      gr_vector_int &ninput_items,
+      gr_vector_const_void_star &input_items,
+      gr_vector_void_star &output_items);
 #else if $blocktype == 'hier'
 #pass
 #else
-	// Where all the action really happens
-	int work (int noutput_items,
-	    gr_vector_const_void_star &input_items,
-	    gr_vector_void_star &output_items);
+  // Where all the action really happens
+  int work (int noutput_items,
+      gr_vector_const_void_star &input_items,
+      gr_vector_void_star &output_items);
 #end if
 };
 #end if

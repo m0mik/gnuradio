@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2009-2012 Free Software Foundation, Inc.
+ * Copyright 2009-2013 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -26,10 +26,13 @@
 
 #include <cstdio>
 #include <cmath>
+#include <algorithm>
 
 #include "pfb_clock_sync_ccf_impl.h"
 #include <gnuradio/io_signature.h>
 #include <gnuradio/math.h>
+#include <boost/format.hpp>
+#include <boost/math/special_functions/round.hpp>
 
 namespace gr {
   namespace digital {
@@ -65,11 +68,18 @@ namespace gr {
 	d_max_dev(max_rate_deviation),
 	d_osps(osps), d_error(0), d_out_idx(0)
     {
+      if(taps.size() == 0)
+        throw std::runtime_error("pfb_clock_sync_ccf: please specify a filter.\n");
+
+      // Let scheduler adjust our relative_rate.
+      //enable_update_rate(true);
+      set_tag_propagation_policy(TPP_DONT);
+
       d_nfilters = filter_size;
       d_sps = floor(sps);
 
       // Set the damping factor for a critically damped system
-      d_damping = sqrtf(2.0f)/2.0f;
+      d_damping = 2*d_nfilters;
 
       // Set the bandwidth, which will then call update_gains()
       set_loop_bandwidth(loop_bw);
@@ -87,7 +97,7 @@ namespace gr {
       d_diff_filters = std::vector<kernel::fir_filter_ccf*>(d_nfilters);
 
       // Create an FIR filter for each channel and zero out the taps
-      std::vector<float> vtaps(0, d_nfilters);
+      std::vector<float> vtaps(1,0);
       for(int i = 0; i < d_nfilters; i++) {
 	d_filters[i] = new kernel::fir_filter_ccf(1, vtaps);
 	d_diff_filters[i] = new kernel::fir_filter_ccf(1, vtaps);
@@ -98,6 +108,12 @@ namespace gr {
       create_diff_taps(taps, dtaps);
       set_taps(taps, d_taps, d_filters);
       set_taps(dtaps, d_dtaps, d_diff_filters);
+
+      d_old_in = 0;
+      d_new_in = 0;
+      d_last_out = 0;
+
+      set_relative_rate((float)d_osps/(float)d_sps);
     }
 
     pfb_clock_sync_ccf_impl::~pfb_clock_sync_ccf_impl()
@@ -112,6 +128,22 @@ namespace gr {
     pfb_clock_sync_ccf_impl::check_topology(int ninputs, int noutputs)
     {
       return noutputs == 1 || noutputs == 4;
+    }
+
+    void
+    pfb_clock_sync_ccf_impl::forecast(int noutput_items,
+                                      gr_vector_int &ninput_items_required)
+    {
+      unsigned ninputs = ninput_items_required.size ();
+      for(unsigned i = 0; i < ninputs; i++)
+        ninput_items_required[i] = (noutput_items + history()) * (d_sps/d_osps);
+    }
+
+    void
+    pfb_clock_sync_ccf_impl::update_taps(const std::vector<float> &taps)
+    {
+      d_updated_taps = taps;
+      d_updated = true;
     }
 
 
@@ -256,12 +288,10 @@ namespace gr {
       }
 
       // Set the history to ensure enough input items for each filter
-      set_history(d_taps_per_filter + d_sps);
+      set_history(d_taps_per_filter + d_sps + d_sps);
 
       // Make sure there is enough output space for d_osps outputs/input.
       set_output_multiple(d_osps);
-
-      d_updated = true;
     }
 
     void
@@ -274,19 +304,24 @@ namespace gr {
       diff_filter[2] = 1;
 
       float pwr = 0;
+      difftaps.clear();
       difftaps.push_back(0);
       for(unsigned int i = 0; i < newtaps.size()-2; i++) {
 	float tap = 0;
-	for(int j = 0; j < 3; j++) {
+	for(unsigned int j = 0; j < diff_filter.size(); j++) {
 	  tap += diff_filter[j]*newtaps[i+j];
-	  pwr += fabsf(tap);
 	}
 	difftaps.push_back(tap);
+        pwr += fabsf(tap);
       }
       difftaps.push_back(0);
 
+      // Normalize the taps
       for(unsigned int i = 0; i < difftaps.size(); i++) {
-	difftaps[i] *= pwr;
+        difftaps[i] *= d_nfilters/pwr;
+        if(difftaps[i] != difftaps[i]) {
+          throw std::runtime_error("pfb_clock_sync_ccf::create_diff_taps produced NaN.");
+        }
       }
     }
 
@@ -373,6 +408,15 @@ namespace gr {
       gr_complex *in = (gr_complex *) input_items[0];
       gr_complex *out = (gr_complex *) output_items[0];
 
+      if(d_updated) {
+        std::vector<float> dtaps;
+        create_diff_taps(d_updated_taps, dtaps);
+        set_taps(d_updated_taps, d_taps, d_filters);
+        set_taps(dtaps, d_dtaps, d_diff_filters);
+	d_updated = false;
+	return 0;		     // history requirements may have changed.
+      }
+
       float *err = NULL, *outrate = NULL, *outk = NULL;
       if(output_items.size() == 4) {
 	err = (float *) output_items[1];
@@ -380,25 +424,33 @@ namespace gr {
 	outk = (float*)output_items[3];
       }
 
-      if(d_updated) {
-	d_updated = false;
-	return 0;		     // history requirements may have changed.
-      }
-
-      // We need this many to process one output
-      int nrequired = ninput_items[0] - d_taps_per_filter - d_osps;
+      std::vector<tag_t> tags;
+      get_tags_in_window(tags, 0, 0,
+                        d_sps*noutput_items,
+                        pmt::intern("time_est"));
 
       int i = 0, count = 0;
       float error_r, error_i;
 
       // produce output as long as we can and there are enough input samples
-      while((i < noutput_items) && (count < nrequired)) {
+      while(i < noutput_items) {
+        if(tags.size() > 0) {
+          size_t offset = tags[0].offset-nitems_read(0);
+          if((offset >= (size_t)count) && (offset < (size_t)(count + d_sps))) {
+            float center = (float)pmt::to_double(tags[0].value);
+            d_k = d_nfilters*(center + (offset - count));
+
+            tags.erase(tags.begin());
+          }
+        }
+
 	while(d_out_idx < d_osps) {
+
 	  d_filtnum = (int)floor(d_k);
 
 	  // Keep the current filter number in [0, d_nfilters]
 	  // If we've run beyond the last filter, wrap around and go to next sample
-	  // If we've go below 0, wrap around and go to previous sample
+	  // If we've gone below 0, wrap around and go to previous sample
 	  while(d_filtnum >= d_nfilters) {
 	    d_k -= d_nfilters;
 	    d_filtnum -= d_nfilters;
@@ -412,7 +464,23 @@ namespace gr {
 
 	  out[i+d_out_idx] = d_filters[d_filtnum]->filter(&in[count+d_out_idx]);
 	  d_k = d_k + d_rate_i + d_rate_f; // update phase
-	  d_out_idx++;
+
+
+          // Manage Tags
+          std::vector<tag_t> xtags;
+          std::vector<tag_t>::iterator itags;
+          d_new_in = nitems_read(0) + count + d_out_idx + d_sps;
+          get_tags_in_range(xtags, 0, d_old_in, d_new_in);
+          for(itags = xtags.begin(); itags != xtags.end(); itags++) {
+            tag_t new_tag = *itags;
+            //new_tag.offset = d_last_out + d_taps_per_filter/(2*d_sps) - 2;
+            new_tag.offset = d_last_out + d_taps_per_filter/4 - 2;
+            add_item_tag(0, new_tag);
+          }
+          d_old_in = d_new_in;
+          d_last_out = nitems_written(0) + i + d_out_idx;
+
+          d_out_idx++;
 
 	  if(output_items.size() == 4) {
 	    err[i] = d_error;
@@ -437,10 +505,13 @@ namespace gr {
 	error_i = out[i].imag() * diff.imag();
 	d_error = (error_i + error_r) / 2.0;       // average error from I&Q channel
 
-	// Run the control loop to update the current phase (k) and
-	// tracking rate estimates based on the error value
-	d_rate_f = d_rate_f + d_beta*d_error;
-	d_k = d_k + d_alpha*d_error;
+        // Run the control loop to update the current phase (k) and
+        // tracking rate estimates based on the error value
+        // Interpolating here to update rates for ever sps.
+        for(int s = 0; s < d_sps; s++) {
+          d_rate_f = d_rate_f + d_beta*d_error;
+          d_k = d_k + d_rate_f + d_alpha*d_error;
+        }
 
 	// Keep our rate within a good range
 	d_rate_f = gr::branchless_clip(d_rate_f, d_max_dev);
@@ -465,7 +536,7 @@ namespace gr {
 	      pmt::mp(-2.0f), pmt::mp(2.0f), pmt::mp(0.0f),
 	      "", "Error signal of loop", RPC_PRIVLVL_MIN,
               DISPTIME | DISPOPTSTRIP)));
-    
+
       add_rpc_variable(
           rpcbasic_sptr(new rpcbasic_register_get<pfb_clock_sync_ccf, float>(
 	      alias(), "rate",

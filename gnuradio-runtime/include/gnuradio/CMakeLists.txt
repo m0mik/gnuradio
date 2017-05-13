@@ -68,28 +68,33 @@ install(FILES
   sync_decimator.h
   sync_interpolator.h
   sys_paths.h
+  tag_checker.h
   types.h
   sys_pri.h
   unittests.h
-  ice_application_base.h
-  IcePy_Communicator.h
-  ice_server_template.h
   rpccallbackregister_base.h
   rpcmanager_base.h
   rpcmanager.h
-  rpcpmtconverters_ice.h
   rpcregisterhelpers.h
   rpcserver_aggregator.h
   rpcserver_base.h
   rpcserver_booter_aggregator.h
   rpcserver_booter_base.h
-  rpcserver_booter_ice.h
-  rpcserver_ice.h
   rpcserver_selector.h
   ${CMAKE_CURRENT_BINARY_DIR}/logger.h
   DESTINATION ${GR_INCLUDE_DIR}/gnuradio
   COMPONENT "runtime_devel"
 )
+
+if(THRIFT_FOUND)
+install(FILES
+  rpcserver_booter_thrift.h
+  thrift_application_base.h
+  thrift_server_template.h
+  DESTINATION ${GR_INCLUDE_DIR}/gnuradio
+  COMPONENT "runtime_devel"
+)
+endif(THRIFT_FOUND)
 
 ##########################################################################
 # Configure logger

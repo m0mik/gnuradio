@@ -36,13 +36,16 @@ class test_pmt(unittest.TestCase):
         const = 123765
         x_pmt = pmt.from_double(const)
         x_int = pmt.to_double(x_pmt)
+        x_float = pmt.to_float(x_pmt)
         self.assertEqual(x_int, const)
+        self.assertEqual(x_float, const)
 
     def test03(self):
         v = pmt.init_f32vector(3, [11, -22, 33])
         s = pmt.serialize_str(v)
         d = pmt.deserialize_str(s)
         self.assertTrue(pmt.equal(v, d))
+        self.assertEqual(pmt.uniform_vector_itemsize(v), 4)
 
     def test04(self):
         v = pmt.init_f64vector(3, [11, -22, 33])
@@ -91,6 +94,7 @@ class test_pmt(unittest.TestCase):
         s = pmt.serialize_str(v)
         d = pmt.deserialize_str(s)
         self.assertTrue(pmt.equal(v, d))
+        self.assertEqual(pmt.uniform_vector_itemsize(v), 8)
 
     def test12(self):
         v = pmt.init_c64vector(3, [11 + -101j, -22 + 202j, 33 + -303j])

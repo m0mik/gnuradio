@@ -1,6 +1,15 @@
+# Copyright (C) 2017 Free Software Foundation, Inc.
+#
+# Permission is granted to copy, distribute and/or modify this document
+# under the terms of the GNU Free Documentation License, Version 1.3
+# or any later version published by the Free Software Foundation;
+# with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+# A copy of the license is included in the section entitled "GNU
+# Free Documentation License".
+
 /*! \page page_stream_tags Stream Tags
 
-\section Introduction
+\section stream_tags_introduction Introduction
 
 GNU Radio was originally a streaming system with no other mechanism to
 pass data between blocks. Streams of data are a model that work well
@@ -29,7 +38,7 @@ symbol and is used to identify the block that created the tag (which
 is usually the block's alias()).
 
 
-\section block_api_extensions API Extensions to the gr::block
+\section stream_tags_block_api_extensions API Extensions to the gr::block
 
 To enable the stream tags, we have extended the API of gr::block to
 understand \a absolute item numbers. In the data stream model, each
@@ -61,20 +70,34 @@ at <em>nitems_written(0)+i</em> for the 0th output port.
 \section stream_tags_api Stream Tags API
 
 The stream tags API consists of four functions, two to add and two to
-get the stream tags. These functions are:
+get the stream tags. These functions are only meant to be accessed
+within a call to general_work/work. While they can be called elsewhere
+in time by a block, the behavior outside of work is undefined without
+exact knowledge of the item counts in the buffers.
 
-\li add_item_tag: Adds an item tag to a particular output port using a
+\li gr::block::add_item_tag: Adds an item tag to a particular output port using a
 gr::tag_t data type.
-\li add_item_tag: Adds an item tag to a particular output port where
-each value of the tag is explicitly given.
-\li get_tags_in_range: Gets all tags from a particular input port between
-a certain range of items (in absolute item time).
-\li get_tags_in_range: Gets any tag that has a specified key from a
-particular input port between a certain range of items (in absolute
-item time).
+
+\li gr::block::add_item_tag: Adds an item tag to a particular output
+port where each value of the tag is explicitly given.
+
+\li gr::block::get_tags_in_range: Gets all tags from a particular
+input port between a certain range of items (in absolute item time).
+
+\li gr::block::get_tags_in_range: Gets any tag that has a specified
+key from a particular input port between a certain range of items (in
+absolute item time).
+
+\li gr::block::get_tags_in_window: Gets all tags from a particular
+input port between a certain range of items (in relative item time
+within the work function).
+
+\li gr::block::get_tags_in_range: Gets any tag that has a specified
+key from a particular input port between a certain range of items (in
+relative item time within the work function).
 
 
-\subsection add_item_tag Adding a Tag to a Stream
+\subsection stream_tags_add_item_tag Adding a Tag to a Stream
 
 The two function calls to add items tags are defined here. We add a
 tag to a particular output stream of the block. We can output them to
@@ -111,7 +134,7 @@ of the tag information in the function call:
 \endcode
 
 
-\subsection get_item_tags Getting tags from a Stream
+\subsection stream_tags_get_item_tags Getting tags from a Stream
 
 To get tags from a particular input stream, we again have two
 functions we can use. Both of these pass back vectors of
@@ -141,7 +164,7 @@ key \a key.
 \endcode
 
 
-\section tag_propagation Tag Propagation
+\section stream_tags_propagation Tag Propagation
 
 Tags are propagated downstream from block to block like the normal
 data streams. How blocks are actually moved depends on a specific
@@ -167,7 +190,7 @@ See the gr::block::tag_propagation_policy_t documentation for details
 on this enum type.
 
 
-\subsection tags_rate_changes Tag Propagation through Rate Changes
+\subsection stream_tags_rate_changes Tag Propagation through Rate Changes
 
 When a tag is propagated through a block that has a rate change, the
 item's offset in the data stream will change. The scheduler uses the
@@ -186,8 +209,10 @@ tags through these blocks that respect the change in item value, we
 would have to use the TPP_DONT tag propagation policy and handle the
 propagation internally.
 
+In no case is the value of the tag modified when propagating through a
+block. This becomes relevant when using \ref page_tagged_stream_blocks.
 
-\section tags_issues Notes on How to Use Tags
+\section stream_tags_issues Notes on How to Use Tags
 
 Tags can be very useful to an application, and their use is
 spreading. USRP sources generate tag information on the time, sample

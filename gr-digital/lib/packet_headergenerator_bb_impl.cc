@@ -69,6 +69,12 @@ namespace gr {
       set_tag_propagation_policy(TPP_DONT);
     }
 
+    void
+    packet_headergenerator_bb_impl::set_header_formatter(packet_header_default::sptr header_formatter)
+    {
+      gr::thread::scoped_lock guard(d_setlock);
+      d_formatter=header_formatter;
+    }
     packet_headergenerator_bb_impl::~packet_headergenerator_bb_impl()
     {
     }
@@ -79,8 +85,12 @@ namespace gr {
                        gr_vector_const_void_star &input_items,
                        gr_vector_void_star &output_items)
     {
+      gr::thread::scoped_lock guard(d_setlock);
       unsigned char *out = (unsigned char *) output_items[0];
-      if (!d_formatter->header_formatter(ninput_items[0], out)) {
+
+      std::vector<tag_t> tags;
+      get_tags_in_range(tags, 0, nitems_read(0), nitems_read(0) + ninput_items[0]);
+      if (!d_formatter->header_formatter(ninput_items[0], out, tags)) {
 	GR_LOG_FATAL(d_logger, boost::format("header_formatter() returned false (this shouldn't happen). Offending header started at %1%") % nitems_read(0));
 	throw std::runtime_error("header formatter returned false.");
       }

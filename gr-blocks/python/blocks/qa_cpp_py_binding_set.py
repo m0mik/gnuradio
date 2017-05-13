@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2012,2013 Free Software Foundation, Inc.
+# Copyright 2012,2013,2015 Free Software Foundation, Inc.
 #
 # This file is part of GNU Radio
 #
@@ -20,12 +20,11 @@
 # Boston, MA 02110-1301, USA.
 #
 
-# 
+#
 # This program tests mixed python and c++ GRCP sets in a single app
 #
 
-import Ice
-import sys, time, random, numpy
+import sys, time, random, numpy, re
 from gnuradio import gr, gr_unittest, blocks
 
 from gnuradio.ctrlport import GNURadio
@@ -120,11 +119,14 @@ class test_cpp_py_binding_set(gr_unittest.TestCase):
 
         # Get available endpoint
         ep = gr.rpcmanager_get().endpoints()[0]
+        hostname = re.search("-h (\S+|\d+\.\d+\.\d+\.\d+)", ep).group(1)
+        portnum = re.search("-p (\d+)", ep).group(1)
+        argv = [None, hostname, portnum]
 
-        # Initialize a simple Ice client from endpoint
-        ic = Ice.initialize(sys.argv)
-        base = ic.stringToProxy(ep)
-        radio = GNURadio.ControlPortPrx.checkedCast(base)
+        # Initialize a simple ControlPort client from endpoint
+        from gnuradio.ctrlport.GNURadioControlPortClient import GNURadioControlPortClient
+        radiosys = GNURadioControlPortClient(argv=argv, rpcmethod='thrift')
+        radio = radiosys.client
 
         self.tb.start()
 
@@ -133,12 +135,12 @@ class test_cpp_py_binding_set(gr_unittest.TestCase):
 
         # Get all exported knobs
         key_name_test = probe_info+"::test"
-        ret = radio.get([key_name_test,])
+        ret = radio.getKnobs([key_name_test,])
 
         ret[key_name_test].value = 10
-        radio.set({key_name_test: ret[key_name_test]})
+        radio.setKnobs({key_name_test: ret[key_name_test]})
 
-        ret = radio.get([])
+        ret = radio.getKnobs([])
         result_test = ret[key_name_test].value
         self.assertEqual(result_test, 10)
 
@@ -147,4 +149,3 @@ class test_cpp_py_binding_set(gr_unittest.TestCase):
 
 if __name__ == '__main__':
     gr_unittest.run(test_cpp_py_binding_set, "test_cpp_py_binding_set.xml")
-

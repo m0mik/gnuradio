@@ -204,7 +204,8 @@ SpectrumFrequencyRangeEvent::GetStopFrequency() const
 
 
 TimeUpdateEvent::TimeUpdateEvent(const std::vector<double*> timeDomainPoints,
-				 const uint64_t numTimeDomainDataPoints)
+				 const uint64_t numTimeDomainDataPoints,
+                                 const std::vector< std::vector<gr::tag_t> > tags)
   : QEvent(QEvent::Type(SpectrumUpdateEventType))
 {
   if(numTimeDomainDataPoints < 1) {
@@ -222,6 +223,8 @@ TimeUpdateEvent::TimeUpdateEvent(const std::vector<double*> timeDomainPoints,
 	     _numTimeDomainDataPoints*sizeof(double));
     }
   }
+
+  _tags = tags;
 }
 
 TimeUpdateEvent::~TimeUpdateEvent()
@@ -243,6 +246,11 @@ TimeUpdateEvent::getNumTimeDomainDataPoints() const
   return _numTimeDomainDataPoints;
 }
 
+const std::vector< std::vector<gr::tag_t> >
+TimeUpdateEvent::getTags() const
+{
+  return _tags;
+}
 
 /***************************************************************************/
 
@@ -285,6 +293,32 @@ uint64_t
 FreqUpdateEvent::getNumDataPoints() const
 {
   return _numDataPoints;
+}
+
+
+
+SetFreqEvent::SetFreqEvent(const double centerFreq,
+                           const double bandwidth)
+  : QEvent(QEvent::Type(SpectrumFrequencyRangeEventType))
+{
+  _centerFrequency = centerFreq;
+  _bandwidth = bandwidth;
+}
+
+SetFreqEvent::~SetFreqEvent()
+{
+}
+
+double
+SetFreqEvent::getCenterFrequency() const
+{
+  return _centerFrequency;
+}
+
+double
+SetFreqEvent::getBandwidth() const
+{
+  return _bandwidth;
 }
 
 
@@ -439,6 +473,32 @@ TimeRasterUpdateEvent::getNumDataPoints() const
   return _numDataPoints;
 }
 
+
+
+
+TimeRasterSetSize::TimeRasterSetSize(const double nrows,
+                                     const double ncols)
+  : QEvent(QEvent::Type(SpectrumUpdateEventType+1)),
+    _nrows(nrows), _ncols(ncols)
+{
+}
+
+TimeRasterSetSize::~TimeRasterSetSize()
+{
+}
+
+double
+TimeRasterSetSize::nRows() const
+{
+  return _nrows;
+}
+
+double
+TimeRasterSetSize::nCols() const
+{
+  return _ncols;
+}
+
 /***************************************************************************/
 
 
@@ -479,6 +539,45 @@ uint64_t
 HistogramUpdateEvent::getNumDataPoints() const
 {
   return _npoints;
+}
+
+
+HistogramSetAccumulator::HistogramSetAccumulator(const bool en)
+  : QEvent(QEvent::Type(SpectrumUpdateEventType+1)),
+    _en(en)
+{
+}
+
+HistogramSetAccumulator::~HistogramSetAccumulator()
+{
+}
+
+bool
+HistogramSetAccumulator::getAccumulator() const
+{
+  return _en;
+}
+
+
+
+/***************************************************************************/
+
+
+NumberUpdateEvent::NumberUpdateEvent(const std::vector<float> samples)
+  : QEvent(QEvent::Type(SpectrumUpdateEventType))
+{
+  _samples = samples;
+  _nplots = samples.size();
+}
+
+NumberUpdateEvent::~NumberUpdateEvent()
+{
+}
+
+const std::vector<float>
+NumberUpdateEvent::getSamples() const
+{
+  return _samples;
 }
 
 

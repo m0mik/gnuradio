@@ -32,7 +32,7 @@
 
 namespace gr {
   namespace analog {
-    
+
     @BASE_NAME@::sptr
     @BASE_NAME@::make(noise_type_t type, float ampl, long seed, long samples)
     {
@@ -45,7 +45,11 @@ namespace gr {
 		    io_signature::make(0, 0, 0),
 		    io_signature::make(1, 1, sizeof(@TYPE@))),
       d_type(type),
+#if @IS_COMPLEX@	// complex?
+      d_ampl(ampl/sqrtf(2.0f)),
+#else
       d_ampl(ampl),
+#endif
       d_rng(seed)
     {
       d_samples.resize(samples);
@@ -63,12 +67,16 @@ namespace gr {
       d_type = type;
       generate();
     }
-    
+
     void
-    @IMPL_NAME@::set_amplitude(float ampl) 
+    @IMPL_NAME@::set_amplitude(float ampl)
     {
       gr::thread::scoped_lock l(d_setlock);
+#if @IS_COMPLEX@	// complex?
+      d_ampl = ampl/sqrtf(2.0f);
+#else
       d_ampl = ampl;
+#endif
       generate();
     }
 
@@ -128,17 +136,40 @@ namespace gr {
       @TYPE@ *out = (@TYPE@*)output_items[0];
 
       for(int i=0; i<noutput_items; i++) {
-#ifdef __USE_GNU
-	size_t idx = lrand48() % d_samples.size();
-#else
-	size_t idx = rand() % d_samples.size();
-#endif
-	out[i] = d_samples[idx];
+        out[i] = sample();
       }
 
       return noutput_items;
     }
 
+    @TYPE@ @IMPL_NAME@::sample()
+    {
+#ifdef HAVE_RAND48
+        size_t idx = lrand48() % d_samples.size();
+#else
+        size_t idx = rand() % d_samples.size();
+#endif
+        return d_samples[idx];
+    }
+
+#ifndef FASTNOISE_RANDOM_SIGN
+#ifndef HAVE_RAND48
+#define FASTNOISE_RANDOM_SIGN       ((rand()%2==0)?1:-1)
+#else
+#define FASTNOISE_RANDOM_SIGN       ((lrand48()%2==0)?1:-1)
+#endif
+#endif
+
+    @TYPE@ @IMPL_NAME@::sample_unbiased()
+    {
+#if @IS_COMPLEX@
+        gr_complex s(sample());
+        return gr_complex(FASTNOISE_RANDOM_SIGN * s.real(),
+                          FASTNOISE_RANDOM_SIGN * s.imag());
+#else
+        return FASTNOISE_RANDOM_SIGN * sample();
+#endif
+    }
+
   } /* namespace analog */
 } /* namespace gr */
-

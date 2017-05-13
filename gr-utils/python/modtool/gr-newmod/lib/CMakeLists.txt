@@ -1,4 +1,4 @@
-# Copyright 2011,2012 Free Software Foundation, Inc.
+# Copyright 2011,2012,2016 Free Software Foundation, Inc.
 #
 # This file is part of GNU Radio
 #
@@ -28,18 +28,27 @@ link_directories(${Boost_LIBRARY_DIRS})
 list(APPEND howto_sources
 )
 
+set(howto_sources "${howto_sources}" PARENT_SCOPE)
+if(NOT howto_sources)
+	MESSAGE(STATUS "No C++ sources... skipping lib/")
+	return()
+endif(NOT howto_sources)
+
 add_library(gnuradio-howto SHARED ${howto_sources})
-target_link_libraries(gnuradio-howto ${Boost_LIBRARIES} ${GNURADIO_RUNTIME_LIBRARIES})
+target_link_libraries(gnuradio-howto ${Boost_LIBRARIES} ${GNURADIO_ALL_LIBRARIES})
 set_target_properties(gnuradio-howto PROPERTIES DEFINE_SYMBOL "gnuradio_howto_EXPORTS")
+
+if(APPLE)
+    set_target_properties(gnuradio-howto PROPERTIES
+        INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib"
+    )
+endif(APPLE)
 
 ########################################################################
 # Install built library files
 ########################################################################
-install(TARGETS gnuradio-howto
-    LIBRARY DESTINATION lib${LIB_SUFFIX} # .so/.dylib file
-    ARCHIVE DESTINATION lib${LIB_SUFFIX} # .lib file
-    RUNTIME DESTINATION bin              # .dll file
-)
+include(GrMiscUtils)
+GR_LIBRARY_FOO(gnuradio-howto RUNTIME_COMPONENT "howto_runtime" DEVEL_COMPONENT "howto_devel")
 
 ########################################################################
 # Build and register unit test
@@ -64,3 +73,10 @@ target_link_libraries(
 )
 
 GR_ADD_TEST(test_howto test-howto)
+
+########################################################################
+# Print summary
+########################################################################
+message(STATUS "Using install prefix: ${CMAKE_INSTALL_PREFIX}")
+message(STATUS "Building for version: ${VERSION} / ${LIBVER}")
+

@@ -448,6 +448,16 @@
          </item>
          <item>
           <property name="text">
+           <string>Sunset</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Cool</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
            <string>User Defined</string>
           </property>
          </item>
@@ -506,7 +516,6 @@
   </layout>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
- <pixmapfunction>qPixmapFromMimeSource</pixmapfunction>
  <customwidgets>
  <customwidget>
    <class>QwtSlider</class>

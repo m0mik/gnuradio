@@ -68,8 +68,9 @@ add_custom_command(
         ${CMAKE_CURRENT_SOURCE_DIR}/unv_template.cc.t
         ${CMAKE_CURRENT_SOURCE_DIR}/unv_qa_template.cc.t
     COMMAND ${PYTHON_EXECUTABLE} ${PYTHON_DASH_B} -c
-    \"import os,sys\;srcdir='${CMAKE_CURRENT_SOURCE_DIR}'\;sys.path.append(srcdir)\;os.environ['srcdir']=srcdir\;from generate_unv import main\;main()\"
+    "import os, sys; srcdir='${CMAKE_CURRENT_SOURCE_DIR}'; sys.path.append(srcdir); os.environ['srcdir']=srcdir; from generate_unv import main; main()"
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    VERBATIM
 )
 
 set(pmt_sources
@@ -85,7 +86,7 @@ list(APPEND gnuradio_pmt_libs
     ${LOG4CPP_LIBRARIES}
 )
 
-add_custom_target(pmt_generated 
+add_custom_target(pmt_generated
   DEPENDS ${PMT_SERIAL_TAGS_H} ${CMAKE_CURRENT_BINARY_DIR}/pmt_unv_int.h)
 
 
@@ -113,6 +114,21 @@ add_dependencies(gnuradio-pmt
   pmt_generated
 )
 
+if(ENABLE_STATIC_LIBS)
+  add_library(gnuradio-pmt_static STATIC ${pmt_sources})
+
+  add_dependencies(gnuradio-pmt_static pmt_generated)
+
+  if(NOT WIN32)
+    set_target_properties(gnuradio-pmt_static
+      PROPERTIES OUTPUT_NAME gnuradio-pmt)
+  endif(NOT WIN32)
+
+  install(TARGETS gnuradio-pmt_static
+    ARCHIVE DESTINATION lib${LIB_SUFFIX} COMPONENT "runtime_devel"   # .lib file
+    )
+endif(ENABLE_STATIC_LIBS)
+
 ########################################################################
 # Setup tests
 ########################################################################
@@ -132,7 +148,7 @@ include_directories(${CPPUNIT_INCLUDE_DIRS})
 link_directories(${CPPUNIT_LIBRARY_DIRS})
 
 add_library(test-gnuradio-pmt SHARED ${test_gnuradio_pmt_sources})
-target_link_libraries(test-gnuradio-pmt gnuradio-runtime gnuradio-pmt 
+target_link_libraries(test-gnuradio-pmt gnuradio-runtime gnuradio-pmt
   ${CPPUNIT_LIBRARIES} ${Boost_LIBRARIES} ${LOG4CPP_LIBRARIES})
 
 ########################################################################

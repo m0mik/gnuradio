@@ -57,6 +57,7 @@ namespace gr {
      */
     hier_block2_detail *d_detail;
 
+
   protected:
     hier_block2(void) {} // allows pure virtual interface sub-classes
     hier_block2(const std::string &name,
@@ -170,6 +171,37 @@ namespace gr {
      */
     virtual void unlock();
 
+    /*!
+     * \brief Returns max buffer size (itemcount) on output port \p i.
+     */
+    int max_output_buffer(size_t port=0);
+
+    /*!
+     * \brief Sets max buffer size (itemcount) on all output ports.
+     */
+    void set_max_output_buffer(int max_output_buffer);
+
+    /*!
+     * \brief Sets max buffer size (itemcount) on output port \p port.
+     */
+    void set_max_output_buffer(size_t port, int max_output_buffer);
+
+    /*!
+     * \brief Returns min buffer size (itemcount) on output port \p i.
+     */
+    int min_output_buffer(size_t port=0);
+
+    /*!
+     * \brief Sets min buffer size (itemcount) on all output ports.
+     */
+    void set_min_output_buffer(int min_output_buffer);
+
+    /*!
+     * \brief Sets min buffer size (itemcount) on output port \p port.
+     */
+    void set_min_output_buffer(size_t port, int min_output_buffer);
+
+
     // This is a public method for ease of code organization, but should be
     // ignored by the user.
     flat_flowgraph_sptr flatten() const;
@@ -179,7 +211,7 @@ namespace gr {
     bool has_msg_port(pmt::pmt_t which_port) {
       return message_port_is_hier(which_port) || basic_block::has_msg_port(which_port);
     }
-  
+
     bool message_port_is_hier(pmt::pmt_t port_id) {
       return message_port_is_hier_in(port_id) || message_port_is_hier_out(port_id);
     }
@@ -206,7 +238,7 @@ namespace gr {
     void message_port_register_hier_out(pmt::pmt_t port_id) {
       if(pmt::list_has(hier_message_ports_out, port_id))
         throw std::invalid_argument("hier msg out port by this name already registered");
-      if(pmt::dict_has_key(message_subscribers, port_id))
+      if(pmt::dict_has_key(d_message_subscribers, port_id))
         throw std::invalid_argument("block already has a primitive output port by this name");
       hier_message_ports_out = pmt::list_add(hier_message_ports_out, port_id);
     }
@@ -233,7 +265,28 @@ namespace gr {
      * call could be misleading.
      */
     std::vector<int> processor_affinity();
+
+    /*!
+     * \brief Get if all block min buffers should be set.
+     *
+     * \details this returns whether all the block min output buffers
+     * should be set or just the block ports connected to the hier ports.
+     */
+    bool all_min_output_buffer_p(void);
+
+    /*!
+     * \brief Get if all block max buffers should be set.
+     *
+     * \details this returns whether all the block max output buffers
+     * should be set or just the block ports connected to the hier ports.
+     */
+    bool all_max_output_buffer_p(void);
   };
+
+  /*!
+   * \brief Return hierarchical block's flow graph represented in dot language
+   */
+  GR_RUNTIME_API std::string dot_graph(hier_block2_sptr hierblock2);
 
   inline hier_block2_sptr cast_to_hier_block2_sptr(basic_block_sptr block) {
     return boost::dynamic_pointer_cast<hier_block2, basic_block>(block);

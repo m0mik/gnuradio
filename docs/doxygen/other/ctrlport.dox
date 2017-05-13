@@ -1,6 +1,15 @@
+# Copyright (C) 2017 Free Software Foundation, Inc.
+#
+# Permission is granted to copy, distribute and/or modify this document
+# under the terms of the GNU Free Documentation License, Version 1.3
+# or any later version published by the Free Software Foundation;
+# with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+# A copy of the license is included in the section entitled "GNU
+# Free Documentation License".
+
 /*! \page page_ctrlport ControlPort
 
-\section Introduction
+\section ctrlport_introduction Introduction
 
 This is the ControlPort package. It is a tool to create distributed
 control applications for GNU Radio. It provides blocks that can be
@@ -17,32 +26,11 @@ gnuradio.ctrlport module, imported as:
 \endcode
 
 
-\section Dependencies
-
-ControlPort is an abstracted remote procedure call tool that. It is
-built on top of other middleware libraries. Currently, the only
-implemented middleware library is the Internet Communication Engine
-(ICE). It is possible to replace this library with other similar
-tools in such a way that the GNU Radio interface to ControlPort is
-unchanged. However, most clients were purpose-built around ICE and
-will need to be redone.
-
-ControlPort requires ZeroC's ICE and associated
-libraries/headers/programs. ICE is generally installed into the
-standard paths if using a software repo (like apt-get, yum, etc.). If
-installed by hand, GNU Radio assumes ICE is installed into
-/opt/Ice-3.4.2. If this is not the case, you can tell GNU Radio where
-to find ICE by passing to cmake the following:
-
-    -DICE_MANUAL_INSTALL_PATH=\<your path here\>
-
-
-\section conf Configuration
+\section ctrlport_conf Configuration
 
 ControlPort is configured using two files. The first is the GNU Radio
 preferences file while the second file is specific to the type of
-middleware used. Since we are focusing on using ICE, the configuration
-file uses the ICE configuration file and format.
+middleware used.
 
 The GNU Radio preferences file has three options. The 'on' option is
 used to enable or disable the use of ControlPort, and is disabled by
@@ -55,21 +43,135 @@ the flowgraph for the Performance Counter applications.
 \code
   [ControlPort]
   on = True
-  config = ctrlport.conf
   edges_list = True
+  config = path-to/ctrlport.conf
 \endcode
 
 The ControlPort preferences are installed by default into
 'gnuradio-runtime.conf'. These can always be overridden in the local
 ~/.gnuradio/config.conf file.
 
-En example ICE configuration file is installed as
-$prefix/etc/gnuradio/ctrlport.conf.example. More information on how to
-configure ICE can be found here:
-http://doc.zeroc.com/display/Ice/Properties+and+Configuration
 
 
-\section using Using ControlPort to Export Variables
+\section ctrlport_deps Dependencies
+
+ControlPort is an abstracted remote procedure call tool that. It is
+built on top of other middleware libraries. The following subsections
+explain some details about the use of the particular middleware
+project.
+
+Currently, the only implemented middleware library is the Apache
+Thrift project.
+
+\subsection ctrlport_thrift Apache Thrift
+
+Current version support: >= 0.9.2
+
+Apache Thrift is a middleware layer that defines interfaces of a
+program using its own Thrift language. GNU Radio's interface file is:
+
+gnuradio-runtime/lib/controlport/thrift/gnuradio.thrift
+
+This file defines the interfaces set, get, trigger, and properties. It
+also defines a set of data structure Knobs to allow us to pass any
+type of data over the interfaces.
+
+To use Thrift in ControlPort requires a minimum Thrift version of
+0.9.0. If a Thrift version greater than or equal to this version is
+not found, the Thrift backend to ControlPort will not be installed,
+through ControlPort itself still will be. During cmake configuration
+time, it prints out information about finding Thrift and requires:
+
+\li Thrift header files by looking for thrift/Thrift.h
+\li Thrift C++ libraries: libthrift.so
+\li Thrift Python bindings: "import thrift"
+
+If all of these are not satisfied, the Thrift backend will not be
+installed. Upon completion, cmake outputs a notification of what
+components will be built. You will see this if Thrift was found and
+can be used:
+
+\code
+* gr-ctrlport
+* * thrift
+\endcode
+
+Cmake also uses the Thrift compiler ("thrift") to build the C++ and
+Python files necessary for compiling ControlPort. It runs "thrift
+--gen cpp" the C++ bindings in the build directory, and then
+it runs "thrift --gen py" to build the Python bindings, also in the
+build directory. These are used to compile the Thrift ControlPort
+features and are necessary files to run the Python clients. If cmake
+fails to produce these bindings, it should error out.
+
+
+
+\subsubsection ctrlport_thrift_prefs Configuration
+
+Thrift does not support its own concept of a configuration file, so we
+have built one for our purposes in GNU Radio. The 'config' option in
+the ControlPort section of the preference files tells ControlPort
+where to find the backend-specific file format. GNU Radio's Thrift
+format follows the same "[Section] key = value" scheme used in all of
+its other preference files. Currently supported configuration options
+are:
+
+\code
+[thrift]
+port = 9090
+nthreads = 2
+buffersize = 1434
+init_attempts = 100
+\endcode
+
+
+\subsubsection ctrlport_thrift_issues Thrift: Current Issues
+
+Thrift uses a thread pool system to handle each connection, but it
+will only allow up to a specified number of threads in the server. The
+default value is 10 threads, but the Thrift configuration file allows
+the user to change this value.
+
+Thrift also does not find and use a free ephemeral port when launching
+the server. It must be told explicitly which port to launch on, which
+we set in the configuration file. This makes it difficult to launch
+multiple flowgraphs on the same machine because that will cause a port
+collision. Until this is fixed, a way around this is to use the
+environmental variable GR_CONF_THRIFT_PORT=xxx to set the port number
+for that specific application.
+
+Efficiency issues of Thrift come from the over-the-wire formatting
+done by the transport protocol. It defaults to using 512 byte packets,
+which can lead to a lot of fragmentation of the data over the
+connection. The buffersize configuration allows the user to set this
+value to whatever number fits their network needs. The default 1434 is
+designed around the standard 1500 byte Ethernet frame size limit minus
+the TCP/IP and Ethernet header size.
+
+
+\subsection ctrlport_client_translation Translation Layer for Clients
+
+Different backends will produce different ways to interface with the
+system. ControlPort in the running flowgraph acts as the server by
+exposing interfaces to blocks. The interfaces and API in GNU Radio to
+communicate with ControlPort are all abstracted completely away from
+the backend methods and data types. That is, the code in GNU Radio's
+scheduler and in the blocks that expose their ControlPort interfaces
+will work regardless of the backend used.
+
+We are building better abstractions on the clients sides now, as
+well. Although certain backends will support other features of
+discovery and services that work well with their products, GNU Radio
+wants to make sure that clients can access the data from the
+interfaces in the same way for any backend used. This abstraction is
+done through the GNURadioControlPortClient. This class is told which
+type of backend is used, and defaults to Thrift, and can be passed
+information about the server's endpoint such as the host name and port
+number to attach to. The GNURadioControlPortClient returns a 'radio'
+object that represents the connection to the running flowgraph.
+
+
+\section ctrlport_using Using ControlPort to Export Variables
 
 The ability to export variables from a block is inherited from
 gr::block. Then, when the flowgraph is started, the function
@@ -122,7 +224,7 @@ namespace gr {
       sync_bloc(....),
       d_a(a), d_b(b)
     { }
-    
+
     foo_impl::~foo_impl()
     { }
 
@@ -199,7 +301,7 @@ just a nicety to allow us to set up our code for use with ControlPort
 without requiring it.
 
 
-\subsection alt_reg Alternative Registers
+\subsection ctrlport_alt_reg Alternative Registers
 
 If using the concept above, <b>setup_rpc</b> automatically gets called
 when the flowgraph is started. In most instances, this is all we ever
@@ -215,9 +317,9 @@ gets. These take the form:
   rpcbasic_register_get(const std::string& name,
 			const char* functionbase,
                         T* obj,
-			Tfrom (T::*function)(), 
+			Tfrom (T::*function)(),
 			const pmt::pmt_t &min, const pmt::pmt_t &max, const pmt::pmt_t &def,
-			const char* units_ = "", 
+			const char* units_ = "",
 			const char* desc_ = "",
 			priv_lvl_t minpriv_ = RPC_PRIVLVL_MIN,
 			DisplayType display_ = DISPNULL)
@@ -225,9 +327,9 @@ gets. These take the form:
   rpcbasic_register_set(const std::string& name,
 			const char* functionbase,
                         T* obj,
-			void (T::*function)(Tto), 
+			void (T::*function)(Tto),
 			const pmt::pmt_t &min, const pmt::pmt_t &max, const pmt::pmt_t &def,
-			const char* units_ = "", 
+			const char* units_ = "",
 			const char* desc_ = "",
 			priv_lvl_t minpriv_ = RPC_PRIVLVL_MIN,
 			DisplayType display_ = DISPNULL)
@@ -248,7 +350,7 @@ constructor or make it a public member function to be called when you
 need it.
 
 
-\section disp Display Options
+\section ctrlport_disp Display Options
 
 When exporting a new RPC variable over ControlPort, one argument is a
 display options mask. These options are useful to a remote client to
@@ -283,7 +385,7 @@ exposed through SWIG to live in the \b gr namespace.
 \li <b>DISPOPTSCATTER:</b> Do scatter plot instead of lines (XY plot only).
 
 
-\section probes ControlPort Probes
+\section ctrlport_probes ControlPort Probes
 
 ControlPort provides a set of probes that can be used as sinks that
 pass vectors of data across ControlPort. These probes are used to
@@ -303,7 +405,7 @@ default behavior for how to display the samples.
 Another block that can be used is the <b>fft.ctrlport_probe_psd</b> to
 calculate the PSD and pass that over the ControlPort interface.
 
-\section monitors ControlPort Monitors
+\section ctrlport_monitors ControlPort Monitors
 
 There are two main ControlPort monitor applications provided with GNU
 Radio. Both act similarly. The first is a standard ControlPort monitor
@@ -323,7 +425,7 @@ To launch the ControlPort monitor application, know the IP address and
 port of the ControlPort endpoint established by the flowgraph and run:
 
 <pre>
-gr-ctrlport-monitor \<ip-addr\> -p \<port\>
+gr-ctrlport-monitor \<ip-addr\> \<port\>
 </pre>
 
 
@@ -343,7 +445,7 @@ displayed as a table or bar graph.
 To launch the Performance Monitor, run:
 
 <pre>
-gr-perf-monitorx \<ip-addr\> -p \<port\>
+gr-perf-monitorx \<ip-addr\> \<port\>
 </pre>
 
 */

@@ -32,6 +32,7 @@ def _prepare_uhd_swig():
     try:
         import uhd_swig
     except ImportError:
+        import os
         dirname, filename = os.path.split(os.path.abspath(__file__))
         __path__.append(os.path.join(dirname, "..", "..", "swig"))
         import uhd_swig
@@ -116,7 +117,7 @@ def _prepare_uhd_swig():
                         if kwargs.has_key(key): kwargs[key] = cast(kwargs[key])
                     except: pass
                 #dont pass kwargs, it confuses swig, map into args list:
-                for key in ('device_addr', 'stream_args', 'io_type', 'num_channels'):
+                for key in ('device_addr', 'stream_args', 'io_type', 'num_channels', 'msgq'):
                     if kwargs.has_key(key): args.append(kwargs[key])
                 return old_constructor(*args)
             return constructor_interceptor

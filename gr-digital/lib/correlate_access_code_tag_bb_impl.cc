@@ -26,15 +26,14 @@
 
 #include "correlate_access_code_tag_bb_impl.h"
 #include <gnuradio/io_signature.h>
+#include <boost/format.hpp>
 #include <stdexcept>
-#include <gnuradio/blocks/count_bits.h>
+#include <volk/volk.h>
 #include <cstdio>
 #include <iostream>
 
 namespace gr {
   namespace digital {
-
-#define VERBOSE 0
 
     correlate_access_code_tag_bb::sptr
     correlate_access_code_tag_bb::make(const std::string &access_code,
@@ -56,6 +55,7 @@ namespace gr {
 	d_threshold(threshold), d_len(0)
     {
       if(!set_access_code(access_code)) {
+	GR_LOG_ERROR(d_logger, "access_code is > 64 bits");
 	throw std::out_of_range ("access_code is > 64 bits");
       }
 
@@ -75,17 +75,18 @@ namespace gr {
     {
       d_len = access_code.length();	// # of bytes in string
       if(d_len > 64)
-	return false;
+        return false;
 
-      // set len top bits to 1.
-      d_mask = ((~0ULL) >> (64 - d_len)) << (64 - d_len);
+      // set len bottom bits to 1.
+      d_mask = ((~0ULL) >> (64 - d_len));
 
       d_access_code = 0;
-      for(unsigned i=0; i < 64; i++){
-	d_access_code <<= 1;
-	if(i < d_len)
-	  d_access_code |= access_code[i] & 1;	// look at LSB only
+      for(unsigned i=0; i < d_len; i++){
+        d_access_code = (d_access_code << 1) | (access_code[i] & 1);
       }
+
+      GR_LOG_DEBUG(d_logger, boost::format("Access code: %llx") % d_access_code);
+      GR_LOG_DEBUG(d_logger, boost::format("Mask: %llx") % d_mask);
 
       return true;
     }
@@ -104,25 +105,20 @@ namespace gr {
 	out[i] = in[i];
 
 	// compute hamming distance between desired access code and current data
-	unsigned long long wrong_bits = 0;
-	unsigned int nwrong = d_threshold+1;
-	int new_flag = 0;
+	uint64_t wrong_bits = 0;
+	uint64_t nwrong = d_threshold+1;
 
 	wrong_bits  = (d_data_reg ^ d_access_code) & d_mask;
-	nwrong = gr::blocks::count_bits64(wrong_bits);
+	volk_64u_popcnt(&nwrong, wrong_bits);
 
-	// test for access code with up to threshold errors
-	new_flag = (nwrong <= d_threshold);
-
-	// shift in new data and new flag
+	// shift in new data
 	d_data_reg = (d_data_reg << 1) | (in[i] & 0x1);
-	if(new_flag) {
-	  if(VERBOSE)
-	    std::cerr << "writing tag at sample " << abs_out_sample_cnt + i << std::endl;
+	if(nwrong <= d_threshold) {
+	  GR_LOG_DEBUG(d_logger, boost::format("writing tag at sample %llu") % (abs_out_sample_cnt + i));
 	  add_item_tag(0, //stream ID
-		       abs_out_sample_cnt + i - 64 + d_len, //sample
+		       abs_out_sample_cnt + i, //sample
 		       d_key,      //frame info
-		       pmt::pmt_t(), //data (unused)
+		       pmt::from_long(nwrong), //data (number wrong)
 		       d_me        //block src id
 		       );
 	}
@@ -133,4 +129,3 @@ namespace gr {
 
   } /* namespace digital */
 } /* namespace gr */
-

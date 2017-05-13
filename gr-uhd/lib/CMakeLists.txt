@@ -24,29 +24,24 @@ include_directories(
     ${CMAKE_CURRENT_BINARY_DIR}
     ${GR_UHD_INCLUDE_DIRS}
     ${GNURADIO_RUNTIME_INCLUDE_DIRS}
-    ${LOG4CXX_INCLUDE_DIRS}
-    ${Boost_INCLUDE_DIRS}
     ${UHD_INCLUDE_DIRS}
+    ${Boost_INCLUDE_DIRS}
 )
 
 link_directories(
   ${UHD_LIBRARY_DIRS}
-  ${LOG4CXX_LIBRARY_DIRS}
   ${Boost_LIBRARY_DIRS}
 )
 
 if(ENABLE_GR_CTRLPORT)
   ADD_DEFINITIONS(-DGR_CTRLPORT)
-  include_directories(${ICE_INCLUDE_DIR})
 endif(ENABLE_GR_CTRLPORT)
-
-include_directories(${LOG4CPP_INCLUDE_DIRS})
-link_directories(${LOG4CPP_LIBRARY_DIRS})
 
 ########################################################################
 # Setup library
 ########################################################################
 list(APPEND gr_uhd_sources
+    usrp_block_impl.cc
     usrp_source_impl.cc
     usrp_sink_impl.cc
     amsg_source_impl.cc
@@ -70,9 +65,29 @@ list(APPEND uhd_libs
     gnuradio-runtime
     ${Boost_LIBRARIES}
     ${UHD_LIBRARIES}
-    ${LOG4CPP_LIBRARIES}
 )
 
 add_library(gnuradio-uhd SHARED ${gr_uhd_sources})
 target_link_libraries(gnuradio-uhd ${uhd_libs})
 GR_LIBRARY_FOO(gnuradio-uhd RUNTIME_COMPONENT "uhd_runtime" DEVEL_COMPONENT "uhd_devel")
+
+########################################################################
+# Build static libraries if enabled
+########################################################################
+if(ENABLE_STATIC_LIBS)
+  if(UHD_VERSION VERSION_GREATER "3.8.1")
+
+    add_library(gnuradio-uhd_static STATIC ${gr_uhd_sources})
+
+    if(NOT WIN32)
+      set_target_properties(gnuradio-uhd_static
+        PROPERTIES OUTPUT_NAME gnuradio-uhd)
+    endif(NOT WIN32)
+
+    install(TARGETS gnuradio-uhd_static
+      ARCHIVE DESTINATION lib${LIB_SUFFIX} COMPONENT "uhd_devel"   # .lib file
+    )
+  else(UHD_VERSION VERSION_GREATER "3.8.1")
+    message(STATUS "Not building gr-uhd static library; requires UHD >= 3.8.2")
+  endif(UHD_VERSION VERSION_GREATER "3.8.1")
+endif(ENABLE_STATIC_LIBS)

@@ -34,8 +34,6 @@ GR_REGISTER_COMPONENT("gr-digital" ENABLE_GR_DIGITAL
     ENABLE_GR_FILTER
     ENABLE_GR_BLOCKS
     ENABLE_GR_ANALOG
-    ENABLE_GR_BLOCKS
-    ENABLE_GR_FILTER
 )
 
 GR_SET_GLOBAL(GR_DIGITAL_INCLUDE_DIRS
@@ -97,6 +95,7 @@ add_subdirectory(doc)
 if(ENABLE_PYTHON)
     add_subdirectory(swig)
     add_subdirectory(python/digital)
+    add_subdirectory(python/grc_gnuradio)
     add_subdirectory(grc)
     add_subdirectory(examples)
 endif(ENABLE_PYTHON)

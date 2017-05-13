@@ -29,10 +29,16 @@
 #include <qwt_color_map.h>
 #include <qwt_scale_draw.h>
 #include <qwt_legend.h>
-#include <qwt_legend_item.h>
 #include <qwt_plot_layout.h>
 #include <QColor>
 #include <iostream>
+
+#if QWT_VERSION < 0x060100
+#include <qwt_legend_item.h>
+#else /* QWT_VERSION < 0x060100 */
+#include <qwt_legend_data.h>
+#include <qwt_legend_label.h>
+#endif /* QWT_VERSION < 0x060100 */
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 namespace pt = boost::posix_time;
@@ -69,14 +75,14 @@ public:
 class QwtYScaleDraw: public QwtScaleDraw
 {
 public:
-  QwtYScaleDraw(): QwtScaleDraw(), _rows(0) { }
+  QwtYScaleDraw(): QwtScaleDraw(), d_rows(0) { }
 
   virtual ~QwtYScaleDraw() { }
 
   virtual QwtText label(double value) const
   {
-    if(_rows > 0)
-      value = _rows - value;
+    if(d_rows > 0)
+      value = d_rows - value;
     return QwtText(QString("").sprintf("%.0f", value));
   }
 
@@ -87,10 +93,10 @@ public:
     invalidateCache();
   }
 
-  void setRows(double rows) { rows>0 ? _rows = rows : _rows = 0; }
+  void setRows(double rows) { rows>0 ? d_rows = rows : d_rows = 0; }
 
 private:
-  double _rows;
+  double d_rows;
 };
 
 class TimePrecisionClass
@@ -98,7 +104,7 @@ class TimePrecisionClass
 public:
   TimePrecisionClass(const int timePrecision)
   {
-    _timePrecision = timePrecision;
+    d_timePrecision = timePrecision;
   }
 
   virtual ~TimePrecisionClass()
@@ -107,15 +113,15 @@ public:
 
   virtual unsigned int getTimePrecision() const
   {
-    return _timePrecision;
+    return d_timePrecision;
   }
 
   virtual void setTimePrecision(const unsigned int newPrecision)
   {
-    _timePrecision = newPrecision;
+    d_timePrecision = newPrecision;
   }
 protected:
-  unsigned int _timePrecision;
+  unsigned int d_timePrecision;
 };
 
 /***********************************************************************
@@ -125,8 +131,13 @@ class TimeRasterZoomer: public QwtPlotZoomer, public TimePrecisionClass,
 			public TimeScaleData
 {
 public:
+#if QWT_VERSION < 0x060100
   TimeRasterZoomer(QwtPlotCanvas* canvas, double rows, double cols,
 		   const unsigned int timePrecision)
+#else /* QWT_VERSION < 0x060100 */
+  TimeRasterZoomer(QWidget* canvas, double rows, double cols,
+		   const unsigned int timePrecision)
+#endif /* QWT_VERSION < 0x060100 */
     : QwtPlotZoomer(canvas), TimePrecisionClass(timePrecision), TimeScaleData(),
       d_rows(static_cast<double>(rows)), d_cols(static_cast<double>(cols))
   {
@@ -144,7 +155,7 @@ public:
 
   void setUnitType(const std::string &type)
   {
-    _unitType = type;
+    d_unitType = type;
   }
 
   void setColumns(const double cols)
@@ -167,13 +178,13 @@ protected:
     double y = floor(d_rows - dp.y());
     QwtText t(QString("%1 %2, %3")
 	      .arg(x, 0, 'f', getTimePrecision())
-	      .arg(_unitType.c_str())
+	      .arg(d_unitType.c_str())
               .arg(y, 0, 'f', 0));
     return t;
   }
 
 private:
-  std::string _unitType;
+  std::string d_unitType;
   double d_rows, d_cols;
 };
 
@@ -186,31 +197,32 @@ TimeRasterDisplayPlot::TimeRasterDisplayPlot(int nplots,
 					     QWidget* parent)
   : DisplayPlot(nplots, parent)
 {
-  _zoomer = NULL;  // need this for proper init
+  d_zoomer = NULL;  // need this for proper init
 
   resize(parent->width(), parent->height());
 
   d_samp_rate = samp_rate;
   d_cols = cols;
   d_rows = rows;
-  _numPoints = d_cols;
+  d_numPoints = d_cols;
+  d_color_bar_title_font_size = 18;
 
   setAxisScaleDraw(QwtPlot::xBottom, new QwtXScaleDraw());
   setAxisScaleDraw(QwtPlot::yLeft, new QwtYScaleDraw());
 
-  for(int i = 0; i < _nplots; i++) {
+  for(int i = 0; i < d_nplots; i++) {
     d_data.push_back(new TimeRasterData(d_rows, d_cols));
     d_raster.push_back(new PlotTimeRaster("Raster"));
     d_raster[i]->setData(d_data[i]);
 
     // a hack around the fact that we aren't using plot curves for the
     // raster plots.
-    _plot_curve.push_back(new QwtPlotCurve(QString("Data")));
+    d_plot_curve.push_back(new QwtPlotCurve(QString("Data")));
 
     d_raster[i]->attach(this);
 
     d_color_map_type.push_back(INTENSITY_COLOR_MAP_TYPE_BLACK_HOT);
-    setAlpha(i, 255/_nplots);
+    setAlpha(i, 255/d_nplots);
   }
 
   // Set bottom plot with no transparency as a base
@@ -220,23 +232,23 @@ TimeRasterDisplayPlot::TimeRasterDisplayPlot(int nplots,
   // MidButton for the panning
   // RightButton: zoom out by 1
   // Ctrl+RighButton: zoom out to full size
-  _zoomer = new TimeRasterZoomer(canvas(), d_rows, d_cols, 0);
+  d_zoomer = new TimeRasterZoomer(canvas(), d_rows, d_cols, 0);
 #if QWT_VERSION < 0x060000
-  _zoomer->setSelectionFlags(QwtPicker::RectSelection | QwtPicker::DragSelection);
+  d_zoomer->setSelectionFlags(QwtPicker::RectSelection | QwtPicker::DragSelection);
 #endif
-  _zoomer->setMousePattern(QwtEventPattern::MouseSelect2,
-  			   Qt::RightButton, Qt::ControlModifier);
-  _zoomer->setMousePattern(QwtEventPattern::MouseSelect3,
-  			   Qt::RightButton);
-  
-  const QColor c(Qt::red);
-  _zoomer->setRubberBandPen(c);
-  _zoomer->setTrackerPen(c);
+  d_zoomer->setMousePattern(QwtEventPattern::MouseSelect2,
+                            Qt::RightButton, Qt::ControlModifier);
+  d_zoomer->setMousePattern(QwtEventPattern::MouseSelect3,
+                            Qt::RightButton);
 
-  // Set intensity color now (needed _zoomer before we could do this).
+  const QColor c(Qt::red);
+  d_zoomer->setRubberBandPen(c);
+  d_zoomer->setTrackerPen(c);
+
+  // Set intensity color now (needed d_zoomer before we could do this).
   // We've made sure the old type is different than here so we'll
   // force and update.
-  for(int i = 0; i < _nplots; i++) {
+  for(int i = 0; i < d_nplots; i++) {
     setIntensityColorMapType(i, INTENSITY_COLOR_MAP_TYPE_WHITE_HOT,
 			     QColor("white"), QColor("white"));
   }
@@ -253,7 +265,7 @@ TimeRasterDisplayPlot::~TimeRasterDisplayPlot()
 void
 TimeRasterDisplayPlot::reset()
 {
-  for(int i = 0; i < _nplots; i++) {
+  for(int i = 0; i < d_nplots; i++) {
     d_data[i]->resizeData(d_rows, d_cols);
     d_data[i]->reset();
   }
@@ -277,23 +289,23 @@ TimeRasterDisplayPlot::reset()
   xScale->initiateUpdate();
 
   // Load up the new base zoom settings
-  if(_zoomer) {
+  if(d_zoomer) {
     double display_units = 4;
-    ((TimeRasterZoomer*)_zoomer)->setColumns(d_cols);
-    ((TimeRasterZoomer*)_zoomer)->setRows(d_rows);
-    ((TimeRasterZoomer*)_zoomer)->setSecondsPerLine(sec_per_samp);
-    ((TimeRasterZoomer*)_zoomer)->setTimePrecision(display_units);
-    ((TimeRasterZoomer*)_zoomer)->setUnitType(strunits[iunit]);
+    ((TimeRasterZoomer*)d_zoomer)->setColumns(d_cols);
+    ((TimeRasterZoomer*)d_zoomer)->setRows(d_rows);
+    ((TimeRasterZoomer*)d_zoomer)->setSecondsPerLine(sec_per_samp);
+    ((TimeRasterZoomer*)d_zoomer)->setTimePrecision(display_units);
+    ((TimeRasterZoomer*)d_zoomer)->setUnitType(strunits[iunit]);
 
-    QwtDoubleRect newSize = _zoomer->zoomBase();
+    QwtDoubleRect newSize = d_zoomer->zoomBase();
     newSize.setLeft(0);
     newSize.setWidth(d_cols);
     newSize.setBottom(0);
     newSize.setHeight(d_rows);
-    
-    _zoomer->zoom(newSize);
-    _zoomer->setZoomBase(newSize);
-    _zoomer->zoom(0);
+
+    d_zoomer->zoom(newSize);
+    d_zoomer->setZoomBase(newSize);
+    d_zoomer->zoom(0);
   }
 }
 
@@ -353,7 +365,7 @@ TimeRasterDisplayPlot::setPlotDimensions(const double rows, const double cols,
   d_rows = rows;
   d_cols = cols;
 
-  if((axisScaleDraw(QwtPlot::xBottom) != NULL) && (_zoomer != NULL)) {
+  if((axisScaleDraw(QwtPlot::xBottom) != NULL) && (d_zoomer != NULL)) {
     if(rst) {
       reset();
     }
@@ -364,9 +376,9 @@ void
 TimeRasterDisplayPlot::plotNewData(const std::vector<double*> dataPoints,
 				   const int64_t numDataPoints)
 {
-  if(!_stop) {
+  if(!d_stop) {
     if(numDataPoints > 0) {
-      for(int i = 0; i < _nplots; i++) {
+      for(int i = 0; i < d_nplots; i++) {
 	d_data[i]->addData(dataPoints[i], numDataPoints);
 	d_raster[i]->invalidateCache();
 	d_raster[i]->itemChanged();
@@ -390,7 +402,7 @@ void
 TimeRasterDisplayPlot::setIntensityRange(const double minIntensity,
 					 const double maxIntensity)
 {
-  for(int i = 0; i < _nplots; i++) {
+  for(int i = 0; i < d_nplots; i++) {
 #if QWT_VERSION < 0x060000
     d_data[i]->setRange(QwtDoubleInterval(minIntensity, maxIntensity));
 #else
@@ -441,11 +453,13 @@ TimeRasterDisplayPlot::replot()
     axisWidget(QwtPlot::xBottom)->update();
   }
 
-  if(_zoomer != NULL) {
-    ((TimeRasterZoomer*)_zoomer)->updateTrackerText();
+  if(d_zoomer != NULL) {
+    ((TimeRasterZoomer*)d_zoomer)->updateTrackerText();
   }
 
-  QwtPlot::replot();
+  if(!d_stop) {
+    QwtPlot::replot();
+  }
 }
 
 int
@@ -455,6 +469,24 @@ TimeRasterDisplayPlot::getIntensityColorMapType(int which) const
     throw std::runtime_error("TimerasterDisplayPlot::GetIntesityColorMap: invalid which.\n");
 
   return d_color_map_type[which];
+}
+
+int
+TimeRasterDisplayPlot::getIntensityColorMapType1() const
+{
+  return getIntensityColorMapType(0);
+}
+
+int
+TimeRasterDisplayPlot::getColorMapTitleFontSize() const
+{
+  return d_color_bar_title_font_size;
+}
+
+void
+TimeRasterDisplayPlot::setColorMapTitleFontSize(int tfs)
+{
+  d_color_bar_title_font_size = tfs;
 }
 
 void
@@ -474,8 +506,8 @@ TimeRasterDisplayPlot::setIntensityColorMapType(const int which,
       d_color_map_type[which] = newType;
 
       d_raster[which]->setColorMap(new ColorMap_MultiColor());
-      if(_zoomer)
-	_zoomer->setTrackerPen(QColor(Qt::black));
+      if(d_zoomer)
+	d_zoomer->setTrackerPen(QColor(Qt::black));
       break;
     }
     case INTENSITY_COLOR_MAP_TYPE_WHITE_HOT: {
@@ -493,6 +525,16 @@ TimeRasterDisplayPlot::setIntensityColorMapType(const int which,
       d_raster[which]->setColorMap(new ColorMap_Incandescent());
       break;
     }
+    case INTENSITY_COLOR_MAP_TYPE_SUNSET: {
+      d_color_map_type[which] = newType;
+      d_raster[which]->setColorMap(new ColorMap_Sunset());
+      break;
+    }
+    case INTENSITY_COLOR_MAP_TYPE_COOL: {
+      d_color_map_type[which] = newType;
+      d_raster[which]->setColorMap(new ColorMap_Cool());
+      break;
+    }
     case INTENSITY_COLOR_MAP_TYPE_USER_DEFINED: {
       d_low_intensity = lowColor;
       d_high_intensity = highColor;
@@ -505,6 +547,12 @@ TimeRasterDisplayPlot::setIntensityColorMapType(const int which,
 
     _updateIntensityRangeDisplay();
   }
+}
+
+void
+TimeRasterDisplayPlot::setIntensityColorMapType1(int newType)
+{
+  setIntensityColorMapType(0, newType, d_low_intensity, d_high_intensity);
 }
 
 const QColor
@@ -523,10 +571,12 @@ void
 TimeRasterDisplayPlot::_updateIntensityRangeDisplay()
 {
   QwtScaleWidget *rightAxis = axisWidget(QwtPlot::yRight);
-  rightAxis->setTitle("Intensity");
+  QwtText colorBarTitle("Intensity");
+  colorBarTitle.setFont(QFont("Arial",d_color_bar_title_font_size));
+  rightAxis->setTitle(colorBarTitle);
   rightAxis->setColorBarEnabled(true);
 
-  for(int i = 0; i < _nplots; i++) {
+  for(int i = 0; i < d_nplots; i++) {
 #if QWT_VERSION < 0x060000
     rightAxis->setColorMap(d_raster[i]->data()->range(),
 			   d_raster[i]->colorMap());
@@ -544,6 +594,10 @@ TimeRasterDisplayPlot::_updateIntensityRangeDisplay()
       rightAxis->setColorMap(intv, new ColorMap_BlackHot()); break;
     case INTENSITY_COLOR_MAP_TYPE_INCANDESCENT:
       rightAxis->setColorMap(intv, new ColorMap_Incandescent()); break;
+    case INTENSITY_COLOR_MAP_TYPE_SUNSET:
+      rightAxis->setColorMap(intv, new ColorMap_Sunset()); break;
+    case INTENSITY_COLOR_MAP_TYPE_COOL:
+      rightAxis->setColorMap(intv, new ColorMap_Cool()); break;
     case INTENSITY_COLOR_MAP_TYPE_USER_DEFINED:
       rightAxis->setColorMap(intv, new ColorMap_UserDefined(d_low_intensity,
 							    d_high_intensity));

@@ -83,53 +83,58 @@ public slots:
   void setStop();
 
   void setGrid(bool on);
+  void setAxisLabels(bool en);
 
   void saveFigure();
+
+  void disableLegend();
 
 private slots:
   virtual void newData(const QEvent*) = 0;
   virtual void autoScale(bool) = 0;
   void updateGuiTimer();
 
-  void onPlotPointSelected(const QPointF p);
+  virtual void onPlotPointSelected(const QPointF p);
 
 signals:
   void plotPointSelected(const QPointF p, int type);
+  void toggleGrid(bool en);
 
 protected:
-  bool _isclosed;
+  bool d_isclosed;
 
-  int _nplots;
+  int d_nplots;
 
-  QGridLayout *_layout;
-  DisplayPlot* _displayPlot;
-  bool _systemSpecifiedFlag;
+  QGridLayout *d_layout;
+  DisplayPlot* d_display_plot;
+  bool d_system_specified_flag;
 
-  QwtPlotGrid *_grid;
+  QwtPlotGrid *d_grid;
 
-  bool   _menu_on;
-  QMenu *_menu;
+  bool   d_menu_on;
+  QMenu *d_menu;
 
-  QAction *_stop_act;
-  bool _stop_state;
-  QAction *_grid_act;
-  bool _grid_state;
+  QAction *d_stop_act;
+  bool d_stop_state;
+  QAction *d_grid_act;
+  bool d_grid_state;
+  QAction *d_axislabelsmenu;
+  bool d_axislabels;
 
-  QAction *_autoscale_act;
-  bool _autoscale_state;
+  QAction *d_autoscale_act;
+  bool d_autoscale_state;
 
-  QList<QMenu*> _lines_menu;
-  QList<LineTitleAction*> _line_title_act;
-  QList<LineColorMenu*> _line_color_menu;
-  QList<LineWidthMenu*> _line_width_menu;
-  QList<LineStyleMenu*> _line_style_menu;
-  QList<LineMarkerMenu*> _line_marker_menu;
-  QList<MarkerAlphaMenu*> _marker_alpha_menu;
+  QList<QMenu*> d_lines_menu;
+  QList<LineTitleAction*> d_line_title_act;
+  QList<LineColorMenu*> d_line_color_menu;
+  QList<LineWidthMenu*> d_line_width_menu;
+  QList<LineStyleMenu*> d_line_style_menu;
+  QList<LineMarkerMenu*> d_line_marker_menu;
+  QList<MarkerAlphaMenu*> d_marker_alpha_menu;
 
-  PopupMenu *_samp_rate_act;
-  QAction *_save_act;
+  PopupMenu *d_samp_rate_act;
+  QAction *d_save_act;
 
-  QTimer *d_displayTimer;
   double d_update_time;
 };
 

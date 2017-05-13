@@ -17,6 +17,16 @@
 # the Free Software Foundation, Inc., 51 Franklin Street,
 # Boston, MA 02110-1301, USA.
 
+install(
+  FILES
+  matrix_multiplexer.grc
+  peak_detector2.grc
+  vector_source_with_tags.grc
+  test_stream_mux_tags.grc 
+  DESTINATION ${GR_PKG_DATA_DIR}/examples/blocks
+  COMPONENT "runtime_python"
+)
+
 add_subdirectory(metadata)
 add_subdirectory(tags)
 

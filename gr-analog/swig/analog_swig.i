@@ -1,18 +1,18 @@
 /*
  * Copyright 2012 Free Software Foundation, Inc.
- * 
+ *
  * This file is part of GNU Radio
- * 
+ *
  * GNU Radio is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3, or (at your option)
  * any later version.
- * 
+ *
  * GNU Radio is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with GNU Radio; see the file COPYING.  If not, write to
  * the Free Software Foundation, Inc., 51 Franklin Street,
@@ -74,6 +74,9 @@
 #include "gnuradio/analog/simple_squelch_cc.h"
 #include "gnuradio/analog/squelch_base_cc.h"
 #include "gnuradio/analog/squelch_base_ff.h"
+#include "gnuradio/analog/random_uniform_source_b.h"
+#include "gnuradio/analog/random_uniform_source_s.h"
+#include "gnuradio/analog/random_uniform_source_i.h"
 %}
 
 %include "gnuradio/analog/cpm.h"
@@ -116,6 +119,9 @@
 %include "gnuradio/analog/simple_squelch_cc.h"
 %include "gnuradio/analog/squelch_base_cc.h"
 %include "gnuradio/analog/squelch_base_ff.h"
+%include "gnuradio/analog/random_uniform_source_b.h"
+%include "gnuradio/analog/random_uniform_source_s.h"
+%include "gnuradio/analog/random_uniform_source_i.h"
 
 GR_SWIG_BLOCK_MAGIC2(analog, agc_cc);
 GR_SWIG_BLOCK_MAGIC2(analog, agc_ff);
@@ -152,3 +158,6 @@ GR_SWIG_BLOCK_MAGIC2(analog, sig_source_i);
 GR_SWIG_BLOCK_MAGIC2(analog, sig_source_f);
 GR_SWIG_BLOCK_MAGIC2(analog, sig_source_c);
 GR_SWIG_BLOCK_MAGIC2(analog, simple_squelch_cc);
+GR_SWIG_BLOCK_MAGIC2(analog, random_uniform_source_b);
+GR_SWIG_BLOCK_MAGIC2(analog, random_uniform_source_s);
+GR_SWIG_BLOCK_MAGIC2(analog, random_uniform_source_i);

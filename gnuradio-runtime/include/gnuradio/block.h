@@ -80,10 +80,49 @@ namespace gr {
      * History is the number of x_i's that are examined to produce one y_i.
      * This comes in handy for FIR filters, where we use history to
      * ensure that our input contains the appropriate "history" for the
-     * filter. History should be equal to the number of filter taps.
+     * filter. History should be equal to the number of filter taps. First
+     * history samples (when there are no previous samples) are
+     * initialized with zeroes.
      */
-    unsigned history() const { return d_history; }
-    void  set_history(unsigned history) { d_history = history; }
+    unsigned history() const;
+    void  set_history(unsigned history);
+
+    /*!
+     * Declares the block's delay in samples. Since the delay of
+     * blocks like filters is derived from the taps and not the block
+     * itself, we cannot automatically calculate this value and so
+     * leave it as a user-defined property. It defaults to 0 is not
+     * set.
+     *
+     * This does not actively set the delay; it just tells the
+     * scheduler what the delay is.
+     *
+     * This delay is mostly used to adjust the placement of the tags
+     * and is not currently used for any signal processing. When a tag
+     * is passed through a block with internal delay, its location
+     * should be moved based on the delay of the block. This interface
+     * allows us to tell the scheduler this value.
+     *
+     * \param which The buffer on which to set the delay.
+     * \param delay The sample delay of the data stream.
+     */
+    void declare_sample_delay(int which, unsigned delay);
+
+    /*!
+     * Convenience wrapper to gr::block::declare_delay(int which, unsigned delay)
+     * to set all ports to the same delay.
+     */
+    void declare_sample_delay(unsigned delay);
+
+    /*!
+     * Gets the delay of the block. Since the delay of blocks like
+     * filters is derived from the taps and not the block itself, we
+     * cannot automatically calculate this value and so leave it as a
+     * user-defined property. It defaults to 0 is not set.
+     *
+     * \param which Which port from which to get the sample delay.
+     */
+    unsigned sample_delay(int which) const;
 
     /*!
      * \brief Return true if this block has a fixed input to output rate.
@@ -132,7 +171,7 @@ namespace gr {
      * \brief Called to enable drivers, etc for i/o devices.
      *
      * This allows a block to enable an associated driver to begin
-     * transfering data just before we start to execute the scheduler.
+     * transferring data just before we start to execute the scheduler.
      * The end result is that this reduces latency in the pipeline
      * when dealing with audio devices, usrps, etc.
      */
@@ -185,6 +224,7 @@ namespace gr {
     /*!
      * \brief Tell the scheduler \p how_many_items of input stream \p
      * which_input were consumed.
+     * This function should be called at the end of work() or general_work(), after all processing is finished.
      */
     void consume(int which_input, int how_many_items);
 
@@ -303,7 +343,7 @@ namespace gr {
      *
      * Use this value to clear the 'is_set' flag so the scheduler will
      * ignore this. Use the set_max_noutput_items(m) call to both set
-     * a new value for max_noutput_items and to reenable its use in
+     * a new value for max_noutput_items and to re-enable its use in
      * the scheduler.
      */
     void unset_max_noutput_items();
@@ -329,12 +369,39 @@ namespace gr {
     long max_output_buffer(size_t i);
 
     /*!
-     * \brief Sets max buffer size on all output ports.
+     * \brief Request limit on max buffer size on all output ports.
+     *
+     * \details
+     * This is an advanced feature. Calling this can affect some
+     * fundamental assumptions about the system behavior and
+     * performance.
+     *
+     * The actual buffer size is determined by a number of other
+     * factors from the block and system. This function only provides
+     * a requested maximum. The buffers will always be a multiple of
+     * the system page size, which may be larger than the value asked
+     * for here.
+     *
+     * \param max_output_buffer the requested maximum output size in items.
      */
     void set_max_output_buffer(long max_output_buffer);
 
     /*!
-     * \brief Sets max buffer size on output port \p port.
+     * \brief Request limit on max buffer size on output port \p port.
+     *
+     * \details
+     * This is an advanced feature. Calling this can affect some
+     * fundamental assumptions about the system behavior and
+     * performance.
+     *
+     * The actual buffer size is determined by a number of other
+     * factors from the block and system. This function only provides
+     * a requested maximum. The buffers will always be a multiple of
+     * the system page size, which may be larger than the value asked
+     * for here.
+     *
+     * \param port the output port the request applies to.
+     * \param max_output_buffer the requested maximum output size in items.
      */
     void set_max_output_buffer(int port, long max_output_buffer);
 
@@ -344,12 +411,40 @@ namespace gr {
     long min_output_buffer(size_t i);
 
     /*!
-     * \brief Sets min buffer size on all output ports.
+     * \brief Request limit on the minimum buffer size on all output
+     * ports.
+     *
+     * \details
+     * This is an advanced feature. Calling this can affect some
+     * fundamental assumptions about the system behavior and
+     * performance.
+     *
+     * The actual buffer size is determined by a number of other
+     * factors from the block and system. This function only provides
+     * a requested minimum. The buffers will always be a multiple of
+     * the system page size, which may be larger than the value asked
+     * for here.
+     *
+     * \param min_output_buffer the requested minimum output size in items.
      */
     void set_min_output_buffer(long min_output_buffer);
 
     /*!
-     * \brief Sets min buffer size on output port \p port.
+     * \brief Request limit on min buffer size on output port \p port.
+     *
+     * \details
+     * This is an advanced feature. Calling this can affect some
+     * fundamental assumptions about the system behavior and
+     * performance.
+     *
+     * The actual buffer size is determined by a number of other
+     * factors from the block and system. This function only provides
+     * a requested minimum. The buffers will always be a multiple of
+     * the system page size, which may be larger than the value asked
+     * for here.
+     *
+     * \param port the output port the request applies to.
+     * \param min_output_buffer the requested minimum output size in items.
      */
     void set_min_output_buffer(int port, long min_output_buffer);
 
@@ -461,6 +556,16 @@ namespace gr {
     float pc_work_time_var();
 
     /*!
+     * \brief Gets total clock cycles spent in work.
+     */
+    float pc_work_time_total();
+
+    /*!
+     * \brief Gets average throughput.
+     */
+    float pc_throughput_avg();
+
+    /*!
      * \brief Resets the performance counters
      */
     void reset_perf_counters();
@@ -519,7 +624,19 @@ namespace gr {
      */
     int set_thread_priority(int priority);
 
+    bool update_rate() const;
+
     // ----------------------------------------------------------------------------
+
+	/*!
+	 * \brief the system message handler
+     */
+    void system_handler(pmt::pmt_t msg);
+
+	/*!
+     * \brief returns true when execution has completed due to a message connection
+    */
+    bool finished();
 
   private:
     int                   d_output_multiple;
@@ -529,6 +646,7 @@ namespace gr {
     double                d_relative_rate;	// approx output_rate / input_rate
     block_detail_sptr     d_detail;		// implementation details
     unsigned              d_history;
+    unsigned              d_attr_delay;         // the block's sample delay
     bool                  d_fixed_rate;
     bool                  d_max_noutput_items_set;     // if d_max_noutput_items is valid
     int                   d_max_noutput_items;         // value of max_noutput_items for this block
@@ -537,6 +655,8 @@ namespace gr {
     std::vector<int>      d_affinity;              // thread affinity proc. mask
     int                   d_priority;              // thread priority level
     bool                  d_pc_rpc_set;
+    bool                  d_update_rate;           // should sched update rel rate?
+    bool d_finished;    // true if msg ports think we are finished
 
   protected:
     block(void) {} // allows pure virtual interface sub-classes
@@ -579,7 +699,7 @@ namespace gr {
     void add_item_tag(unsigned int which_output, const tag_t &tag);
 
     /*!
-     * \brief  Removes a tag from the given input buffer.
+     * \brief DEPRECATED. Will be removed in 3.8.
      *
      * \param which_input an integer of which input stream to remove the tag from
      * \param abs_offset   a uint64 number of the absolute item number
@@ -605,9 +725,7 @@ namespace gr {
     }
 
     /*!
-     * \brief Removes a tag from the given input buffer.
-     *
-     * If no such tag is found, does nothing.
+     * \brief DEPRECATED. Will be removed in 3.8.
      *
      * \param which_input an integer of which input stream to remove the tag from
      * \param tag the tag object to remove
@@ -653,6 +771,52 @@ namespace gr {
                            uint64_t abs_end,
                            const pmt::pmt_t &key);
 
+    /*!
+     * \brief Gets all tags within the relative window of the current call to work.
+     *
+     * \details
+     *
+     * This opperates much like get_tags_in_range but allows us to
+     * work within the current window of items. Item range is
+     * therefore within the possible range of 0 to
+     * ninput_items[whic_input].
+     *
+     * Range of items counts from \p rel_start to \p rel_end-1 within
+     * current window.
+     *
+     * Tags are tuples of:
+     *      (item count, source id, key, value)
+     *
+     * \param v            a vector reference to return tags into
+     * \param which_input  an integer of which input stream to pull from
+     * \param rel_start    a uint64 count of the start of the range of interest
+     * \param rel_end      a uint64 count of the end of the range of interest
+     */
+    void get_tags_in_window(std::vector<tag_t> &v,
+                            unsigned int which_input,
+                            uint64_t rel_start,
+                            uint64_t rel_end);
+
+    /*!
+     * \brief Operates like gr::block::get_tags_in_window with the
+     * ability to only return tags with the specified \p key.
+     *
+     * \details
+     *
+     * \param v            a vector reference to return tags into
+     * \param which_input  an integer of which input stream to pull from
+     * \param rel_start    a uint64 count of the start of the range of interest
+     * \param rel_end      a uint64 count of the end of the range of interest
+     * \param key          a PMT symbol key to filter only tags of this key
+     */
+    void get_tags_in_window(std::vector<tag_t> &v,
+                            unsigned int which_input,
+                            uint64_t rel_start,
+                            uint64_t rel_end,
+                            const pmt::pmt_t &key);
+
+    void enable_update_rate(bool en);
+
     std::vector<long> d_max_output_buffer;
     std::vector<long> d_min_output_buffer;
 
@@ -660,11 +824,11 @@ namespace gr {
      * setting/resetting of parameters thread-safe.
      *
      * Used by calling gr::thread::scoped_lock l(d_setlock);
-     */ 
+     */
     gr::thread::mutex d_setlock;
 
     /*! Used by blocks to access the logger system.
-     */ 
+     */
     gr::logger_ptr d_logger;
     gr::logger_ptr d_debug_logger;
 
@@ -674,6 +838,15 @@ namespace gr {
   public:
     block_detail_sptr detail() const { return d_detail; }
     void set_detail(block_detail_sptr detail) { d_detail = detail; }
+
+   /*! \brief Tell msg neighbors we are finished
+	*/
+   void notify_msg_neighbors();
+
+   /*! \brief Make sure we dont think we are finished
+	*/
+   void clear_finished(){ d_finished = false; }
+
   };
 
   typedef std::vector<block_sptr> block_vector_t;
@@ -684,7 +857,7 @@ namespace gr {
     return boost::dynamic_pointer_cast<block, basic_block>(p);
   }
 
-  std::ostream&
+  GR_RUNTIME_API std::ostream&
   operator << (std::ostream& os, const block *m);
 
 } /* namespace gr */

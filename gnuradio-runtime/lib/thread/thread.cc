@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2012-2013 Free Software Foundation, Inc.
+ * Copyright 2012-2014 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -24,10 +24,11 @@
 #endif
 
 #include <gnuradio/thread/thread.h>
+#include <boost/format.hpp>
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
 
-#include <Windows.h>
+#include <windows.h>
 
 namespace gr {
   namespace thread {
@@ -72,7 +73,7 @@ namespace gr {
       DWORD_PTR ret = SetThreadAffinityMask(thread, dword_mask);
       if(ret == 0) {
         std::stringstream s;
-        s << "thread_bind_to_processor failed with error: " 
+        s << "thread_bind_to_processor failed with error: "
           << GetLastError() << std::endl;
         throw std::runtime_error(s.str());
       }
@@ -97,25 +98,75 @@ namespace gr {
       }
     }
 
-    int 
+    int
     thread_priority(gr_thread_t thread)
     {
       // Not implemented on Windows
       return -1;
     }
-    
-    int 
+
+    int
     set_thread_priority(gr_thread_t thread, int priority)
     {
       // Not implemented on Windows
       return -1;
     }
+#ifndef __MINGW32__
+#pragma pack(push,8)
+    typedef struct tagTHREADNAME_INFO
+    {
+      DWORD dwType;     // Must be 0x1000
+      LPCSTR szName;    // Pointer to name (in user addr space)
+      DWORD dwThreadID; // Thread ID (-1 = caller thread)
+      DWORD dwFlags;    // Reserved for future use, must be zero
+    } THREADNAME_INFO;
+#pragma pack(pop)
+    static void
+    _set_thread_name(gr_thread_t thread, const char* name, DWORD dwThreadId)
+    {
+      const DWORD SET_THREAD_NAME_EXCEPTION = 0x406D1388;
+
+      THREADNAME_INFO info;
+      info.dwType = 0x1000;
+      info.szName = name;
+      info.dwThreadID = dwThreadId;
+      info.dwFlags = 0;
+
+      __try
+      {
+        RaiseException(SET_THREAD_NAME_EXCEPTION, 0, sizeof(info)/sizeof(ULONG_PTR), (ULONG_PTR*)&info);
+      }
+      __except(EXCEPTION_EXECUTE_HANDLER)
+      {
+      }
+    }
+
+    void
+    set_thread_name(gr_thread_t thread, std::string name)
+    {
+      DWORD dwThreadId = GetThreadId(thread);
+      if (dwThreadId == 0)
+        return;
+
+      if (name.empty())
+        name = boost::str(boost::format("thread %lu") % dwThreadId);
+
+      _set_thread_name(thread, name.c_str(), dwThreadId);
+    }
+#else
+    void
+    set_thread_name(gr_thread_t thread, std::string name)
+    {
+        /* Not implemented on mingw-w64 */
+    }
+#endif /* !__MINGW32__ */
 
   } /* namespace thread */
 } /* namespace gr */
 
 
-#elif defined(macintosh) || defined(__APPLE__) || defined(__APPLE_CC__)
+#elif defined(macintosh) || defined(__APPLE__) || defined(__APPLE_CC__) || \
+    defined(__FreeBSD__)
 
 namespace gr {
   namespace thread {
@@ -124,6 +175,7 @@ namespace gr {
     get_current_thread_id()
     {
       // Not implemented on OSX
+      return NULL;
     }
 
     void
@@ -162,18 +214,32 @@ namespace gr {
       // Not implemented on OSX
     }
 
-    int 
+    int
     thread_priority(gr_thread_t thread)
     {
-      // Not implemented on OSX
-      return -1;
+      sched_param param;
+      int priority;
+      int policy;
+      int ret;
+      ret = pthread_getschedparam (thread, &policy, &param);
+      priority = param.sched_priority;
+      return (ret==0)?priority:ret;
     }
-    
-    int 
+
+    int
     set_thread_priority(gr_thread_t thread, int priority)
     {
+      int policy;
+      struct sched_param param;
+      pthread_getschedparam (thread, &policy, &param);
+      param.sched_priority = priority;
+      return pthread_setschedparam(thread, policy, &param);
+    }
+
+    void
+    set_thread_name(gr_thread_t thread, std::string name)
+    {
       // Not implemented on OSX
-      return -1;
     }
 
   } /* namespace thread */
@@ -184,6 +250,7 @@ namespace gr {
 #include <sstream>
 #include <stdexcept>
 #include <pthread.h>
+#include <sys/prctl.h>
 
 namespace gr {
   namespace thread {
@@ -260,7 +327,7 @@ namespace gr {
       }
     }
 
-    int 
+    int
     thread_priority(gr_thread_t thread)
     {
       sched_param param;
@@ -271,8 +338,8 @@ namespace gr {
       priority = param.sched_priority;
       return (ret==0)?priority:ret;
     }
-    
-    int 
+
+    int
     set_thread_priority(gr_thread_t thread, int priority)
     {
       int policy;
@@ -280,6 +347,34 @@ namespace gr {
       pthread_getschedparam (thread, &policy, &param);
       param.sched_priority = priority;
       return pthread_setschedparam(thread, policy, &param);
+    }
+
+    void
+    set_thread_name(gr_thread_t thread, std::string name)
+    {
+      if (thread != pthread_self()) // Naming another thread is not supported
+        return;
+
+      if (name.empty())
+        name = boost::str(boost::format("thread %llu") % ((unsigned long long)thread));
+
+      const int max_len = 16; // Maximum accepted by PR_SET_NAME
+
+      if ((int)name.size() > max_len) // Shorten the name if necessary by taking as many characters from the front
+      {                               // so that the unique_id can still fit on the end
+        int i = name.size() - 1;
+        for (; i >= 0; --i)
+        {
+          std::string s = name.substr(i, 1);
+          int n = atoi(s.c_str());
+          if ((n == 0) && (s != "0"))
+            break;
+        }
+
+        name = name.substr(0, std::max(0, max_len - ((int)name.size() - (i + 1)))) + name.substr(i + 1);
+      }
+
+      prctl(PR_SET_NAME, name.c_str(), 0, 0, 0);
     }
 
   } /* namespace thread */

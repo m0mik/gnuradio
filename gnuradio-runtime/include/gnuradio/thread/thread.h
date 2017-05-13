@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2009-2013 Free Software Foundation, Inc.
+ * Copyright 2009-2014 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -27,6 +27,8 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/condition_variable.hpp>
+#include <boost/thread/barrier.hpp>
+#include <boost/shared_ptr.hpp>
 #include <vector>
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
@@ -46,6 +48,8 @@ namespace gr {
     typedef boost::mutex                     mutex;
     typedef boost::unique_lock<boost::mutex> scoped_lock;
     typedef boost::condition_variable        condition_variable;
+    typedef boost::barrier                   barrier;
+    typedef boost::shared_ptr<barrier>       barrier_sptr;
 
     /*! \brief a system-dependent typedef for the underlying thread type.
      */
@@ -139,16 +143,15 @@ namespace gr {
     GR_RUNTIME_API void thread_unbind(gr_thread_t thread);
 
     /*! \brief get current thread priority for a given thread ID
-     *
-     * Note: this does not work on OSX
      */
     GR_RUNTIME_API int thread_priority(gr_thread_t thread);
-    
-    /*! \brief get current thread priority for a given thread ID
-     *
-     * Note: this does not work on OSX
+
+    /*! \brief set current thread priority for a given thread ID
      */
     GR_RUNTIME_API int set_thread_priority(gr_thread_t thread, int priority);
+
+    GR_RUNTIME_API void set_thread_name(gr_thread_t thread,
+                                        std::string name);
 
   } /* namespace thread */
 } /* namespace gr */

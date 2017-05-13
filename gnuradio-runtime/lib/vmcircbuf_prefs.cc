@@ -45,12 +45,13 @@ namespace gr {
    * The simplest thing that could possibly work:
    *  the key is the filename; the value is the file contents.
    */
-  static const char *
+
+  static std::string
   pathname(const char *key)
   {
     static fs::path path;
-    path = fs::path(gr::appdata_path()) / ".gnuradio" / "prefs" / key;
-    return path.string().c_str();
+    path = fs::path(gr::appdata_path()) / ".gnuradio" / "prefs" / key;    
+    return path.string();
   }
 
   static void
@@ -65,30 +66,28 @@ namespace gr {
       fs::create_directory(path);
   }
 
-  const char *
-  vmcircbuf_prefs::get(const char *key)
+  int
+  vmcircbuf_prefs::get(const char *key, char *value, int value_size)
   {
-    static char buf[1024];
-
     gr::thread::scoped_lock guard(s_vm_mutex);
 
-    FILE *fp = fopen(pathname (key), "r");
+    FILE *fp = fopen(pathname (key).c_str(), "r");
     if(fp == 0) {
-      perror(pathname (key));
+      perror(pathname (key).c_str());
       return 0;
     }
 
-    memset(buf, 0, sizeof (buf));
-    size_t ret = fread(buf, 1, sizeof(buf) - 1, fp);
-    if(ret == 0) {
+    const size_t ret = fread(value, 1, value_size - 1, fp);
+    value[ret] = '\0';
+    if(ret == 0 && !feof(fp)) {
       if(ferror(fp) != 0) {
-        perror(pathname (key));
+        perror(pathname (key).c_str());
         fclose(fp);
-        return 0;
+        return -1;
       }
     }
     fclose(fp);
-    return buf;
+    return ret;
   }
 
   void
@@ -98,16 +97,16 @@ namespace gr {
 
     ensure_dir_path();
 
-    FILE *fp = fopen(pathname(key), "w");
+    FILE *fp = fopen(pathname(key).c_str(), "w");
     if(fp == 0) {
-      perror(pathname (key));
+      perror(pathname (key).c_str());
       return;
     }
 
     size_t ret = fwrite(value, 1, strlen(value), fp);
     if(ret == 0) {
       if(ferror(fp) != 0) {
-        perror(pathname (key));
+        perror(pathname (key).c_str());
         fclose(fp);
         return;
       }

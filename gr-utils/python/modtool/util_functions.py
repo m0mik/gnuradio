@@ -29,13 +29,8 @@ def get_command_from_argv(possible_cmds):
     """ Read the requested command from argv. This can't be done with optparse,
     since the option parser isn't defined before the command is known, and
     optparse throws an error."""
-    command = None
     for arg in sys.argv:
-        if arg[0] == "-":
-            continue
-        else:
-            command = arg
-        if command in possible_cmds:
+        if arg[0] != "-" and arg in possible_cmds:
             return arg
     return None
 
@@ -76,16 +71,26 @@ def strip_default_values(string):
     return re.sub(' *=[^,)]*', '', string)
 
 def strip_arg_types(string):
-    """" Strip the argument types from a list of arguments
-    Example: "int arg1, double arg2" -> "arg1, arg2" """
+    """"
+    Strip the argument types from a list of arguments.
+    Example: "int arg1, double arg2" -> "arg1, arg2"
+    Note that some types have qualifiers, which also are part of
+    the type, e.g. "const std::string &name" -> "name", or
+    "const char *str" -> "str".
+    """
     string = strip_default_values(string)
-    return ", ".join([part.strip().split(' ')[-1] for part in string.split(',')])
+    return ", ".join(
+                [part.strip().split(' ')[-1] for part in string.split(',')]
+            ).translate(None, '*&')
 
 def strip_arg_types_grc(string):
     """" Strip the argument types from a list of arguments for GRC make tag.
     Example: "int arg1, double arg2" -> "$arg1, $arg2" """
-    string = strip_default_values(string)
-    return ", ".join(['$' + part.strip().split(' ')[-1] for part in string.split(',')])
+    if len(string) == 0:
+        return ""
+    else:
+        string = strip_default_values(string)
+        return ", ".join(['$' + part.strip().split(' ')[-1] for part in string.split(',')])
 
 def get_modname():
     """ Grep the current module's name from gnuradio.project or CMakeLists.txt """
@@ -108,7 +113,7 @@ def get_modname():
         return None
 
 def is_number(s):
-    " Return True if the string s contains a number. "
+    """ Return True if the string s contains a number. """
     try:
         float(s)
         return True

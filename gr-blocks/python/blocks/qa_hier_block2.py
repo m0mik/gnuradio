@@ -2,6 +2,8 @@
 
 from gnuradio import gr, gr_unittest, blocks
 import numpy
+import threading
+import time
 
 class add_ff(gr.sync_block):
     def __init__(self):
@@ -425,6 +427,44 @@ class test_hier_block2(gr_unittest.TestCase):
         hblock.set_processor_affinity([0,])
         procs = hblock.processor_affinity()
         self.assertEquals((0,), procs)
+
+    def test_34a_lock_unlock(self):
+        hblock = gr.top_block("test_block")
+        src = blocks.null_source(gr.sizeof_float)
+        throttle = blocks.throttle(gr.sizeof_float, 32000)
+        hier = multiply_const_ff(0.5)
+        sink = blocks.null_sink(gr.sizeof_float)
+        hblock.connect(src, throttle, hier, sink)
+        hblock.set_processor_affinity([0,])
+        hblock.start()
+        time.sleep(1)
+        hblock.lock()
+        hblock.unlock()
+        hblock.stop()
+        hblock.wait()
+
+    def test_34b_lock_unlock(self):
+        hblock = gr.top_block("test_block")
+        src = blocks.null_source(gr.sizeof_float)
+        throttle = blocks.throttle(gr.sizeof_float, 32000)
+        sink = blocks.null_sink(gr.sizeof_float)
+        hblock.connect(src, throttle, sink)
+        hblock.set_processor_affinity([0,])
+        def thread_01(hblock, cls):
+            cls.test_34b_val = 10
+            hblock.lock()
+            cls.test_34b_val = 20
+            hblock.unlock()
+            cls.test_34b_val = 30
+            time.sleep(0.5)
+            cls.test_34b_val = 40
+            hblock.stop()
+        hblock.start()
+        self.test_34b_val = 0
+        t1 = threading.Thread(target=thread_01, args=(hblock, self, ))
+        t1.start()
+        hblock.wait()
+        self.assertEqual(40, self.test_34b_val)
 
 if __name__ == "__main__":
     gr_unittest.run(test_hier_block2, "test_hier_block2.xml")

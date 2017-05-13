@@ -28,6 +28,7 @@
 #include <qa_fir_filter_with_buffer.h>
 #include <gnuradio/filter/fir_filter_with_buffer.h>
 #include <gnuradio/fft/fft.h>
+#include <volk/volk.h>
 #include <cppunit/TestAssert.h>
 #include <cmath>
 #include <gnuradio/random.h>
@@ -39,10 +40,12 @@ namespace gr {
 #define MAX_DATA        (16383)
 #define	ERR_DELTA	(1e-5)
 
+    static gr::random rndm;
+
     static float
-    uniform() 
+    uniform()
     {
-      return 2.0 * ((float)(::random()) / RANDOM_MAX - 0.5); // uniformly (-1, 1)
+      return 2.0 * (rndm.ran1() - 0.5); // uniformly (-1, 1)
     }
 
     static void
@@ -110,13 +113,14 @@ namespace gr {
 	const int MAX_TAPS   = 29;
 	const int OUTPUT_LEN = 37;
 	const int INPUT_LEN  = MAX_TAPS + OUTPUT_LEN;
+        size_t align = volk_get_alignment();
 
 	// Mem aligned buffer not really necessary, but why not?
-	i_type   *input = fft::malloc_float(INPUT_LEN);
-	i_type   *dline = fft::malloc_float(INPUT_LEN);
-	o_type   *expected_output = fft::malloc_float(OUTPUT_LEN);
-	o_type   *actual_output = fft::malloc_float(OUTPUT_LEN);
-	tap_type *taps = fft::malloc_float(MAX_TAPS);
+	i_type   *input = (float*)volk_malloc(INPUT_LEN*sizeof(float), align);
+	i_type   *dline = (float*)volk_malloc(INPUT_LEN*sizeof(float), align);
+	o_type   *expected_output = (float*)volk_malloc(OUTPUT_LEN*sizeof(float), align);
+	o_type   *actual_output = (float*)volk_malloc(OUTPUT_LEN*sizeof(float), align);
+	tap_type *taps = (float*)volk_malloc(MAX_TAPS*sizeof(float), align);
 
 	srandom(0);	// we want reproducibility
 	memset(dline, 0, INPUT_LEN*sizeof(i_type));
@@ -163,11 +167,11 @@ namespace gr {
 	    delete f1;
 	  }
 	}
-	fft::free(input);
-	fft::free(dline);
-	fft::free(expected_output);
-	fft::free(actual_output);
-	fft::free(taps);
+	volk_free(input);
+	volk_free(dline);
+	volk_free(expected_output);
+	volk_free(actual_output);
+	volk_free(taps);
       }
 
     } /* namespace fff */
@@ -225,13 +229,14 @@ namespace gr {
 	const int MAX_TAPS   = 29;
 	const int OUTPUT_LEN = 37;
 	const int INPUT_LEN  = MAX_TAPS + OUTPUT_LEN;
+        size_t align = volk_get_alignment();
 
 	// Mem aligned buffer not really necessary, but why not?
-	i_type   *input = fft::malloc_complex(INPUT_LEN);
-	i_type   *dline = fft::malloc_complex(INPUT_LEN);
-	o_type   *expected_output = fft::malloc_complex(OUTPUT_LEN);
-	o_type   *actual_output = fft::malloc_complex(OUTPUT_LEN);
-	tap_type *taps = fft::malloc_complex(MAX_TAPS);
+	i_type   *input = (gr_complex*)volk_malloc(INPUT_LEN*sizeof(gr_complex), align);
+	i_type   *dline = (gr_complex*)volk_malloc(INPUT_LEN*sizeof(gr_complex), align);
+	o_type   *expected_output = (gr_complex*)volk_malloc(OUTPUT_LEN*sizeof(gr_complex), align);
+	o_type   *actual_output = (gr_complex*)volk_malloc(OUTPUT_LEN*sizeof(gr_complex), align);
+	tap_type *taps = (gr_complex*)volk_malloc(MAX_TAPS*sizeof(gr_complex), align);
 
 	srandom(0);	// we want reproducibility
 	memset(dline, 0, INPUT_LEN*sizeof(i_type));
@@ -278,11 +283,11 @@ namespace gr {
 	    delete f1;
 	  }
 	}
-	fft::free(input);
-	fft::free(dline);
-	fft::free(expected_output);
-	fft::free(actual_output);
-	fft::free(taps);
+	volk_free(input);
+	volk_free(dline);
+	volk_free(expected_output);
+	volk_free(actual_output);
+	volk_free(taps);
       }
 
     } /* namespace ccc */
@@ -307,7 +312,7 @@ namespace gr {
 	  sum += input[i] * taps[i];
 	}
 
-	//return gr_complex(121,9)*sum; 
+	//return gr_complex(121,9)*sum;
 	return sum;
      }
 
@@ -340,13 +345,14 @@ namespace gr {
 	const int MAX_TAPS   = 29;
 	const int OUTPUT_LEN = 37;
 	const int INPUT_LEN  = MAX_TAPS + OUTPUT_LEN;
+        size_t align = volk_get_alignment();
 
 	// Mem aligned buffer not really necessary, but why not?
-	i_type   *input = fft::malloc_complex(INPUT_LEN);
-	i_type   *dline = fft::malloc_complex(INPUT_LEN);
-	o_type   *expected_output = fft::malloc_complex(OUTPUT_LEN);
-	o_type   *actual_output = fft::malloc_complex(OUTPUT_LEN);
-	tap_type *taps = fft::malloc_float(MAX_TAPS);
+	i_type   *input = (gr_complex*)volk_malloc(INPUT_LEN*sizeof(gr_complex), align);
+	i_type   *dline = (gr_complex*)volk_malloc(INPUT_LEN*sizeof(gr_complex), align);
+	o_type   *expected_output = (gr_complex*)volk_malloc(OUTPUT_LEN*sizeof(gr_complex), align);
+	o_type   *actual_output = (gr_complex*)volk_malloc(OUTPUT_LEN*sizeof(gr_complex), align);
+	tap_type *taps = (float*)volk_malloc(MAX_TAPS*sizeof(float), align);
 
 	srandom(0);	// we want reproducibility
 	memset(dline, 0, INPUT_LEN*sizeof(i_type));
@@ -376,7 +382,7 @@ namespace gr {
 	      new kernel::fir_filter_with_buffer_ccf(f1_taps);
 
 	    // zero the output, then do the filtering
-	    memset(actual_output, 0, sizeof(OUTPUT_LEN*sizeof(gr_complex)));
+	    memset(actual_output, 0, OUTPUT_LEN*sizeof(gr_complex));
 	    f1->filterNdec(actual_output, input, ol/decimate, decimate);
 
 	    // check results
@@ -393,11 +399,11 @@ namespace gr {
 	    delete f1;
 	  }
 	}
-	fft::free(input);
-	fft::free(dline);
-	fft::free(expected_output);
-	fft::free(actual_output);
-	fft::free(taps);
+	volk_free(input);
+	volk_free(dline);
+	volk_free(expected_output);
+	volk_free(actual_output);
+	volk_free(taps);
       }
 
     } /* namespace ccf */

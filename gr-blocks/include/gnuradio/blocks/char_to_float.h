@@ -30,13 +30,19 @@ namespace gr {
   namespace blocks {
 
     /*!
-     * \brief Convert stream of chars to a stream of float
+     * \brief Convert stream of chars to a stream of float.
      * \ingroup type_converters_blk
+     *
+     * \details
+     * Converts \p vlen length vectors of input char samples to floats
+     * and applies a scaling factor of \p scale:
+     *
+     * \li output[0][m:m+vlen] = static_cast<float>(input[0][m:m+vlen]) / scale
      */
     class BLOCKS_API char_to_float : virtual public sync_block
     {
     public:
-      
+
       // gr::blocks::char_to_float_ff::sptr
       typedef boost::shared_ptr<char_to_float> sptr;
 

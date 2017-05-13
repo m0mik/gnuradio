@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2008,2009,2011,2012 Free Software Foundation, Inc.
+ * Copyright 2008,2009,2011,2012,2014 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -59,13 +59,20 @@ namespace gr {
 
       gr::high_res_timer_type d_update_time;
 
+      int d_argc;
+      char *d_argv;
       QWidget *d_parent;
       SpectrumGUIClass *d_main_gui;
 
       void windowreset();
       void buildwindow();
       void fftresize();
+      void check_clicked();
       void fft(float *data_out, const gr_complex *data_in, int size);
+
+      // Handles message input port for setting new center frequency.
+      // The message is a PMT pair (intern('freq'), double(frequency)).
+      void handle_set_freq(pmt::pmt_t msg);
 
     public:
       sink_c_impl(int fftsize, int wintype,
@@ -80,7 +87,12 @@ namespace gr {
 
       void exec_();
       QWidget*  qwidget();
+
+#ifdef ENABLE_PYTHON
       PyObject* pyqwidget();
+#else
+      void* pyqwidget();
+#endif
 
       void set_fft_size(const int fftsize);
       int fft_size() const;
@@ -88,6 +100,7 @@ namespace gr {
       void set_frequency_range(const double centerfreq,
 			       const double bandwidth);
       void set_fft_power_db(double min, double max);
+      void enable_rf_freq(bool en);
 
       //void set_time_domain_axis(double min, double max);
       //void set_constellation_axis(double xmin, double xmax,

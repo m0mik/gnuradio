@@ -24,6 +24,7 @@ GR_PYTHON_INSTALL(
     FILES
     __init__.py
     filterbank.py
+    freq_xlating_fft_filter.py
     optfir.py
     pfb.py
     rational_resampler.py
@@ -35,17 +36,17 @@ GR_PYTHON_INSTALL(
 # Handle the unit tests
 ########################################################################
 if(ENABLE_TESTING)
-  
+
   set(GR_TEST_TARGET_DEPS "")
   set(GR_TEST_LIBRARY_DIRS "")
   set(GR_TEST_PYTHON_DIRS
     ${CMAKE_BINARY_DIR}/gnuradio-runtime/python
     )
-  
+
   include(GrTest)
   file(GLOB py_qa_test_files "qa_*.py")
   foreach(py_qa_test_file ${py_qa_test_files})
     get_filename_component(py_qa_test_name ${py_qa_test_file} NAME_WE)
-    GR_ADD_TEST(${py_qa_test_name} ${PYTHON_EXECUTABLE} ${PYTHON_DASH_B} ${py_qa_test_file})
+    GR_ADD_TEST(${py_qa_test_name} ${QA_PYTHON_EXECUTABLE} ${PYTHON_DASH_B} ${py_qa_test_file})
   endforeach(py_qa_test_file)
 endif(ENABLE_TESTING)

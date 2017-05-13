@@ -28,7 +28,7 @@
 
 namespace gr {
   namespace filter {
-    
+
     class FILTER_API fractional_resampler_ff_impl
       : public fractional_resampler_ff
     {
@@ -41,6 +41,8 @@ namespace gr {
       fractional_resampler_ff_impl(float phase_shift,
                                    float resamp_ratio);
       ~fractional_resampler_ff_impl();
+
+      void handle_msg(pmt::pmt_t msg);
 
       void forecast(int noutput_items,
 		    gr_vector_int &ninput_items_required);

@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2006-2011,2013 Free Software Foundation, Inc.
+ * Copyright 2006-2011,2013-2014 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -24,6 +24,10 @@
 #include "config.h"
 #endif
 
+#ifdef _MSC_VER
+#include <io.h>
+#endif
+
 #include "audio_registry.h"
 #include <portaudio_source.h>
 #include <portaudio_impl.h>
@@ -34,13 +38,17 @@
 #include <unistd.h>
 #include <stdexcept>
 #include <string.h>
+#ifdef _MSC_VER
+#include <io.h>
+#endif 
 
 namespace gr {
   namespace audio {
 
-    AUDIO_REGISTER_SOURCE(REG_PRIO_MED, portaudio)(int sampling_rate,
-                                                   const std::string &device_name,
-                                                   bool ok_to_block)
+    source::sptr
+    portaudio_source_fcn(int sampling_rate,
+                         const std::string &device_name,
+                         bool ok_to_block)
     {
       return source::sptr
         (new portaudio_source(sampling_rate, device_name, ok_to_block));
@@ -296,7 +304,7 @@ namespace gr {
     {
       float **out = (float **)&output_items[0];
       const unsigned nchan = d_input_parameters.channelCount; // # of channels == samples/frame
-  
+
       int k;
       for(k = 0; k < noutput_items;) {
         int nframes = d_reader->items_available() / nchan;	// # of frames in ringbuffer

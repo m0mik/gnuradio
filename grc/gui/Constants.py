@@ -17,67 +17,98 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 """
 
-import pygtk
-pygtk.require('2.0')
 import gtk
-import os
 
-##default path for the open/save dialogs
-DEFAULT_FILE_PATH = os.getcwd()
+from ..core.Constants import *
 
-##file extensions
+
+# default path for the open/save dialogs
+DEFAULT_FILE_PATH = os.getcwd() if os.name != 'nt' else os.path.expanduser("~/Documents")
+
+# file extensions
 IMAGE_FILE_EXTENSION = '.png'
+TEXT_FILE_EXTENSION = '.txt'
 
-##name for new/unsaved flow graphs
+# name for new/unsaved flow graphs
 NEW_FLOGRAPH_TITLE = 'untitled'
 
-##main window constraints
+# main window constraints
 MIN_WINDOW_WIDTH = 600
 MIN_WINDOW_HEIGHT = 400
-##dialog constraints
+# dialog constraints
 MIN_DIALOG_WIDTH = 500
 MIN_DIALOG_HEIGHT = 500
-##default sizes
+# default sizes
 DEFAULT_BLOCKS_WINDOW_WIDTH = 100
-DEFAULT_REPORTS_WINDOW_WIDTH = 100
+DEFAULT_CONSOLE_WINDOW_WIDTH = 100
 
-##The size of the state saving cache in the flow graph (for undo/redo functionality)
+DEFAULT_CANVAS_SIZE_DEFAULT = 1280, 1024
+
+FONT_SIZE = DEFAULT_FONT_SIZE = 8
+FONT_FAMILY = "Sans"
+BLOCK_FONT = PORT_FONT = "Sans 8"
+PARAM_FONT = "Sans 7.5"
+
+# size of the state saving cache in the flow graph (undo/redo functionality)
 STATE_CACHE_SIZE = 42
 
-##Shared targets for drag and drop of blocks
+# Shared targets for drag and drop of blocks
 DND_TARGETS = [('STRING', gtk.TARGET_SAME_APP, 0)]
 
-#label constraint dimensions
+# label constraint dimensions
 LABEL_SEPARATION = 3
 BLOCK_LABEL_PADDING = 7
 PORT_LABEL_PADDING = 2
 
-#port constraint dimensions
-PORT_SEPARATION = 17
-PORT_BORDER_SEPARATION = 9
-PORT_MIN_WIDTH = 20
+# canvas grid size
+CANVAS_GRID_SIZE = 8
 
-#minimal length of connector
+# port constraint dimensions
+PORT_BORDER_SEPARATION = 8
+PORT_SPACING = 2 * PORT_BORDER_SEPARATION
+PORT_SEPARATION = 32
+
+PORT_MIN_WIDTH = 20
+PORT_LABEL_HIDDEN_WIDTH = 10
+
+# minimal length of connector
 CONNECTOR_EXTENSION_MINIMAL = 11
 
-#increment length for connector
+# increment length for connector
 CONNECTOR_EXTENSION_INCREMENT = 11
 
-#connection arrow dimensions
+# connection arrow dimensions
 CONNECTOR_ARROW_BASE = 13
 CONNECTOR_ARROW_HEIGHT = 17
 
-#possible rotations in degrees
+# possible rotations in degrees
 POSSIBLE_ROTATIONS = (0, 90, 180, 270)
 
-#How close can the mouse get to the window border before mouse events are ignored.
+# How close can the mouse get to the window border before mouse events are ignored.
 BORDER_PROXIMITY_SENSITIVITY = 50
 
-#How close the mouse can get to the edge of the visible window before scrolling is invoked.
+# How close the mouse can get to the edge of the visible window before scrolling is invoked.
 SCROLL_PROXIMITY_SENSITIVITY = 30
 
-#When the window has to be scrolled, move it this distance in the required direction.
+# When the window has to be scrolled, move it this distance in the required direction.
 SCROLL_DISTANCE = 15
 
-#How close the mouse click can be to a line and register a connection select.
+# How close the mouse click can be to a line and register a connection select.
 LINE_SELECT_SENSITIVITY = 5
+
+_SCREEN_RESOLUTION = gtk.gdk.screen_get_default().get_resolution()
+DPI_SCALING = _SCREEN_RESOLUTION / 96.0 if _SCREEN_RESOLUTION > 0 else 1.0
+
+
+def update_font_size(font_size):
+    global PORT_SEPARATION, BLOCK_FONT, PORT_FONT, PARAM_FONT, FONT_SIZE
+
+    FONT_SIZE = font_size
+    BLOCK_FONT = "%s %f" % (FONT_FAMILY, font_size)
+    PORT_FONT = BLOCK_FONT
+    PARAM_FONT = "%s %f" % (FONT_FAMILY, font_size - 0.5)
+
+    PORT_SEPARATION = PORT_SPACING + 2 * PORT_LABEL_PADDING + int(1.5 * font_size)
+    PORT_SEPARATION += -PORT_SEPARATION % (2 * CANVAS_GRID_SIZE)  # even multiple
+
+update_font_size(DEFAULT_FONT_SIZE)

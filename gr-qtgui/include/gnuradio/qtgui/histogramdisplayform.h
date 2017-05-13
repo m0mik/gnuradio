@@ -58,23 +58,31 @@ public slots:
 
   void setNumBins(const int);
   void setAccumulate(bool en);
+  bool getAccumulate();
+  void autoScaleX();
 
 private slots:
   void newData(const QEvent*);
 
 private:
-  QIntValidator* _intValidator;
+  QIntValidator* d_int_validator;
 
-  double _startFrequency;
-  double _stopFrequency;
+  double d_startFrequency;
+  double d_stopFrequency;
 
   int d_npoints;
 
   bool d_semilogx;
   bool d_semilogy;
-  
+
+  NPointsMenu *d_nptsmenu;
+  NPointsMenu *d_nbinsmenu;
   QAction *d_semilogxmenu;
   QAction *d_semilogymenu;
+
+  QAction *d_accum_act;
+  QAction *d_autoscalex_act;
+  bool d_autoscalex_state;
 };
 
 #endif /* HISTOGRAM_DISPLAY_FORM_H */

@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2006,2013 Free Software Foundation, Inc.
+ * Copyright 2006,2013,2015 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -27,36 +27,33 @@
 #include <gnuradio/prefs.h>
 #include <gnuradio/sys_paths.h>
 #include <gnuradio/constants.h>
+
 #include <algorithm>
+#include <fstream>
+#include <iostream>
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/program_options.hpp>
+#include <boost/foreach.hpp>
 namespace fs = boost::filesystem;
+namespace po = boost::program_options;
+typedef std::ifstream::char_type char_t;
 
 namespace gr {
-
-  /*
-   * Stub implementations
-   */
-  static prefs s_default_singleton;
-  static prefs *s_singleton = &s_default_singleton;
 
   prefs *
   prefs::singleton()
   {
-    return s_singleton;
-  }
-
-  void
-  prefs::set_singleton(prefs *p)
-  {
-    s_singleton = p;
+    static prefs instance; // Guaranteed to be destroyed.
+                            // Instantiated on first use.
+    return &instance;
   }
 
   prefs::prefs()
   {
-    _read_files();
+    _read_files(_sys_prefs_filenames());
   }
 
   prefs::~prefs()
@@ -76,7 +73,7 @@ namespace gr {
     fs::directory_iterator diritr(dir);
     while(diritr != fs::directory_iterator()) {
       fs::path p = *diritr++;
-      if(p.extension() != ".swp")
+      if(p.extension() == ".conf")
         fnames.push_back(p.string());
     }
     std::sort(fnames.begin(), fnames.end());
@@ -84,89 +81,59 @@ namespace gr {
     // Find if there is a ~/.gnuradio/config.conf file and add this to
     // the end of the file list to override any preferences in the
     // installed path config files.
-    fs::path homedir = fs::path(gr::appdata_path());
-    homedir = homedir/".gnuradio/config.conf";
-    if(fs::exists(homedir)) {
-      fnames.push_back(homedir.string());
+    fs::path userconf = fs::path(gr::userconf_path()) / "config.conf";
+    if(fs::exists(userconf)) {
+      fnames.push_back(userconf.string());
     }
 
     return fnames;
   }
 
   void
-  prefs::_read_files()
+  prefs::_read_files(const std::vector<std::string> &filenames)
   {
-    std::string config;
-
-    std::vector<std::string> filenames = _sys_prefs_filenames();
-    std::vector<std::string>::iterator sitr;
-    char tmp[1024];
-    for(sitr = filenames.begin(); sitr != filenames.end(); sitr++) {
-      fs::ifstream fin(*sitr);
-      while(!fin.eof()) {
-        fin.getline(tmp, 1024);
-        std::string t(tmp);
-        // ignore empty lines or lines of just comments
-        if((t.size() > 0) && (t[0] != '#')) {
-          // remove any comments in the line
-          size_t hash = t.find("#");
-
-          // Use hash marks at the end of each segment as a delimiter
-          config += t.substr(0, hash) + '#';
+    BOOST_FOREACH( std::string fname, filenames) {
+      std::ifstream infile(fname.c_str());
+      if(infile.good()) {
+        try {
+          po::basic_parsed_options<char_t> parsed = po::parse_config_file(infile, po::options_description(), true);
+          BOOST_FOREACH(po::basic_option<char_t> o, (parsed.options) ){
+            std::string okey = o.string_key;
+            size_t pos = okey.find(".");
+            std::string section, key;
+            if(pos != std::string::npos) {
+              section = okey.substr(0,pos);
+              key = okey.substr(pos+1);
+            } else {
+              section = "default";
+              key = okey;
+            }
+            std::transform(section.begin(), section.end(), section.begin(), ::tolower);
+            std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+            // value of a basic_option is always a std::vector<string>; we only allow single values, so:
+            std::string value = o.value[0];
+            d_config_map[section][key] = value;
+          }
+        } catch(std::exception e) {
+          std::cerr << "WARNING: Config file '" << fname << "' failed to parse:" << std::endl;
+          std::cerr << e.what() << std::endl;
+          std::cerr << "Skipping it" << std::endl;
         }
+      } else { // infile.good();
+        std::cerr << "WARNING: Config file '" << fname << "' could not be opened for reading." << std::endl;
       }
-      fin.close();
     }
-
-    // Remove all whitespace.
-    config.erase(std::remove_if(config.begin(), config.end(),
-                                ::isspace), config.end());
-
-    // Convert the string into a map
-    _convert_to_map(config);
   }
 
   void
-  prefs::_convert_to_map(const std::string &conf)
+  prefs::add_config_file(const std::string &configfile)
   {
-    // Convert the string into an map of maps
-    // Map is structured as {section name: map of options}
-    // And options map is simply: {option name: option value}
-    std::string sub = conf;
-    size_t sec_start = sub.find("[");
-    while(sec_start != std::string::npos) {
-      sub = sub.substr(sec_start);
-    
-      size_t sec_end = sub.find("]");
-      if(sec_end == std::string::npos)
-        throw std::runtime_error("Config file error: Mismatched section label.\n");
-   
-      std::string sec = sub.substr(1, sec_end-1);
-      size_t next_sec_start = sub.find("[", sec_end);
-      std::string subsec = sub.substr(sec_end+1, next_sec_start-sec_end-2);
+    std::vector<std::string> filenames;
+    filenames.push_back(configfile);
 
-      std::transform(sec.begin(), sec.end(), sec.begin(), ::tolower);
-
-      std::map<std::string, std::string> options_map = d_config_map[sec];
-      size_t next_opt = 0;
-      size_t next_val = 0;
-      next_opt = subsec.find("#");
-      while(next_opt < subsec.size()-1) {
-        next_val = subsec.find("=", next_opt);
-        std::string option = subsec.substr(next_opt+1, next_val-next_opt-1);
-      
-        next_opt = subsec.find("#", next_val);
-        std::string value = subsec.substr(next_val+1, next_opt-next_val-1);
-
-        std::transform(option.begin(), option.end(), option.begin(), ::tolower);
-        options_map[option] = value;
-      }
-
-      d_config_map[sec] = options_map;
-
-      sec_start = sub.find("[", sec_end);
-    }
+    _read_files(filenames);
   }
+
 
   std::string
   prefs::to_string()
@@ -190,10 +157,8 @@ namespace gr {
   prefs::save()
   {
     std::string conf = to_string();
-
-    fs::path homedir = fs::path(gr::appdata_path());
-    homedir = homedir/".gnuradio/config.conf";
-    fs::ofstream fout(homedir);
+    fs::path userconf = fs::path(gr::userconf_path()) / "config.conf";
+    fs::ofstream fout(userconf);
     fout << conf;
     fout.close();
   }

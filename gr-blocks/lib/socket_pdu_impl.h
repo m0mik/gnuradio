@@ -30,17 +30,21 @@
 namespace gr {
   namespace blocks {
 
-    class socket_pdu_impl : public socket_pdu, public stream_pdu_base
+    class socket_pdu_impl : public socket_pdu
     {
     private:
       boost::asio::io_service d_io_service;
-      boost::array<char, 10000> d_rxbuf;
+      std::vector<char> d_rxbuf;
       void run_io_service() { d_io_service.run(); }
+      gr::thread::thread d_thread;
+      bool d_started;
+      bool d_finished;
 
       // TCP specific
       boost::asio::ip::tcp::endpoint d_tcp_endpoint;
       std::vector<tcp_connection::sptr> d_tcp_connections;
       void handle_tcp_read(const boost::system::error_code& error, size_t bytes_transferred);
+      bool d_tcp_no_delay;
 
       // TCP server specific
       boost::shared_ptr<boost::asio::ip::tcp::acceptor> d_acceptor_tcp;
@@ -58,9 +62,11 @@ namespace gr {
       boost::shared_ptr<boost::asio::ip::udp::socket> d_udp_socket;
       void handle_udp_read(const boost::system::error_code& error, size_t bytes_transferred);
       void udp_send(pmt::pmt_t msg);
-    
+
     public:
-      socket_pdu_impl(std::string type, std::string addr, std::string port, int MTU);
+      socket_pdu_impl(std::string type, std::string addr, std::string port, int MTU = 10000, bool tcp_no_delay = false);
+      ~socket_pdu_impl();
+      bool stop();
     };
 
   } /* namespace blocks */

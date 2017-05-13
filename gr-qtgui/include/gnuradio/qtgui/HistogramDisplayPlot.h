@@ -47,28 +47,36 @@ public:
 
 public slots:
   void setAutoScale(bool state);
+  void setAutoScaleX();
   void setSemilogx(bool en);
   void setSemilogy(bool en);
   void setAccumulate(bool en);
+  bool getAccumulate() const;
 
   void setMarkerAlpha(int which, int alpha);
   int getMarkerAlpha(int which) const;
   void setLineColor(int which, QColor color);
 
   void setNumBins(int bins);
+  void setXaxis(double min, double max);
+
+  void clear();
 
 private:
-  void _resetXAxisPoints(double bottom, double top);
-  void _autoScale(double bottom, double top);
+  void _resetXAxisPoints(double left, double right);
+  void _autoScaleY(double bottom, double top);
 
-  double* _xAxisPoints;
-  std::vector<double*> _yDataPoints;
+  double* d_xdata;
+  std::vector<double*> d_ydata;
 
-  int _bins;
-  bool _accum;
+  int d_bins;
+  bool d_accum;
+  double d_xmin, d_xmax, d_left, d_right;
+  double d_width;
 
   bool d_semilogx;
   bool d_semilogy;
+  bool d_autoscalex_state;
 };
 
 #endif /* HISTOGRAM_DISPLAY_PLOT_H */

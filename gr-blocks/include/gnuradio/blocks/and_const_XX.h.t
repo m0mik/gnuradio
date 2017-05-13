@@ -32,25 +32,26 @@ namespace gr {
   namespace blocks {
 
     /*!
-     * \brief output_N = input_N & value
+     * \brief output[m] = input[m] & value for all M streams.
      * \ingroup boolean_operators_blk
      *
-     * bitwise boolean and of const to the data stream.
+     * \details
+     * Bitwise boolean AND of constant \p k with the data stream.
      */
     class BLOCKS_API @NAME@ : virtual public sync_block
     {
 
     public:
-      
+
       // gr::blocks::@NAME@::sptr
       typedef boost::shared_ptr<@NAME@> sptr;
-      
+
       /*!
        * \brief Create an instance of @NAME@
        * \param k AND constant
        */
       static sptr make(@O_TYPE@ k);
-      
+
       /*!
        * \brief Return AND constant
        */

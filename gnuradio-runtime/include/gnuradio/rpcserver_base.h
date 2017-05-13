@@ -1,9 +1,9 @@
 /* -*- c++ -*- */
-/* 
+/*
  * Copyright 2012 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
- * 
+ *
  * GNU Radio is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3, or (at your option)
@@ -33,8 +33,13 @@ public:
 
   virtual void registerConfigureCallback(const std::string &id, const configureCallback_t callback) = 0;
   virtual void unregisterConfigureCallback(const std::string &id) = 0;
+
   virtual void registerQueryCallback(const std::string &id, const queryCallback_t callback) = 0;
   virtual void unregisterQueryCallback(const std::string &id) = 0;
+
+  virtual void registerHandlerCallback(const std::string &id, const handlerCallback_t callback) = 0;
+  virtual void unregisterHandlerCallback(const std::string &id) = 0;
+
   virtual void setCurPrivLevel(const priv_lvl_t priv) { cur_priv = priv; }
 
   typedef boost::shared_ptr<rpcserver_base> rpcserver_base_sptr;

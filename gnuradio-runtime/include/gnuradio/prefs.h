@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2006,2013 Free Software Foundation, Inc.
+ * Copyright 2006,2013,2015 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -46,10 +46,37 @@ namespace gr {
   {
   public:
     static prefs *singleton();
-    static void set_singleton(prefs *p);
 
+    /*!
+     * \brief Creates an object to read preference files.
+     *
+     * \details
+     *
+     * If no file name is given (empty arg list or ""), this opens up
+     * the standard GNU Radio configuration files in
+     * prefix/etc/gnuradio/conf.d as well as ~/.gnuradio/config.conf.
+     *
+     * Only access this through the singleton defined here:
+     * \code
+     * prefs *p = prefs::singleton();
+     * \endcode
+     */
     prefs();
+
     virtual ~prefs();
+
+    /*!
+     * If specifying a file name, this opens that specific
+     * configuration file of the standard form containing sections and
+     * key-value pairs:
+     *
+     * \code
+     * [SectionName]
+     * key0 = value0
+     * key1 = value1
+     * \endcode
+     */
+    void add_config_file(const std::string &configfile);
 
     /*!
      * \brief Returns the configuration options as a string.
@@ -138,8 +165,7 @@ namespace gr {
 
   protected:
     virtual std::vector<std::string> _sys_prefs_filenames();
-    virtual void _read_files();
-    virtual void _convert_to_map(const std::string &conf);
+    virtual void _read_files(const std::vector<std::string> &filenames);
     virtual char * option_to_env(std::string section, std::string option);
 
   private:

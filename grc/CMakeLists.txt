@@ -67,6 +67,23 @@ CPACK_COMPONENT("grc"
 # Create and install the grc conf file
 ########################################################################
 file(TO_NATIVE_PATH ${CMAKE_INSTALL_PREFIX}/${GRC_BLOCKS_DIR} blocksdir)
+if(CMAKE_INSTALL_PREFIX STREQUAL "/usr")
+    # linux binary installs: append blocks dir with prefix /usr/local
+    set(blocksdir ${blocksdir}:/usr/local/${GRC_BLOCKS_DIR})
+endif(CMAKE_INSTALL_PREFIX STREQUAL "/usr")
+
+if(UNIX)
+    find_program(GRC_XTERM_EXE
+        NAMES xterminal-emulator gnome-terminal konsole xterm
+        HINTS ENV PATH
+        DOC "graphical terminal emulator used in GRC's no-gui-mode"
+    )
+    if(NOT GRC_XTERM_EXE)
+        set(GRC_XTERM_EXE "")
+    endif()
+else()  # APPLE CYGWIN
+    set(GRC_XTERM_EXE "xterm")
+endif()
 
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/grc.conf.in
@@ -79,8 +96,10 @@ install(
     COMPONENT "grc"
 )
 
+file(GLOB py_files "*.py")
+
 GR_PYTHON_INSTALL(
-    FILES __init__.py
+    FILES ${py_files}
     DESTINATION ${GR_PYTHON_DIR}/gnuradio/grc
     COMPONENT "grc"
 )
@@ -116,13 +135,9 @@ endif(WIN32)
 ########################################################################
 # Add subdirectories
 ########################################################################
-add_subdirectory(base)
 add_subdirectory(blocks)
-add_subdirectory(freedesktop)
-add_subdirectory(grc_gnuradio)
 add_subdirectory(gui)
-add_subdirectory(python)
+add_subdirectory(core)
 add_subdirectory(scripts)
-add_subdirectory(examples)
 
 endif(ENABLE_GRC)

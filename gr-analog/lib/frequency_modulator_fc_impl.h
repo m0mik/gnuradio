@@ -27,7 +27,7 @@
 
 namespace gr {
   namespace analog {
-    
+
     class frequency_modulator_fc_impl : public frequency_modulator_fc
     {
     private:
@@ -35,11 +35,13 @@ namespace gr {
       float d_phase;
 
     public:
-      frequency_modulator_fc_impl(double sensitivity);
+      frequency_modulator_fc_impl(float sensitivity);
       ~frequency_modulator_fc_impl();
-      
+
       void set_sensitivity(float sens) { d_sensitivity = sens; }
       float sensitivity() const { return d_sensitivity; }
+
+      void setup_rpc();
 
       int work(int noutput_items,
 	       gr_vector_const_void_star &input_items,

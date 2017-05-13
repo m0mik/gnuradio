@@ -47,21 +47,26 @@ namespace gr {
       int         d_sampling_freq;
       std::string d_device_name;
       int         d_fd;
-      short      *d_buffer;
-      int         d_chunk_size;
+      LPWAVEHDR  *d_buffers;
+      DWORD       d_chunk_size;
+      DWORD	      d_buffer_size;
+      bool        d_ok_to_block;
       HWAVEOUT    d_h_waveout;
-      HGLOBAL     d_h_wave_hdr;
-      LPWAVEHDR   d_lp_wave_hdr;
       HANDLE      d_wave_write_event;
+      WAVEFORMATEX wave_format;
 
     protected:
       int string_to_int(const std::string & s);
       int open_waveout_device(void);
-      int write_waveout(HPSTR lp_data, DWORD dw_data_size);
+      int write_waveout(LPWAVEHDR lp_wave_hdr);
+      MMRESULT is_format_supported(LPWAVEFORMATEX pwfx, UINT uDeviceID);
+      bool is_number(const std::string& s);
+      UINT find_device(std::string szDeviceName);
 
     public:
       windows_sink(int sampling_freq,
-                   const std::string device_name = "");
+                   const std::string device_name,
+                   bool ok_to_block);
       ~windows_sink();
 
       int work(int noutput_items,

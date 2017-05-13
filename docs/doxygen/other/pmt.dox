@@ -1,6 +1,15 @@
+# Copyright (C) 2017 Free Software Foundation, Inc.
+#
+# Permission is granted to copy, distribute and/or modify this document
+# under the terms of the GNU Free Documentation License, Version 1.3
+# or any later version published by the Free Software Foundation;
+# with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+# A copy of the license is included in the section entitled "GNU
+# Free Documentation License".
+
 /*! \page page_pmt Polymorphic Types
 
-\section intro Introduction
+\section pmt_introduction Introduction
 
 Polymorphic Types are opaque data types that are designed as generic
 containers of data that can be safely passed around between blocks and
@@ -9,8 +18,136 @@ message passing interfaces. The most complete list of PMT function is,
 of course, the source code, specifically the header file pmt.h. This
 manual page summarizes the most important features and points of PMTs.
 
+Let's dive straight into some Python code and see how we can use
+PMTs:
 
-\section datatype PMT Data Type
+\code
+>>> import pmt
+>>> P = pmt.from_long(23)
+>>> type(P)
+<class 'pmt.pmt_swig.swig_int_ptr'>
+>>> print P
+23
+>>> P2 = pmt.from_complex(1j)
+>>> type(P2)
+<class 'pmt.pmt_swig.swig_int_ptr'>
+>>> print P2
+0+1i
+>>> pmt.is_complex(P2)
+True
+\endcode
+
+First, the pmt module is imported. We assign two values (P and P2)
+with PMTs using the from_long() and from_complex() calls,
+respectively. As we can see, they are both of the same type! This
+means we can pass these variables to C++ through SWIG, and C++ can
+handle this type accordingly.
+
+The same code as above in C++ would look like this:
+
+\code
+#include <pmt/pmt.h>
+// [...]
+pmt::pmt_t P = pmt::from_long(23);
+std::cout << P << std::endl;
+pmt::pmt_t P2 = pmt::from_complex(gr_complex(0, 1)); // Alternatively: pmt::from_complex(0, 1)
+std::cout << P2 << std::endl;
+std::cout << pmt::is_complex(P2) << std::endl;
+\endcode
+
+Two things stand out in both Python and C++: First we can simply print
+the contents of a PMT. How is this possible? Well, the PMTs have
+in-built capability to cast their value to a string (this is not
+possible with all types, though). Second, PMTs must obviously know
+their type, so we can query that, e.g. by calling the is_complex()
+method.
+
+When assigning a non-PMT value to a PMT, we can use the from_*
+methods, and use the to_* methods to convert back:
+
+\code
+pmt::pmt_t P_int = pmt::from_long(42);
+int i = pmt::to_long(P_int);
+pmt::pmt_t P_double = pmt::from_double(0.2);
+double d = pmt::to_double(P_double);
+\endcode
+
+String types play a bit of a special role in PMTs, as we will see
+later, and have their own converter:
+
+\code
+pmt::pmt_t P_str = pmt::string_to_symbol("spam");
+pmt::pmt_t P_str2 = pmt::intern("spam");
+std::string str = pmt::symbol_to_string(P_str);
+\endcode
+
+The pmt::intern is another way of saying pmt::string_to_symbol.
+
+In Python, we can make use of the dynamic typing, and there's actually a
+helper function to do these conversions (C++ also has a helper
+function for converting to PMTs called pmt::mp(), but its less
+powerful, and not quite as useful, because types are always strictly
+known in C++):
+
+\code
+P_int = pmt.to_pmt(42)
+i = pmt.to_python(P_int)
+P_double = pmt.to_pmt(0.2)
+d = pmt.to_double(P_double)
+\endcode
+
+On a side note, there are three useful PMT constants, which can be
+used in both Python and C++ domains. In C++, these can be used as
+such:
+
+\code
+pmt::pmt_t P_true = pmt::PMT_T;
+pmt::pmt_t P_false = pmt::PMT_F;
+pmt::pmt_t P_nil = pmt::PMT_NIL;
+\endcode
+
+In Python:
+
+\code
+P_true = pmt.PMT_T
+P_false = pmt.PMT_F
+P_nil = pmt.PMT_NIL
+\endcode
+
+pmt.PMT_T and pmt.PMT_F are boolean PMT types.
+
+To be able to go back to C++ data types, we need to be able to find
+out the type from a PMT. The family of is_* methods helps us do that:
+
+\code
+double d;
+if (pmt::is_integer(P)) {
+    d = (double) pmt::to_long(P);
+} else if (pmt::is_real(P)) {
+    d = pmt::to_double(P);
+} else {
+    // We really expected an integer or a double here, so we don't know what to do
+    throw std::runtime_error("expected an integer!");
+}
+\endcode
+
+It is important to do type checking since we cannot unpack a PMT of
+the wrong data type.
+
+We can compare PMTs without knowing their type by using the
+pmt::equal() function:
+
+\code
+if (pmt::eq(P_int, P_double)) {
+    std::cout << "Equal!" << std::endl; // This line will never be reached
+\endcode
+
+The rest of this page provides more depth into how to handle different
+data types with the PMT library.
+
+
+
+\section pmt_datatype PMT Data Type
 
 All PMTs are of the type pmt::pmt_t. This is an opaque container and
 PMT functions must be used to manipulate and even do things like
@@ -57,7 +194,7 @@ The constants in the PMT library are:
 - pmt::PMT_F - a PMT False
 - pmt::PMT_NIL - an empty PMT (think Python's 'None')
 
-\section insert Inserting and Extracting Data
+\section pmt_insert Inserting and Extracting Data
 
 Use pmt.h for a complete guide to the list of functions used to create
 PMTs and get the data from a PMT. When using these functions, remember
@@ -91,7 +228,7 @@ Pairs, dictionaries, and vectors have different constructors and ways
 to manipulate them, and these are explained in their own sections.
 
 
-\section strings Strings
+\section pmt_strings Strings
 
 PMTs have a way of representing short strings. These strings are
 actually stored as interned symbols in a hash table, so in other
@@ -114,7 +251,7 @@ std::string s = pmt::symbol_to_string(str0);
 \endcode
 
 
-\section tests Tests and Comparisons
+\section pmt_tests Tests and Comparisons
 
 The PMT library comes with a number of functions to test and compare
 PMT objects. In general, for any PMT data type, there is an equivalent
@@ -144,7 +281,7 @@ if(pmt::is_double(pmt_a))
 \endcode
 
 
-\section dict Dictionaries
+\section pmt_dict Dictionaries
 
 PMT dictionaries and lists of key:value pairs. They have a
 well-defined interface for creating, adding, removing, and accessing
@@ -179,8 +316,8 @@ key0 = pmt.intern("int")
 val0 = pmt.from_long(123)
 val1 = pmt.from_long(234)
 
-key1 = pmt.tern("double")
-val2 = pmt.om_double(5.4321)
+key1 = pmt.intern("double")
+val2 = pmt.from_double(5.4321)
 
 # Make an empty dictionary
 a = pmt.make_dict()
@@ -211,7 +348,7 @@ if(pmt.dict_has_key(a, key0) and pmt.eq(ref, pmt.PMT_NIL)):
     print "Trouble! We have key0, but it returned PMT_NIL"
 \endcode
 
-\section vectors Vectors
+\section pmt_vectors Vectors
 
 PMT vectors come in two forms: vectors of PMTs and vectors of uniform
 data. The standard PMT vector is a vector of PMTs, and each PMT can be
@@ -265,12 +402,12 @@ deal of harm. But it's only unlikely, not impossible. Best to use
 mutexes whenever manipulating data in a vector.
 
 
-\subsection blob BLOB
+\subsection pmt_blob BLOB
 
 A BLOB is a 'binary large object' type. In PMT's, this is actually
 just a thin wrapper around a u8vector.
 
-\section pairs Pairs
+\section pmt_pairs Pairs
 
 Pairs are inspired by LISP 'cons' data types, so you will find the
 language here comes from LISP. A pair is just a pair of PMT
@@ -284,7 +421,7 @@ objects. They are manipulated using the following functions:
 - void pmt::set_cdr(pmt_t pair, pmt_t value): Stores value in the cdr field
 
 
-\section serdes Serializing and Deserializing
+\section pmt_serdes Serializing and Deserializing
 
 It is often important to hide the fact that we are working with PMTs
 to make them easier to transmit, store, write to file, etc. The PMT
@@ -333,7 +470,7 @@ readable, but the point of serializing is not to make a human-readable
 string. This is only done here as a test.
 
 
-\section printing Printing
+\section pmt_printing Printing
 
 In Python, the __repr__ function of a PMT object is overloaded to call
 'pmt::write_string'. This means that any time we call a formatted
@@ -347,6 +484,23 @@ object. In C++, we can inline print the contents of a PMT like:
 \code
 pmt::pmt_t a pmt::from_double(1.0);
 std::cout << "The PMT a contains " << a << std::endl;
+\endcode
+
+
+\section pmt_python Conversion between Python Objects and PMTs
+
+Although PMTs can be manipulated in Python using the Python versions
+of the C++ interfaces, there are some additional goodies that make it
+easier to work with PMTs in python. There are functions to automate
+the conversion between PMTs and Python types for booleans, strings,
+integers, longs, floats, complex numbers, dictionaries, lists, tuples
+and combinations thereof.
+
+Two functions capture most of this functionality:
+
+\code
+pmt.to_pmt    # Converts a python object to a PMT.
+pmt.to_python # Converts a PMT into a python object.
 \endcode
 
 */
