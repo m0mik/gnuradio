@@ -64,10 +64,15 @@ namespace gr {
 		      io_signature::make(0, 0, 0),
 		      io_signature::make(1, 1, itemsize)),
 	d_itemsize(itemsize), d_fp(0), d_new_fp(0), d_repeat(repeat),
-	d_updated(false)
+	d_updated(false), d_file_begin(true), d_repeat_cnt(0),
+       d_add_begin_tag(pmt::PMT_NIL)
     {
       open(filename, repeat);
       do_update();
+
+      std::stringstream str;
+      str << name() << unique_id();
+      _id = pmt::string_to_symbol(str.str());
     }
 
     file_source_impl::~file_source_impl()
@@ -110,6 +115,16 @@ namespace gr {
 	throw std::runtime_error("can't open file");
       }
 
+      //Check to ensure the file will be consumed according to item size
+      fseek(d_new_fp, 0, SEEK_END);
+      int file_size = ftell(d_new_fp);
+      rewind (d_new_fp);
+
+      //Warn the user if part of the file will not be consumed.
+      if(file_size % d_itemsize){
+        GR_LOG_WARN(d_logger, "WARNING: File will not be fully consumed with the current output type");
+      }
+
       d_updated = true;
       d_repeat = repeat;
     }
@@ -139,7 +154,14 @@ namespace gr {
 	d_fp = d_new_fp;    // install new file pointer
 	d_new_fp = 0;
 	d_updated = false;
+       d_file_begin = true;
       }
+    }
+
+    void
+    file_source_impl::set_begin_tag(pmt::pmt_t val)
+    {
+      d_add_begin_tag = val;
     }
 
     int
@@ -156,7 +178,14 @@ namespace gr {
 	throw std::runtime_error("work with file not open");
 
       gr::thread::scoped_lock lock(fp_mutex); // hold for the rest of this function
+
       while(size) {
+        // Add stream tag whenever the file starts again
+        if (d_file_begin && d_add_begin_tag != pmt::PMT_NIL) {
+          add_item_tag(0, nitems_written(0) + noutput_items - size, d_add_begin_tag, pmt::from_long(d_repeat_cnt), _id);
+          d_file_begin = false;
+        }
+
 	i = fread(o, d_itemsize, size, (FILE*)d_fp);
 
 	size -= i;
@@ -178,6 +207,10 @@ namespace gr {
 	  fprintf(stderr, "[%s] fseek failed\n", __FILE__);
 	  exit(-1);
 	}
+        if (d_add_begin_tag != pmt::PMT_NIL) {
+          d_file_begin = true;
+          d_repeat_cnt++;
+        }
       }
 
       if(size > 0) {	     		// EOF or error

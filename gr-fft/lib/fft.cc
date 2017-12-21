@@ -26,7 +26,7 @@
 #include <volk/volk.h>
 #include <fftw3.h>
 
-#ifdef _MSC_VER //http://www.fftw.org/install/windows.html#DLLwisdom
+#ifdef _WIN32 //http://www.fftw.org/install/windows.html#DLLwisdom
 static void my_fftw_write_char(char c, void *f) { fputc(c, (FILE *) f); }
 #define fftw_export_wisdom_to_file(f) fftw_export_wisdom(my_fftw_write_char, (void*) (f))
 #define fftwf_export_wisdom_to_file(f) fftwf_export_wisdom(my_fftw_write_char, (void*) (f))
@@ -36,7 +36,11 @@ static int my_fftw_read_char(void *f) { return fgetc((FILE *) f); }
 #define fftw_import_wisdom_from_file(f) fftw_import_wisdom(my_fftw_read_char, (void*) (f))
 #define fftwf_import_wisdom_from_file(f) fftwf_import_wisdom(my_fftw_read_char, (void*) (f))
 #define fftwl_import_wisdom_from_file(f) fftwl_import_wisdom(my_fftw_read_char, (void*) (f))
-#endif //_MSC_VER
+#include <fcntl.h> 
+#include <io.h>
+#define O_NOCTTY 0
+#define O_NONBLOCK 0
+#endif //_WIN32
 
 #include <stdlib.h>
 #include <string.h>
@@ -46,10 +50,13 @@ static int my_fftw_read_char(void *f) { return fgetc((FILE *) f); }
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/interprocess/sync/file_lock.hpp>
 namespace fs = boost::filesystem;
 
 namespace gr {
   namespace fft {
+    static boost::mutex wisdom_thread_mutex;
+	boost::interprocess::file_lock wisdom_lock;
 
     gr_complex *
     malloc_complex(int size)
@@ -89,6 +96,20 @@ namespace gr {
       static fs::path path;
       path = fs::path(gr::appdata_path()) / ".gr_fftw_wisdom";
       return path.string();
+    }
+
+    static void
+    lock_wisdom()
+    {
+	  wisdom_thread_mutex.lock(); 
+	  wisdom_lock.lock();
+    }
+
+    static void
+    unlock_wisdom()
+    {
+      wisdom_lock.unlock();
+      wisdom_thread_mutex.unlock();
     }
 
     static void
@@ -142,6 +163,15 @@ namespace gr {
     {
       // Hold global mutex during plan construction and destruction.
       planner::scoped_lock lock(planner::mutex());
+	  const std::string wisdom_lock_file = wisdom_filename() + ".lock";
+	  int fd = open(wisdom_lock_file.c_str(),
+		  O_WRONLY | O_CREAT | O_NOCTTY | O_NONBLOCK,
+		  0666);
+	  if (fd < 0) {
+		  throw std::exception();
+	  }
+	  close(fd);
+	  wisdom_lock = boost::interprocess::file_lock(wisdom_lock_file.c_str());
 
       assert (sizeof (fftwf_complex) == sizeof (gr_complex));
 
@@ -162,6 +192,7 @@ namespace gr {
 
       d_nthreads = nthreads;
       config_threading(nthreads);
+      lock_wisdom();
       import_wisdom();	// load prior wisdom from disk
 
       d_plan = fftwf_plan_dft_1d (fft_size,
@@ -175,6 +206,7 @@ namespace gr {
         throw std::runtime_error ("fftwf_plan_dft_1d failed");
       }
       export_wisdom();	// store new wisdom to disk
+      unlock_wisdom();
     }
 
     fft_complex::~fft_complex()
@@ -233,6 +265,7 @@ namespace gr {
 
       d_nthreads = nthreads;
       config_threading(nthreads);
+      lock_wisdom();
       import_wisdom();	// load prior wisdom from disk
 
       d_plan = fftwf_plan_dft_r2c_1d (fft_size,
@@ -245,6 +278,7 @@ namespace gr {
         throw std::runtime_error ("fftwf_plan_dft_r2c_1d failed");
       }
       export_wisdom();	// store new wisdom to disk
+      unlock_wisdom();
     }
 
     fft_real_fwd::~fft_real_fwd()
@@ -303,6 +337,7 @@ namespace gr {
 
       d_nthreads = nthreads;
       config_threading(nthreads);
+      lock_wisdom();
       import_wisdom();	// load prior wisdom from disk
 
       // FIXME If there's ever a chance that the planning functions
@@ -318,6 +353,7 @@ namespace gr {
         throw std::runtime_error ("fftwf_plan_dft_c2r_1d failed");
       }
       export_wisdom ();	// store new wisdom to disk
+      unlock_wisdom();
     }
 
     fft_real_rev::~fft_real_rev ()

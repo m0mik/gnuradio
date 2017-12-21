@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2011-2013 Free Software Foundation, Inc.
+ * Copyright 2011-2013,2017 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -41,10 +41,16 @@ namespace gr {
     GR_BLOCK_GW_WORK_INTERP,
   };
 
+  //! Magic return values from general_work, \ref gr::block::WORK_CALLED_PRODUCE
+  enum block_gw_work_return_type{
+    WORK_CALLED_PRODUCE = -2,
+    WORK_DONE = -1
+  };
   enum tag_propagation_policy_t {
     TPP_DONT = 0,
     TPP_ALL_TO_ALL = 1,
-    TPP_ONE_TO_ONE = 2
+    TPP_ONE_TO_ONE = 2,
+    TPP_CUSTOM = 3
   };
 
   /*!

@@ -131,31 +131,30 @@ ELSE()
     MESSAGE(status "Skipping compiler version check.")
 ENDIF()
 
-# Configure C++ and C standards
-IF(CMAKE_VERSION VERSION_LESS "3.1")
-    IF(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++98")
-    ELSEIF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++98")
-    ELSEIF(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++98")
-    ELSE()
-        MESSAGE(warning "C++ standard could not be set because compiler is not GNU, Clang or MSVC.")
-    ENDIF()
+# Configure C++ standard if not externally specified (will actually be
+# set after CppUnit check below). Use the variable CMAKE_CXX_STANDARD
+# since it will actually be used for this purposes starting in CMake 3.1.
 
-    IF(CMAKE_C_COMPILER_ID STREQUAL "GNU")
-        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
-    ELSEIF(CMAKE_C_COMPILER_ID STREQUAL "Clang")
-        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
-    ELSEIF(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
-        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11")
-    ELSE()
-        MESSAGE(warning "C standard could not be set because compiler is not GNU, Clang or MSVC.")
-    ENDIF()
-ELSE()
-    SET(CMAKE_C_STANDARD 90)
+IF(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     SET(CMAKE_CXX_STANDARD 98)
+ELSEIF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    SET(CMAKE_CXX_STANDARD 98)
+ELSEIF(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    SET(CMAKE_CXX_STANDARD 98)
+ELSE()
+    message(warning "C++ standard could not be set because compiler is not GNU, Clang or MSVC.")
 ENDIF()
+
+IF(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
+ELSEIF(CMAKE_C_COMPILER_ID STREQUAL "Clang")
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
+ELSEIF(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11")
+ELSE()
+    message(warning "C standard could not be set because compiler is not GNU, Clang or MSVC.")
+ENDIF()
+
 
 ########################################################################
 # Environment setup
@@ -175,6 +174,12 @@ endif(IMPORT_EXECUTABLES)
 #set file that the native build will fill with exports
 set(EXPORT_FILE ${CMAKE_BINARY_DIR}/ImportExecutables.cmake)
 file(WRITE ${EXPORT_FILE}) #blank the file (subdirs will append)
+
+########################################################################
+# Incorporate CMake function/macros overloading.
+########################################################################
+
+include(CMakeOverloads)
 
 ########################################################################
 # Compiler specific setup
@@ -210,6 +215,10 @@ endif(MSVC)
 
 if(WIN32)
 	add_definitions(-D_USE_MATH_DEFINES)
+
+	if (CMAKE_SIZEOF_VOID_P EQUAL 8)
+		add_definitions(-DMS_WIN64)
+	endif(CMAKE_SIZEOF_VOID_P EQUAL 8)
 endif(WIN32)
 
 # Record Compiler Info for record
@@ -219,16 +228,16 @@ IF(MSVC)
     IF(MSVC90)   #Visual Studio 9
         SET(cmake_c_compiler_version "Microsoft Visual Studio 9.0")
         SET(cmake_cxx_compiler_version "Microsoft Visual Studio 9.0")
-    ELSE(MSVC10) #Visual Studio 10
+    ELSEIF(MSVC10) #Visual Studio 10
         SET(cmake_c_compiler_version "Microsoft Visual Studio 10.0")
         SET(cmake_cxx_compiler_version "Microsoft Visual Studio 10.0")
-    ELSE(MSVC11) #Visual Studio 11
+    ELSEIF(MSVC11) #Visual Studio 11
         SET(cmake_c_compiler_version "Microsoft Visual Studio 11.0")
         SET(cmake_cxx_compiler_version "Microsoft Visual Studio 11.0")
-    ELSE(MSVC12) #Visual Studio 12
+    ELSEIF(MSVC12) #Visual Studio 12
         SET(cmake_c_compiler_version "Microsoft Visual Studio 12.0")
         SET(cmake_cxx_compiler_version "Microsoft Visual Studio 12.0")
-    ELSE(MSVC14) #Visual Studio 14
+    ELSEIF(MSVC14) #Visual Studio 14
         SET(cmake_c_compiler_version "Microsoft Visual Studio 14.0")
         SET(cmake_cxx_compiler_version "Microsoft Visual Studio 14.0")
     ENDIF()
@@ -364,6 +373,19 @@ find_package(CppUnit ${GR_CPPUNIT_MIN_VERSION})
 GR_REGISTER_COMPONENT("testing-support" ENABLE_TESTING
     CPPUNIT_FOUND
 )
+
+# check if CppUnit version is 1.14.0 or greater; requires c++11 ...
+
+if(CPPUNIT_FOUND AND NOT "${CPPUNIT_VERSION}" VERSION_LESS "1.14.0")
+    message(WARNING "\nWarning: CppUnit version is ${CPPUNIT_VERSION} which requires C++11 for building. Trying to set CMake internally to use C++11 ...")
+    SET(CMAKE_CXX_STANDARD 11)
+endif()
+
+# if cmake version is < 3.1, explicitly set C++ standard to use.
+
+if(${CMAKE_VERSION} VERSION_LESS "3.1")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++${CMAKE_CXX_STANDARD}")
+endif()
 
 ########################################################################
 # Add optional dlls specified in DLL_PATHS
